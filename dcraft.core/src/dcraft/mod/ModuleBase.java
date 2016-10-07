@@ -1,0 +1,45 @@
+/* ************************************************************************
+#
+#  designCraft.io
+#
+#  http://designcraft.io/
+#
+#  Copyright:
+#    Copyright 2014 eTimeline, LLC. All rights reserved.
+#
+#  License:
+#    See the license.txt file in the project's top-level directory for details.
+#
+#  Authors:
+#    * Andy White
+#
+************************************************************************ */
+package dcraft.mod;
+
+import dcraft.xml.XElement;
+
+abstract public class ModuleBase implements IModule {
+	protected long starttime = System.currentTimeMillis();
+	protected ModuleLoader loader = null;
+	protected XElement config = null;
+	
+	@Override
+	public void setLoader(ModuleLoader v) {
+		this.loader = v;
+	}
+	
+	@Override
+	public ModuleLoader getLoader() {
+		return this.loader;
+	}
+	
+	@Override
+	public long startTime() {
+		return this.starttime;
+	}
+
+	@Override
+	public void init(XElement config) {
+		this.config = config;
+	}
+}

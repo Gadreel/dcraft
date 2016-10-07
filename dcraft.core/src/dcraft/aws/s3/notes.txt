@@ -1,0 +1,10 @@
+
+
+considered AWS SDK, too complex
+considered system based on jets3t-0.9.4, too complex
+	http://www.jets3t.org/downloads.html
+
+trying to work off of 
+	Amazon S3 Library for REST in Java
+	https://aws.amazon.com/items/132?externalID=132
+

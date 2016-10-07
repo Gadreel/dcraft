@@ -1,0 +1,567 @@
+/* ************************************************************************
+#
+#  designCraft.io
+#
+#  http://designcraft.io/
+#
+#  Copyright:
+#    Copyright 2014 eTimeline, LLC. All rights reserved.
+#
+#  License:
+#    See the license.txt file in the project's top-level directory for details.
+#
+#  Authors:
+#    * Andy White
+#
+************************************************************************ */
+package dcraft.struct.builder;
+
+import io.netty.buffer.ByteBuf;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.joda.time.DateTime;
+
+import dcraft.lang.BigDateTime;
+import dcraft.lang.Memory;
+import dcraft.struct.CompositeStruct;
+import dcraft.struct.RecordStruct;
+import dcraft.struct.scalar.AnyStruct;
+import dcraft.struct.scalar.BigDateTimeStruct;
+import dcraft.struct.scalar.BigIntegerStruct;
+import dcraft.struct.scalar.BinaryStruct;
+import dcraft.struct.scalar.BooleanStruct;
+import dcraft.struct.scalar.DateTimeStruct;
+import dcraft.struct.scalar.DecimalStruct;
+import dcraft.struct.scalar.IntegerStruct;
+import dcraft.struct.scalar.NullStruct;
+import dcraft.struct.scalar.StringStruct;
+import dcraft.util.Base64;
+import dcraft.util.TimeUtil;
+
+abstract public class JsonBuilder implements ICompositeBuilder {
+	protected BuilderInfo cstate = null;
+	protected List<BuilderInfo> bstate = new ArrayList<BuilderInfo>(); 
+	protected boolean complete = false;
+	protected boolean pretty = false;
+	protected int streamindent = 0;
+	
+	public void setStreamIndent(int v) {
+		this.streamindent = v;
+	}
+	
+	public JsonBuilder(boolean pretty) {
+		this.pretty = pretty;
+	}
+	
+	@Override
+	public BuilderState getState() {
+		return (this.cstate != null) ? this.cstate.State : (this.complete) ? BuilderState.Complete : BuilderState.Ready;
+	}
+	
+	@Override
+	public ICompositeBuilder record(Object... props) throws BuilderStateException {
+		this.startRecord();
+		
+		String name = null;
+		
+		for (Object o : props) {
+			if (name != null) {
+				this.field(name, o);				
+				name = null;
+			}
+			else {
+				if (o == null)
+					throw new BuilderStateException("Null Field Name");
+					
+				name = o.toString();
+			}
+		}
+		
+		this.endRecord();
+		
+		return this;
+	}
+	
+	@Override
+	public ICompositeBuilder startRecord() throws BuilderStateException {
+		// if in a list and need comma
+		if ((this.cstate != null) && (this.cstate.State == BuilderState.InList) && this.cstate.CommaNeeded) {
+			this.write(", ");
+			
+			if (this.pretty) { 
+				this.write("\n");
+				this.indent();
+			}
+			
+			this.cstate.CommaNeeded = false;
+		}
+		
+		// indicate we are in a record
+		this.cstate = new BuilderInfo(BuilderState.InRecord, (this.cstate != null) ? this.cstate.indent + 1 : 1);
+		this.bstate.add(cstate);
+		
+		this.write(" { ");
+		
+		if (this.pretty) { 
+			this.write("\n");
+			this.indent();
+		}
+		
+		return this;
+	}
+	
+	@Override
+	public ICompositeBuilder endRecord() throws BuilderStateException {
+		// cannot call end rec with being in a record or field
+		if ((this.cstate == null) || (this.cstate.State == BuilderState.InList))
+			throw new BuilderStateException("Cannot end record when in list");
+		
+		// if in a field, finish it
+		if (this.cstate.State == BuilderState.InField)
+			this.endField();
+		
+		// return to parent
+		this.popState();
+		
+		if (this.pretty) { 
+			this.write("\n");
+			this.indent();
+		}
+		
+		this.write(" } ");
+		
+		// mark the value complete, let parent container know we need commas
+		this.completeValue();
+		
+		return this;
+	}
+
+	// names may contain only alpha-numerics
+	@Override
+	public ICompositeBuilder field(String name, Object value) throws BuilderStateException {
+		this.field(name);
+		this.value(value);
+		
+		return this;
+	}
+
+	/*
+	 * OK to call if in an unnamed field already (then adds name to the field)
+	 * or to call if in a record straight up
+	 */
+	@Override
+	public ICompositeBuilder field(String name) throws BuilderStateException {
+		// fields cannot occur outside of records
+		if ((this.cstate == null) || (this.cstate.State == BuilderState.InList))
+			throw new BuilderStateException("Cannot add field when in list");
+		
+		// if in a named field, finish it
+		if ((this.cstate.State == BuilderState.InField) && this.cstate.IsNamed)
+			this.endField();
+		
+		// if not yet in a field mark as such
+		if (this.cstate.State == BuilderState.InRecord)
+			this.field();
+		
+		this.value(name);
+		
+		return this;
+	}
+	
+	@Override
+	public ICompositeBuilder field() throws BuilderStateException {
+		// fields cannot occur outside of records
+		if ((this.cstate == null) || (this.cstate.State == BuilderState.InList))
+			throw new BuilderStateException("Cannot add field when in list");
+		
+		// if already in field then pop out of it
+		if (this.cstate.State == BuilderState.InField)
+			this.endField();
+		
+		// if pop leaves us hanging or not in record then bad
+		if ((this.cstate == null) || (this.cstate.State != BuilderState.InRecord))
+			throw new BuilderStateException("Cannot end field when not in record");
+		
+		// we should now be at record level, check for comma state
+		if (this.cstate.CommaNeeded) {
+			this.write(", ");
+		
+			if (this.pretty) { 
+				this.write("\n");
+				this.indent();
+			}
+			
+			this.cstate.CommaNeeded = false;
+		}
+		
+		// note that we are in a field now, value not completed
+		this.cstate = new BuilderInfo(BuilderState.InField, this.cstate.indent);
+		this.bstate.add(cstate);
+		
+		return this;
+	}
+	
+	protected void endField() throws BuilderStateException {
+		// cannot occur outside of field
+		if ((this.cstate == null) || (this.cstate.State == BuilderState.InList) || (this.cstate.State == BuilderState.InRecord))
+			throw new BuilderStateException("Cannot end field when not in field");
+		
+		// end the field
+		if (!this.cstate.ValueComplete)
+			this.write("null");
+
+		// return to the record state
+		this.popState();
+		
+		// we should now be at record level, mark comma state
+		this.cstate.CommaNeeded = true;
+	}
+	
+	@Override
+	public ICompositeBuilder list(Object... props) throws BuilderStateException {
+		this.startList();
+		
+		for (Object o : props)
+			this.value(o);
+		
+		this.endList();
+		
+		return this;
+	}
+	
+	@Override
+	public ICompositeBuilder startList() throws BuilderStateException {
+		// if in a list and need comma
+		if ((this.cstate != null) && (this.cstate.State == BuilderState.InList) && this.cstate.CommaNeeded) {
+			this.write(", ");
+			
+			if (this.pretty) { 
+				this.write("\n");
+				this.indent();
+			}
+			
+			this.cstate.CommaNeeded = false;
+		}
+		
+		// mark that we are in a list
+		this.cstate = new BuilderInfo(BuilderState.InList, (this.cstate != null) ? this.cstate.indent + 1 : 1);
+		this.bstate.add(cstate);
+		
+		// start out complete (an empty list is complete)
+		this.cstate.ValueComplete = true;
+		
+		this.write(" [ ");
+		
+		if (this.pretty) { 
+			this.write("\n");
+			this.indent();
+		}
+		
+		return this;
+	}
+	
+	@Override
+	public ICompositeBuilder endList() throws BuilderStateException {
+		// must be in a list
+		if ((this.cstate == null) || (this.cstate.State != BuilderState.InList))
+			throw new BuilderStateException("Cannot end list when not in list");
+		
+		if (!this.cstate.ValueComplete)
+			this.endItem();
+
+		// return to parent state
+		this.popState();
+		
+		if (this.pretty) { 
+			this.write("\n");
+			this.indent();
+		}
+		
+		// end list
+		this.write(" ] ");
+		
+		// mark the value complete, let parent container know we need commas
+		this.completeValue();
+		
+		return this;
+	}
+	
+	protected void indent() {
+		for (int i = 0; i < this.streamindent; i++)
+			this.writeChar('\t');
+		
+		if (this.cstate == null)
+			return;
+		
+		for (int i = 0; i < this.cstate.indent; i++)
+			this.writeChar('\t');
+	}
+
+	protected void endItem() throws BuilderStateException {
+		// cannot occur outside of field
+		if ((this.cstate == null) || (this.cstate.State != BuilderState.InList))
+			throw new BuilderStateException("Cannot end item when not in list");
+		
+		// end the item
+		if (!this.cstate.ValueComplete) {
+			this.write("null");
+			
+			// tell list that the lastest entry is complete
+			this.cstate.ValueComplete = true;
+		}
+		
+		// note need for comma in parent
+		this.cstate.CommaNeeded = true;
+	}
+	
+	@Override
+	public boolean needFieldName() {
+		if (this.cstate == null)
+			return false;
+
+		return ((this.cstate.State == BuilderState.InField) && !this.cstate.IsNamed);
+	}
+	
+	@Override
+	public ICompositeBuilder value(Object value) throws BuilderStateException {
+		// cannot occur outside of field or list
+		if ((this.cstate == null) || ((this.cstate.State != BuilderState.InField) && (this.cstate.State != BuilderState.InList)))
+			throw new BuilderStateException("Cannot add value unless in field or in list");
+
+		if ((this.cstate.State == BuilderState.InField) && !this.cstate.IsNamed) {
+			String name = value.toString();
+			
+			if (!RecordStruct.validateFieldName(name))
+				throw new BuilderStateException("Invalid field name");
+				
+			this.write("\"" + name + "\": ");
+			
+			this.cstate.IsNamed = true;
+			
+			return this;
+		}
+		
+		// if in a list, check if we need a comma 
+		if (this.cstate.State == BuilderState.InList) {			
+			if (!this.cstate.ValueComplete)
+				this.endItem();
+			
+			// we should now be at list level, check for comma state
+			if (this.cstate.CommaNeeded) {
+				this.write(", ");
+				
+				if (this.pretty) { 
+					this.write("\n");
+					this.indent();
+				}
+				
+				this.cstate.CommaNeeded = false;
+			}
+		}
+		
+		this.cstate.ValueComplete = false;
+		
+		// TODO handle other object types - reader, etc
+		if (value instanceof AnyStruct)
+			value = ((AnyStruct)value).getValue();
+		
+		// if object can handle it's own ouput then go ahead and use that 
+		if (value instanceof ICompositeOutput) {
+			((ICompositeOutput)value).toBuilder(this);
+			//this.completeValue();
+			return this;
+		}
+		
+		// TODO - either make Scalar support toBuilder or provide a better way to do the getValue thing
+		
+		if (value instanceof BooleanStruct)
+			value = ((BooleanStruct)value).getValue();
+		else if (value instanceof IntegerStruct)
+			value = ((IntegerStruct)value).getValue();
+		else if (value instanceof BigIntegerStruct)
+			value = ((BigIntegerStruct)value).getValue();
+		else if (value instanceof DecimalStruct)
+			value = ((DecimalStruct)value).getValue();
+		else if (value instanceof DateTimeStruct)
+			value = ((DateTimeStruct)value).getValue();
+		else if (value instanceof BigDateTimeStruct)
+			value = ((BigDateTimeStruct)value).getValue();
+		else if (value instanceof BinaryStruct) 
+			value = ((BinaryStruct)value).getValue();
+		else if (value instanceof StringStruct) 
+			value = ((StringStruct)value).getValue();	
+		else if (value instanceof NullStruct) 
+			value = ((NullStruct)value).getValue();	
+		
+		if (value == null) 
+			this.write("null");
+		else if (value instanceof Boolean)
+			this.write(value.toString());
+		else if (value instanceof Number) 
+			this.write(value.toString());
+		else if (value instanceof DateTime){
+			this.write("\"");
+			this.writeEscape(TimeUtil.stampFmt.print((DateTime)value));
+			this.write("\"");
+		}
+		else if (value instanceof BigDateTime){
+			this.write("\"");
+			this.writeEscape(((BigDateTime)value).toString());
+			this.write("\"");
+		}
+		else if (value instanceof ByteBuffer) 
+			this.write("\"" + Base64.encodeToString(((ByteBuffer)value).array(), false) + "\"");		// TODO more efficient
+		else if (value instanceof ByteBuf) 
+			this.write("\"" + Base64.encodeToString(((ByteBuf)value).array(), false) + "\"");		// TODO more efficient
+		else if (value instanceof Memory) 
+			this.write("\"" + Base64.encodeToString(((Memory)value).toArray(), false) + "\"");		// TODO more efficient
+		else if (value instanceof byte[]) 
+			this.write("\"" + Base64.encodeToString((byte[])value, false) + "\"");		// TODO more efficient
+		else if (value instanceof CharSequence) {
+			this.write("\"");
+			this.writeEscape((CharSequence) value);		
+			this.write("\"");
+		}
+		else {
+			this.write("\"");
+			this.writeEscape(value.toString());		
+			this.write("\"");
+		}
+		
+		// mark the value complete, let parent container know we need commas
+		this.completeValue();
+		
+		return this;
+	}
+	
+	@Override
+	public ICompositeBuilder rawValue(Object value) throws BuilderStateException {
+		// cannot occur outside of field or list
+		if ((this.cstate == null) || (this.cstate.State == BuilderState.InRecord))
+			throw new BuilderStateException("Cannot add JSON when not in field or in list");
+
+		if ((this.cstate.State == BuilderState.InField) && !this.cstate.IsNamed) 
+			throw new BuilderStateException("Cannot use JSON for name of field");
+		
+		// if in a list, check if we need a comma 
+		if (this.cstate.State == BuilderState.InList) {			
+			if (!this.cstate.ValueComplete)
+				this.endItem();
+			
+			// we should now be at list level, check for comma state
+			if (this.cstate.CommaNeeded) {
+				this.write(", ");
+				
+				if (this.pretty) { 
+					this.write("\n");
+					this.indent();
+				}
+				
+				this.cstate.CommaNeeded = false;
+			}
+		}
+		
+		this.cstate.ValueComplete = false;
+		
+		// TODO handle other object types - memory, reader, etc
+		this.write(value.toString());		// TODO more efficient
+		
+		// mark the value complete, let parent container know we need commas
+		this.completeValue();
+		
+		return this;
+	}
+	
+	public void writeEscape(CharSequence str) {
+		for (int i = 0; i < str.length(); i++)
+			this.writeEscape(str.charAt(i));
+	}
+	
+	public void writeEscape(char ch) {
+		  switch (ch) {
+		    case '\\':
+		    	this.write("\\\\");
+		    	break;
+			case '"':
+				this.write("\\\"");
+				break;
+			case '\n':
+				this.write("\\n");
+				break;
+			case '\r':
+				this.write("\\r");
+				break;
+			case '\t':
+				this.write("\\t");
+			    break;
+			case '\b':
+				this.write("\\b");
+				break;
+			case '\f':
+				this.write("\\f");
+				break;
+			case '/':
+				this.write("\\/");
+				break;
+			default:
+	            //Reference: http://www.unicode.org/versions/Unicode5.1.0/
+				if((ch>='\u0000' && ch<='\u001F') || (ch>='\u007F' && ch<='\u009F') || (ch>='\u2000' && ch<='\u20FF')) {
+					String ss = Integer.toHexString(ch);
+					
+					this.write("\\u");
+					
+					for(int k = 0; k < 4 - ss.length(); k++)
+						this.writeChar('0');
+					
+					this.write(ss.toUpperCase());
+				}
+				else {
+			    	this.writeChar(ch);
+				}
+		  }			
+	}
+	
+	protected void popState() throws BuilderStateException {
+		if (this.cstate == null)
+			throw new BuilderStateException("Cannot pop state when no state is present");
+		
+		this.bstate.remove(this.bstate.size() - 1);
+		
+		if (this.bstate.size() == 0) {
+			this.cstate = null;
+			this.complete = true;
+		}
+		else
+			this.cstate = this.bstate.get(this.bstate.size() - 1);
+	}
+	
+	protected void completeValue() throws BuilderStateException {
+		// if parent, mark it a having a complete value
+		if (this.cstate != null) {
+			this.cstate.ValueComplete = true;
+			
+			if (this.cstate.State == BuilderState.InField)
+				this.endField();
+			else
+				this.endItem();
+		}
+	}
+	
+	@Override
+	public Memory toMemory() {
+		// incompatible concepts
+		return null;
+	}
+	
+	@Override
+	public CompositeStruct toLocal() {
+		// incompatible concepts
+		return null;
+	}
+
+	abstract public void write(String v);
+	abstract public void writeChar(char v);
+}

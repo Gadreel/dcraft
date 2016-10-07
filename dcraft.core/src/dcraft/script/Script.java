@@ -1,0 +1,107 @@
+/* ************************************************************************
+#
+#  designCraft.io
+#
+#  http://designcraft.io/
+#
+#  Copyright:
+#    Copyright 2014 eTimeline, LLC. All rights reserved.
+#
+#  License:
+#    See the license.txt file in the project's top-level directory for details.
+#
+#  Authors:
+#    * Andy White
+#
+************************************************************************ */
+package dcraft.script;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import dcraft.hub.Hub;
+import dcraft.lang.op.OperationResult;
+import dcraft.util.StringUtil;
+import dcraft.xml.XElement;
+
+public class Script {
+	static public final Pattern includepattern = Pattern.compile("(\\s*<\\?include\\s+\\/[A-Za-z0-9-_\\/]+\\.dcsl\\.xml\\s+\\?>\\s*\r?\n)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+	
+	protected XElement xml = null;
+	protected Map<String,Instruction> functions = new HashMap<String,Instruction>();
+	protected Instruction main = null;
+	protected String source = null;
+
+    public Script() {
+    }
+
+    public XElement getXml() {
+        return this.xml; 
+    }
+
+    public Instruction getMain() {
+    	return this.main;
+    }
+
+    public Instruction getFunction(String name) {
+    	return this.functions.get(name);
+    }
+    
+	public String getTitle() {
+		if (this.xml == null)
+			return null;
+		
+		XElement sc = this.xml.find("Script");
+		
+		return (sc != null) ? sc.getAttribute("Title") : "[Untitled]"; 
+	}
+	
+	public String getSource() {
+		return this.source;
+	}
+
+    public OperationResult compile(XElement doc, String src) {
+        this.xml = doc;
+        this.source = src;
+        this.main = null;
+        this.functions.clear();
+        
+        OperationResult log = new OperationResult();
+        
+        if (doc == null) {
+        	log.error(1, "No script document provided, cannot compile.");		// TODO codes
+        	return log;
+        }
+        
+        ActivityManager manager = Hub.instance.getActivityManager();
+        
+        for (XElement func : doc.selectAll("Function")) {
+        	String fname = func.getAttribute("Name");
+        	
+        	if (StringUtil.isEmpty(fname))
+        		continue;
+        	
+	        Instruction ni = manager.createInstruction(func);
+	        ni.setXml(func);
+	        ni.compile(manager, log);
+	        
+	        this.functions.put(fname, ni);
+        }
+        
+        XElement node = doc.find("Main");
+
+        if (node == null) {
+        	log.errorTr(506);
+        }
+        else {
+	        Instruction ni = manager.createInstruction(node);
+	        ni.setXml(node);
+	        ni.compile(manager, log);
+	
+	        this.main = ni; 
+        }
+        
+        return log;
+    }
+}

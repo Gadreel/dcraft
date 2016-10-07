@@ -1,0 +1,62 @@
+/* ************************************************************************
+#
+#  designCraft.io
+#
+#  http://designcraft.io/
+#
+#  Copyright:
+#    Copyright 2014 eTimeline, LLC. All rights reserved.
+#
+#  License:
+#    See the license.txt file in the project's top-level directory for details.
+#
+#  Authors:
+#    * Andy White
+#
+************************************************************************ */
+package dcraft.api;
+
+import dcraft.bus.Message;
+import dcraft.lang.TimeoutPlan;
+
+abstract public class ServiceResult extends dcraft.bus.ServiceResult {
+	protected ApiSession capi = null;
+	
+	public void setSession(ApiSession v) {
+		this.capi = v;
+	}
+	
+	// timeout on regular schedule  
+	public ServiceResult() {
+		super(TimeoutPlan.Regular);
+	}
+	
+	public ServiceResult(TimeoutPlan plan) {
+		super(plan);
+	}
+	
+	public void setReply(Message v) {
+		this.setResult(v);
+
+		this.opcontext.logResult(v);
+	}
+	
+	@Override
+	public boolean abandon() {
+		ApiSession api = this.capi;
+		
+		if (super.abandon() && (api != null)) {
+			api.getReplyService().clearReply(this.replytag);
+			return true;
+		}
+		
+		return false;
+	}
+	
+	@Override
+	public void complete() {
+		super.complete();
+		
+		this.capi = null;  // keep circular refs down
+	}
+}
