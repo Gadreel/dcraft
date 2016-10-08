@@ -126,7 +126,7 @@ public class UIUtil {
 			.taskWithSubContext()
 			.withLogging(DebugLevel.Warn)
 			.withTitle("Working on web fragment: " + frag.getName())
-			.withBucket("www")
+			.withTopic("Web")
 			.withObserver(new OperationObserver() {
 				@Override
 				public void completed(OperationContext ctx) {

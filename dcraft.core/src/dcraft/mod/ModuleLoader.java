@@ -21,11 +21,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import dcraft.mod.Bundle;
+import dcraft.hub.Hub;
 import dcraft.util.StringUtil;
 import dcraft.xml.XElement;
 
-public class ModuleLoader extends Bundle {
+public class ModuleLoader {
+	public static ModuleLoader from(XElement el) {
+		ModuleLoader loader = new ModuleLoader();
+		loader.init(el);		
+		return loader;
+	}
+	
 	protected Map<String,ExtensionLoader> extensions = new HashMap<String,ExtensionLoader>();
 	protected List<ExtensionLoader> orderedExts = new ArrayList<ExtensionLoader>();
 	
@@ -59,17 +65,13 @@ public class ModuleLoader extends Bundle {
 		return this.orderedExts;
 	}
 
-	public ModuleLoader(ClassLoader cloader) {
-		super(cloader);
+	protected ModuleLoader() {
 	}
 	
 	public void init(XElement config) {
 		try {
 			this.config = config;		// TODO 
 			this.name = config.getAttribute("Name");
-			
-			for (XElement bel : config.selectAll("Library")) 
-				this.addLibrary(bel.getAttribute("Package"), bel.getAttribute("Name"), bel.getAttribute("Alias"));
 			
 			// after all bundles are loaded, instantiate the RunClass
 			String runclass = config.getAttribute("RunClass");
@@ -78,12 +80,12 @@ public class ModuleLoader extends Bundle {
 			if (StringUtil.isEmpty(runclass)) 
 				runclass = "dcraft.service.ServiceModule";
 			
-			this.module = (IModule) this.getInstance(runclass);
+			this.module = (IModule) Hub.instance.getInstance(runclass);
 			this.module.setLoader(this);
 			this.module.init(this.setting);
 			
 			for (XElement bel : config.selectAll("Extension")) {
-				ExtensionLoader eloader = new ExtensionLoader(this.module, this);
+				ExtensionLoader eloader = ExtensionLoader.from(this.module);
 				eloader.init(bel);
 				this.extensions.put(eloader.getName(), eloader);
 				this.orderedExts.add(eloader);

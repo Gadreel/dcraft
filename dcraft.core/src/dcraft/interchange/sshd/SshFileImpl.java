@@ -17,6 +17,7 @@
 
 package dcraft.interchange.sshd;
 
+/*
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -39,8 +40,9 @@ import dcraft.log.Logger;
 import dcraft.struct.RecordStruct;
 import dcraft.work.IWork;
 import dcraft.work.TaskRun;
+*/
 
-public class SshFileImpl implements SshFile {
+public class SshFileImpl { /* implements SshFile {
     protected CommonPath filePath = null;
     protected FileSystemViewImpl fsView = null;
 
@@ -314,4 +316,5 @@ public class SshFileImpl implements SshFile {
 	public boolean isExecutable() {
 		return false;
 	}
+	*/
 }

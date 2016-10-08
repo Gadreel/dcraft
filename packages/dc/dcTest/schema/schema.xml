@@ -1,0 +1,172 @@
+<Schema>
+	<Database>
+		<Secure Tags="SysAdmin">
+			<Procedure Name="testProc1" Execute="testProc1^dctTest">
+				<Description>
+					Hardcoded example of a procedure returning a complex data result.
+				</Description>
+				<RecResponse>
+					<Field Name="Name" Type="String" />
+					<Field Name="Age" Type="Integer" />
+					<Field Name="Toys">
+						<List Type="String" />
+					</Field>
+					<Field Name="Friends">
+						<List>
+							<Record>
+								<Field Name="Name" Type="String" />
+								<Field Name="Age" Type="Integer" />
+							</Record>
+						</List>
+					</Field>
+				</RecResponse>
+			</Procedure>
+			<Procedure Name="testProc2" Execute="testProc2^dctTest">
+				<Description>
+					Example of a procedure that takes inputs, validates them
+					and then returns a processed result.
+				</Description>
+				<ListRequest Type="String" />
+				<ListResponse Type="String" />
+			</Procedure>
+			<Procedure Name="testProc3" Execute="testProc3^dctTest">
+				<Description>
+					Same as testProc2 only with localized messages.
+				</Description>
+				<ListRequest Type="String" />
+				<ListResponse Type="String" />
+			</Procedure>
+			<Procedure Name="dctListPeople" Execute="listPeople^dctToyTest">
+				<Description>
+					Get a list of names of all people in test data.
+					Optionally apply an age range filter
+				</Description>
+				<RecRequest>
+					<Field Name="MinAge" Type="Integer" />
+					<Field Name="MaxAge" Type="Integer" />
+				</RecRequest>
+				<ListResponse Type="String" />
+			</Procedure>
+			<Procedure Name="dctListToys" Execute="listToys^dctToyTest">
+				<Description>
+					Get a list of all toys in test data.
+					Optionally add in a keyword search filter
+				</Description>
+				<RecRequest>
+					<Field Name="Search" Type="String" />
+					<Field Name="X" Type="String" />
+				</RecRequest>
+				<ListResponse Type="String" />
+			</Procedure>
+			<Procedure Name="dctTablePeople" Execute="tablePeople^dctToyTest">
+				<Description>
+					Get a list of all people in test data in a tabular format.
+				</Description>
+				<ListResponse>
+					<List Type="Any" />
+				</ListResponse>
+			</Procedure>
+			<Procedure Name="dctGetPeople" Execute="getPeople^dctToyTest">
+				<Description>
+					Get a list of all people in test data in a complex data format.
+				</Description>
+				<ListResponse>
+					<Record>
+						<Field Name="Id" Type="Integer" />
+						<Field Name="Name" Type="String" />
+						<Field Name="Age" Type="Integer" />
+						<Field Name="Toys">
+							<List Type="String" />
+						</Field>
+						<Field Name="Friends">
+							<List>
+								<Record>
+									<Field Name="Name" Type="String" />
+									<Field Name="Age" Type="Integer" />
+								</Record>
+							</List>
+						</Field>
+						<Field Name="FriendedBy">
+							<List>
+								<Record>
+									<Field Name="Name" Type="String" />
+									<Field Name="Age" Type="Integer" />
+								</Record>
+							</List>
+						</Field>
+					</Record>
+				</ListResponse>
+			</Procedure>
+			<Procedure Name="dctAddPerson" Execute="addPerson^dctToyTest">
+				<Description>
+					Add a new person record to the test data
+				</Description>
+				<RecRequest>
+					<Field Name="Name" Type="String" Required="True" />
+					<Field Name="Age" Type="Integer" Required="True" />
+					<Field Name="Toys">
+						<List Type="String" />
+					</Field>
+					<Field Name="Friends">
+						<List Type="Integer" />
+					</Field>
+				</RecRequest>
+				<RecResponse>
+					<Field Name="Id" Type="Integer" />
+				</RecResponse>
+			</Procedure>
+		</Secure>
+	</Database>
+	
+	<Shared>		
+		<Record Id="Schema1Ex1">
+			<Field Name="Code" Type="Integer" />
+			<Field Name="Message" Type="String" />
+		</Record>
+		
+		<Record Id="Schema1Ex2">
+			<Field Name="Code" Type="Integer" Required="True" />
+			<Field Name="Message" Type="String" />
+		</Record>
+		
+		<List Id="Schema1Ex3" Type="Schema1Ex2" />
+		
+		<NumberType Id="Schema1Ex6" Class="dcraft.struct.scalar.IntegerStruct">
+			<NumberRestriction Min="10" Max="200" />
+		</NumberType>
+		
+		<Record Id="Schema1Ex7">
+			<Field Name="Code" Type="Schema1Ex6" Required="True" />
+			<Field Name="Message" Type="String" />
+		</Record>		
+	</Shared>
+	
+	<Services>
+		<Service Name="dcTestTasks">
+			<Secure Tags="User">
+				<Feature Name="Tests">
+					<Op Name="LoopSleepScript">
+						<Description>
+							Loop and sleep script task.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="LoopCount" Type="Integer" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="TaskId" Type="dcTinyString" />
+									<Field Name="WorkId" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+	</Services>
+</Schema>

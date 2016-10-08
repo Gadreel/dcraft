@@ -143,7 +143,7 @@ public class UpdateUserRequest extends UpdateRecordRequest {
 			if (AddUserRequest.meetsPasswordPolicy(pword, false).hasErrors())
 				return null;		
 			
-			this.withSetField("dcPassword", OperationContext.get().getUserContext().getDomain().getObfuscator().hashPassword(pword));
+			this.withSetField("dcPassword", OperationContext.get().getUserContext().getTenant().getObfuscator().hashPassword(pword));
 		}
 		
 		// warning - setting an empty list removes all tags

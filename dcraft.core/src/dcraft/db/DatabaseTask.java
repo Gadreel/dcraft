@@ -20,7 +20,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.OperationContext;
 import dcraft.schema.SchemaManager;
@@ -40,7 +40,7 @@ import dcraft.struct.builder.ICompositeBuilder;
 public class DatabaseTask {
 	protected DatabaseResult result = null;		// this is the official OC
 	protected RecordStruct request = null;
-	protected List<String> domains = null;
+	protected List<String> tenants = null;
 	protected IDatabaseManager dbm = null;
 	
 	public IDatabaseManager getDbm() {
@@ -71,17 +71,17 @@ public class DatabaseTask {
 		return this.request;
 	}
 	
-	public String getDomain() {
-		if ((this.domains == null) || (this.domains.size() == 0))		
-			return this.request.getFieldAsString("Domain");
+	public String getTenant() {
+		if ((this.tenants == null) || (this.tenants.size() == 0))		
+			return this.request.getFieldAsString("Tenant");
 		
-		return this.domains.get(this.domains.size() - 1);
+		return this.tenants.get(this.tenants.size() - 1);
 	}
 	
 	public SchemaManager getSchema() {
-		String did = this.getDomain();
+		String did = this.getTenant();
 		
-		DomainInfo di = Hub.instance.getDomainInfo(did);
+		TenantInfo di = Hub.instance.getTenantInfo(did);
 		
 		if (di != null)
 			return di.getSchema();
@@ -130,15 +130,15 @@ public class DatabaseTask {
 		this.result.complete();
 	}
 
-	public void pushDomain(String did) {
-		if (this.domains == null)
-			this.domains = new ArrayList<>();
+	public void pushTenant(String did) {
+		if (this.tenants == null)
+			this.tenants = new ArrayList<>();
 		
-		this.domains.add(did);
+		this.tenants.add(did);
 	}
 
-	public void popDomain() {
-		if (this.domains != null)
-			this.domains.remove(this.domains.size() - 1);
+	public void popTenant() {
+		if (this.tenants != null)
+			this.tenants.remove(this.tenants.size() - 1);
 	}
 }

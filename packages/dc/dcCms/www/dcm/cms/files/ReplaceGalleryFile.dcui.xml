@@ -1,0 +1,108 @@
+<dcui Title="Replace Variation" AuthTags="User">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Replace Variation</h1>
+						
+				<Form Name="UploadFile">
+					<div class="ui-field-contain">
+						<!-- label id="lblSelect" class="tlabel">Select File</label -->		
+						<div class="realfile">
+							<input type="file" id="dcmFile" class="file" />
+						</div>
+					</div>
+					
+					<div class="ui-field-contain">
+						<label id="lblTransfer" class="tlabel">Progress</label>		
+						<div class="progress">
+							<div id="fileProgressBar" class="pbar"></div>
+							<div id="fileProgressLabel" class="pbarlabel">0%</div>
+						</div>
+					</div>
+					
+					<div class="formbuttons">
+						<Button Click="DoUpload" Label="Upload" />
+					</div>
+				</Form>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[	
+			dcm.upload.init();
+			
+			// when user selects a file, check if it matches the resume
+			$('#dcmFile').change(function() {
+				dcm.upload.file = this.files[0]; 
+
+				// if we don't support slice then we do not support resume... not allowed
+				if (!dcm.upload.file.slice && !dcm.upload.file.webkitSlice && !dcm.upload.file.mozSlice) {
+					dcm.upload.endUpload();
+					
+					return;
+				}
+			});
+	]]></Function>
+	<Function Name="DoUpload"><![CDATA[
+			var entry = this;
+			
+			// if button is clicked after an upload has started then cancel 
+			if (dcm.upload.lastxhr != null) {
+				dcm.upload.canclick = true;
+				dcm.upload.lastxhr.abort();			
+				dc.pui.Popup.alert('User cancelled upload.');			
+				return;
+			}	
+			
+			// if doing a file upload started but not in progress with xhr
+			if (dcm.upload.aamt > 0) {
+				dcm.upload.canclick = true;
+				dc.pui.Popup.alert('User cancelled upload.');			
+				return;
+			}
+			
+			// if no file selected then stop and prompt
+			if (dcm.upload.file == null) {
+				dc.pui.Popup.alert('Select a file to upload');
+				return;
+			}
+			
+			var fname = dcm.upload.file.name;
+			
+			var extpos = fname.lastIndexOf('.');
+			
+			if (extpos == -1) {
+				dc.pui.Popup.alert('File name extension required, please enter one.');
+				return;
+			}
+			
+			var ext = fname.substr(extpos).toLowerCase();
+			//fname = fname.substr(0, extpos);
+
+			if (ext == '.jpeg')
+				ext = '.jpg';
+			
+			if ((ext != '.jpg') && (ext != '.png') && (ext != '.gif')) {
+				dc.pui.Popup.alert('File ext not recognized (' + ext + '), please use jpg, png or gif.');
+				return;
+			}
+			
+			var fullpath = entry.Params.Path + '.v/' + entry.Params.Alias + ext;
+
+			console.log(new Date() + ': Uploading: ' + fullpath);
+			
+			// otherwise start/resume upload
+			dcm.upload.requestUpload(null, 'WebGallery', fullpath, function() {
+				console.log(new Date() + ': Uploaded: ' + fullpath);
+
+				dc.pui.Loader.closePage(entry.Params.ReturnTo);
+				
+				//dc.pui.Loader.loadPage('/dcm/cms/files/ImageDetail', { 
+				//	Path: entry.Params.Path
+				//});	
+			}, true);
+	]]></Function>
+</dcui>

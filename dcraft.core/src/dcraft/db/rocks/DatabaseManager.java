@@ -37,6 +37,7 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
+import dcraft.db.Constants;
 import dcraft.db.DatabaseAudit;
 import dcraft.db.DatabaseResult;
 import dcraft.db.DatabaseTask;
@@ -83,6 +84,12 @@ public class DatabaseManager implements IDatabaseManager {
 		
 		this.config = config;
 
+		if ("true".equals(config.getAttribute("DMode"))) {
+			// tenants used to be called domains - ignore this if past version 0.8
+			Constants.DB_GLOBAL_TENANT_DB = "dcDomain";
+			Constants.DB_GLOBAL_TENANT_IDX_DB = "dcDomainIndex";
+		}
+		
 		// TODO load audit and replication settings
 		
 		RocksDB.loadLibrary();
@@ -246,7 +253,7 @@ public class DatabaseManager implements IDatabaseManager {
 		req.setField("Name", name);
 		req.setField("Stamp", this.allocateStamp(0));
 		req.setField("Params", params);
-		req.setField("Domain", request.hasDomain() ? request.getDomain() : cb.getContext().getUserContext().getDomainId());
+		req.setField("Tenant", request.hasTenant() ? request.getTenant() : cb.getContext().getUserContext().getTenantId());
 
 		cb.trace(0, "dcDb call prepared for procedure: " + name);
 		

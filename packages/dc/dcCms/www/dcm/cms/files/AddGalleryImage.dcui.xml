@@ -1,0 +1,55 @@
+<dcui Title="Add Image" AuthTags="User">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<TitledSection Title="Add Image">
+					<Form Name="AddFolder">
+						<FieldContainer Label="Path:">
+							<TextInput Name="Path" Required="true" Pattern="[\w-\/]+" placeholder="image name, no spaces and no extension - use dash instead of space" />
+						</FieldContainer>
+						
+						<div class="formbuttons">
+							<SubmitButton Label="Add" /> 
+						</div> 
+					</Form>
+				</TitledSection>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Path').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e">
+			e.AsNew = true;
+			e.Data = {
+				Path: ''
+			};
+	</Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			if (e.Data.Path.indexOf('/') != 0)
+				e.Data.Path = '/' + e.Data.Path;
+	
+			if (this.Params.Path && (this.Params.Path != '/'))
+				e.Data.Path = this.Params.Path + e.Data.Path;
+	
+			this.Store.Path = e.Data.Path;
+	
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'AddImage',
+				Body: {
+					ImagePath: e.Data.Path
+				}
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			dc.pui.Loader.loadPage('/dcm/cms/files/ImageDetail', { 
+				Path: this.Store.Path
+			}, true);	
+	]]></Function>
+</dcui>

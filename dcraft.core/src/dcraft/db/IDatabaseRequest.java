@@ -54,7 +54,7 @@ public interface IDatabaseRequest {
 	 * 
 	 * @return true if this request is root domain specific
 	 */
-	boolean hasDomain();
+	boolean hasTenant();
 	
-	String getDomain();
+	String getTenant();
 }

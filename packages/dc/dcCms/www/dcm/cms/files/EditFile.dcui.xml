@@ -1,0 +1,104 @@
+<dcui Title="Edit File">
+	<RequireLib Path="/dcw/js/ace-1.1.8/ace.js" />
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+	
+	<Skeleton>
+		<article id="dcappMain" class="dcFlexColumn" style="height: 100%; padding: 0;">
+			<div id="editImageControls" data-role="header" style="display: flex; justify-content: flex-end;">
+				<h1 id="lblFile">Edit File</h1>
+				
+				<div data-role="controlgroup" data-type="horizontal" class="ui-mini ui-btn-right">
+					<Link Click="DoSave" Label="Save" class="ui-btn" />
+					<Link Click="DoClose" Label="Close" class="ui-btn" />
+			    </div>
+			</div>
+			
+			<div id="edFile" style="flex: 1;"/>
+		</article>			
+
+		<!-- 	TODO
+		<IncludePart Path="/dcw/app/FullHeader" />
+		 -->
+	</Skeleton>
+
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			var path = entry.Params.Path;
+			
+			$('#lblFile').append(": " + path);
+			
+		    var editor = ace.edit('edFile');
+		    
+		    editor.setTheme("ace/theme/chrome");
+			editor.setShowPrintMargin(false);
+			editor.getSession().setTabSize(5);
+			editor.getSession().setUseSoftTabs(false);	    
+			editor.getSession().setUseWrapMode(true);
+			
+			if (path.endsWith('.css'))
+			    editor.getSession().setMode("ace/mode/css");
+			else if (path.endsWith('.html'))
+			    editor.getSession().setMode("ace/mode/html");
+			else if (path.endsWith('.xml'))
+			    editor.getSession().setMode("ace/mode/xml");
+			else if (path.endsWith('.js'))
+			    editor.getSession().setMode("ace/mode/javascript");
+			else if (path.endsWith('.md'))
+			    editor.getSession().setMode("ace/mode/markdown");
+			else if (path.endsWith('.groovy'))
+			    editor.getSession().setMode("ace/mode/groovy");
+			else if (path.endsWith('.text'))
+			    editor.getSession().setMode("ace/mode/text");
+			else if (path.endsWith('.json'))
+			    editor.getSession().setMode("ace/mode/javascript");
+			
+			entry.Store.CurrentEditor = editor;
+				
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'DomainFileStore',
+				Op: 'LoadFile',
+				Body: { FilePath: entry.Params.Path }
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to load file: ' + rmsg.Message);
+					return;
+				}
+						
+				entry.Store.CurrentEditor.setValue(rmsg.Body.Content, -1);
+			});
+    ]]></Function>
+	<Function Name="onDestroy"><![CDATA[
+			var entry = this;
+
+			if (entry.Store.CurrentEditor)
+				entry.Store.CurrentEditor.destroy();
+	
+			entry.Store.CurrentEditor = null;
+	]]></Function>
+	<Function Name="DoSave"><![CDATA[
+			var entry = this;
+			
+			if (entry.Store.CurrentEditor) {
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'DomainFileStore',
+					Op: 'SaveFile',
+					Body: { FilePath: entry.Params.Path, Content: entry.Store.CurrentEditor.getValue() }
+				}, function(rmsg) {
+					if (rmsg.Result > 0) {
+						dc.pui.Popup.alert('Unable to save file: ' + rmsg.Message);
+						return;
+					}
+					
+					dc.pui.Popup.alert('File saved');
+				});
+			}
+	]]></Function>
+	<Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Loader.closePage(entry.Params.ReturnTo);
+	]]></Function>
+</dcui>

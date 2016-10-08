@@ -1,0 +1,16 @@
+<dcui Title="Menu">
+	<Skeleton>
+		<Button Label="Show 1" Click="OnTest1" />
+		<Button Label="Show 2" Click="OnTest2" />
+		<Button Label="Close" Click="OnClose" />
+	</Skeleton>
+	<Function Name="OnClose"><![CDATA[
+			this.Layer.closePage();
+	]]></Function>
+	<Function Name="OnTest1"><![CDATA[
+			this.Layer.loadPage('/dcm/Test1');
+	]]></Function>
+	<Function Name="OnTest2"><![CDATA[
+			this.Layer.loadPage('/dcm/Test2');
+	]]></Function>
+</dcui>

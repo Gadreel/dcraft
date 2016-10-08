@@ -1,0 +1,389 @@
+<dcui Title="Image Detail" AuthTags="User">
+	<RequireStyle Path="/dcm/cms/css/main.css" />
+	<RequireLib Path="/dcm/cms/js/main.js" />
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+	<RequireLib Path="/dcw/js/jquery.fileDownload.js" />
+	
+	<Skeleton>
+		<article id="dcappMain" class="dcFlexColumn" style="height: 100%; padding: 0;">
+			<div id="editImageControls" data-role="header" style="display: flex; justify-content: flex-end;">
+			    <h1>Image Detail</h1>
+				
+				<div data-role="controlgroup" data-type="horizontal" class="ui-mini ui-btn-right">
+					<Button id="btnEditVar" Label="Edit Variation" Click="DoEdit" />
+					<Button Label="Upload Variation" Click="DoReplace" />
+					<Button Label="Edit All" Click="DoEditAll" />
+					<Button Label="Download" Click="DoDownload" />
+					<Button Label="Delete Image" Click="DoDelete" />
+					<Button Label="Return to Gallery" Click="DoReturn" />
+			    </div>
+			</div>
+		
+			<div id="sectEdit" style="display: flex; flex: 1; overflow: auto;">
+			    <div style="width: 300px;">
+					<h3 style="margin-left: 16px;">Variations</h3>
+					
+					<ul id="imageDetailVList" data-role="listview" data-inset="false" data-icon="false" />					
+				</div>
+
+				<div id="formArea" style="flex: 1; overflow: auto;">
+					<h3 id="lblVariation">Variation: <i class="fa fa-spinner fa-spin" /></h3>
+					
+					<div id="imageDetailImg" />
+				</div>
+			</div>
+		</article>
+		
+		<div data-role="popup" id="popEditVariation" data-theme="b">
+			<ul data-role="listview" data-inset="true" style="min-width:210px;">
+				<li data-role="list-divider">Choose an action</li>
+				<li><a href="#">View details</a></li>
+				<li><a href="#">Edit</a></li>
+				<li><a href="#">Disable</a></li>
+				<li><a href="#">Delete</a></li>
+			</ul>
+		</div>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (entry.Params.Path)
+				entry.Store.Path = entry.Params.Path;
+			else
+				entry.Store.Path = '/';
+			
+			// TODO test
+			//entry.Store.Path = '/Case-Studies/Brandon/Cover';
+			
+			var list = $('#imageDetailVList');		
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			list.listview('refresh');
+			
+			var tmsg = { 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'ImageDetail',
+				Body: {
+					ImagePath: entry.Store.Path
+				}
+			};
+			
+			dc.comm.sendMessage(tmsg, function(rmsg) {
+				if (rmsg.Result == 0) { 
+					entry.Store.Details = rmsg.Body;
+					
+					var list = $('#imageDetailVList');
+					
+					list.empty();
+
+					// Variations contains: Alias, Extension, LastModified, Size
+					if (!entry.Store.Details.GallerySettings)
+						entry.Store.Details.GallerySettings = { };
+					
+					// GallerySettings.Variations contains stuff like: ExactWidth, MinHeigh, MaxHeight, Alias, Name
+					
+					if (!entry.Store.Details.GallerySettings.Variations) 					
+						entry.Store.Details.GallerySettings.Variations = [];
+					
+					// make sure 'original' is in the list, as are any variations not in the list
+					// Variations contains: Alias, Extension, LastModified, Size
+					if (!entry.Store.Details.Variations)
+						entry.Store.Details.Variations = [];
+
+					// make sure 'original' is in the settings
+					var fndOriginal = false;
+					
+					for (var i1 = 0; i1 < entry.Store.Details.GallerySettings.Variations.length; i1++) {
+						var v = entry.Store.Details.GallerySettings.Variations[i1]; 
+						
+						if (v.Alias == 'original') {
+							fndOriginal = true;
+							entry.Store.Calc.GallVarPos = i1;
+							break;
+						}
+					}
+					
+					if (!fndOriginal) {
+						entry.Store.Calc.GallVarPos = entry.Store.Details.GallerySettings.Variations.length; 
+						entry.Store.Details.GallerySettings.Variations.push({ Alias: 'original', Name: 'Original' });
+					}
+					
+					// meld the variations together - settings and found
+					for (var i = 0; i < entry.Store.Details.Variations.length; i++) {
+						var item = entry.Store.Details.Variations[i];
+						var fnd = false;
+						
+						for (var i1 = 0; i1 < entry.Store.Details.GallerySettings.Variations.length; i1++) {
+							var v = entry.Store.Details.GallerySettings.Variations[i1]; 
+							
+							if (v.Alias == item.Alias) {
+								fnd = true;
+								v.SourcePos = i;
+								break;
+							}
+						}
+						
+						if (!fnd) 
+							entry.Store.Details.GallerySettings.Variations.push({ Alias: item.Alias, Name: item.Alias, SourcePos: i });
+					}
+					
+					var fndVarPos = false;
+					
+					for (var i1 = 0; i1 < entry.Store.Details.GallerySettings.Variations.length; i1++) {
+						var v = entry.Store.Details.GallerySettings.Variations[i1]; 
+					
+						var litm = $('<li></li>');
+						var fnd = false;
+						var anchr = null;
+						
+						if (dc.util.Number.isNumber(v.SourcePos)) { 
+							var item = entry.Store.Details.Variations[v.SourcePos];
+								
+							if (!fndVarPos) {
+								entry.Store.Calc.GallVarPos = i1;
+								fndVarPos = true;
+							}
+							
+							anchr = $('<a href="#"><h2>' + String.escapeHtml(v.Name) + '</h2>'
+									+ '<p>Alias: ' + String.escapeHtml(v.Alias) + ', Dimensions: ' + dc.cms.vary.formatDims(v) + '</p>'
+									+ '<p class="ui-li-aside"><strong>' + dcm.upload.fmtFileSize(item.Size) + '</strong></p></a>')
+						}	
+						else {
+							anchr = $('<a href="#"><h2>' + String.escapeHtml(v.Name) + '</h2>'
+									+ '<p>Alias: ' + String.escapeHtml(v.Alias) + ', Dimensions: ' + dc.cms.vary.formatDims(v) + '</p>'
+									+ '<p class="ui-li-aside error"><strong>Not Present</strong></p></a>')
+						}
+									
+						anchr.click(i1, function(e) {
+							entry.Store.Calc.GallVarPos = e.data;
+							entry.callPageFunc('SelectImage');
+							
+							e.preventDefault();
+							return false;
+						});
+								
+						litm.append(anchr);
+						list.append(litm);
+					}
+				
+					list.listview('refresh');
+
+					entry.callPageFunc('SelectImage');
+				}
+				else {			
+					dc.pui.Popup.alert('Error loading image details.');
+				}
+			});
+			
+			entry.Store.Calc = {
+				GallVarPos: -1
+			};
+	]]></Function>
+	<Function Name="SelectImage"><![CDATA[
+			var entry = this;
+			
+			var v = entry.Store.Details.GallerySettings.Variations[entry.Store.Calc.GallVarPos];
+			
+			$('#lblVariation').text('Variation Shown: ' + v.Name + ' (' + v.Alias + ') at ' + dc.cms.vary.formatDims(v));
+	
+			if (dc.util.Number.isNumber(v.SourcePos)) { 
+				var item = entry.Store.Details.Variations[v.SourcePos];
+						
+				$('#imageDetailImg').html('<img src="' + entry.Store.Details.GalleryPath + '/' + entry.Store.Details.FileName
+					+ '/' + item.Alias + '.' + item.Extension + '?nocache=' + dc.util.Crypto.makeSimpleKey() + '" />');
+			}
+			else {
+				$('#imageDetailImg').html('<img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />');
+			}
+	]]></Function>
+	<Function Name="DoEdit"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Store.Details.Variations.length) {
+				dc.pui.Popup.alert('No variations present for source, unable to Edit.');
+				return;
+			}
+
+			var item = entry.Store.Details.GallerySettings.Variations[entry.Store.Calc.GallVarPos];
+	
+			this.callPageFunc('DoEditPrompt', item.Alias);
+	]]></Function>
+	<Function Name="DoEditPrompt" Params="forAlias"><![CDATA[
+			var entry = this;
+	
+			if (forAlias == 'original') {
+				dc.pui.Popup.alert('Original variation is not intended to be edited.');
+				return;
+			}
+	
+			var vul = $('#popEditVariation ul');
+			
+			vul.empty();
+
+			if (forAlias) {
+				var fnd = false;
+				
+				for (var i1 = 0; i1 < entry.Store.Details.GallerySettings.Variations.length; i1++) {
+					var v = entry.Store.Details.GallerySettings.Variations[i1]; 
+			
+					if (v.Alias == forAlias) {
+						vul.append('<li data-role="list-divider" class="ui-li-divider ui-bar-inherit ui-first-child">Edit variation "' + v.Name +  '" starting with:</li>');
+						fnd = true;
+						break;
+					}
+				}
+				
+				if (!fnd) {
+					dc.pui.Popup.alert('No variations present for alias, unable to Edit.');
+					return;
+				}
+			}
+			else {
+				vul.append('<li data-role="list-divider" class="ui-li-divider ui-bar-inherit ui-first-child">Edit variations starting with:</li>');
+			}
+	
+			for (var i = 0; i < entry.Store.Details.GallerySettings.Variations.length; i++) {
+				var v = entry.Store.Details.GallerySettings.Variations[i];
+
+				// add only sources with existing files
+				if (dc.util.Number.isNumber(v.SourcePos)) { 
+					vul.append('<li><a href="#" class="ui-btn" data-alias="' + v.Alias + '">' + v.Name + '</a></li>');
+				
+					if (v.Alias == 'original') {
+						dc.pui.Loader.loadPage('/dcm/cms/files/EditImage', { 
+							Details: entry.Store.Details,
+							Path: entry.Store.Path,
+							Alias: forAlias,
+							SourceAlias: 'original'
+						});
+
+						return;						
+					}
+				}
+			}
+			
+			vul.find('a').click(function(e) {
+				//console.log('a: ' + $(this).attr('data-alias'));
+				$('#popEditVariation').popup('close');
+				
+				dc.pui.Loader.loadPage('/dcm/cms/files/EditImage', { 
+					Details: entry.Store.Details,
+					Path: entry.Store.Path,
+					Alias: forAlias,
+					SourceAlias: $(this).attr('data-alias')
+				});
+				
+				e.preventDefault();
+				return false;
+			});
+	
+			$('#popEditVariation').popup('open', { positionTo: '#btnEditVar' });
+	]]></Function>
+	<Function Name="DoReplace"><![CDATA[
+			var entry = this;
+			
+			var v = entry.Store.Details.GallerySettings.Variations[entry.Store.Calc.GallVarPos];
+	
+			dc.pui.Loader.loadPage('/dcm/cms/files/ReplaceGalleryFile', { 
+				Details: entry.Store.Details,
+				Path: entry.Store.Path,
+				Alias: v.Alias
+			});	
+	]]></Function>
+	<Function Name="DoEditAll"><![CDATA[
+			var entry = this;
+			
+			this.callPageFunc('DoEditPrompt');
+	]]></Function>
+	<Function Name="DoDownload"><![CDATA[
+			var entry = this;
+			
+			var v = entry.Store.Details.GallerySettings.Variations[entry.Store.Calc.GallVarPos];
+	
+			if (!dc.util.Number.isNumber(v.SourcePos)) {
+				dc.pui.Popup.alert('No file available for this variation.');
+				return;
+			}
+			 
+			var item = entry.Store.Details.Variations[v.SourcePos];
+			
+			var path = entry.Store.Details.GalleryPath.substr(entry.Store.Details.GalleryPath.indexOf('/', 1)) + '/' + entry.Store.Details.FileName
+					+ '/' + item.Alias + '.' + item.Extension;
+
+			dc.util.Cookies.deleteCookie('fileDownload');
+			
+			var tmsg = { 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'StartDownload',
+				Body: {
+					FilePath: path
+				}
+			};
+			
+			var cmsg = { 
+				Service: 'Session',
+				Feature: 'DataChannel',
+				Op: 'Establish',
+				Body: {
+					Title: "Downloading " + path,
+					StreamRequest: tmsg
+				}
+			};
+			
+			dc.comm.sendMessage(cmsg, function(rmsg) {
+				if (rmsg.Result == 0) { 
+					var binding = rmsg.Body;
+					
+					$.fileDownload('/download/' + binding.ChannelId, {
+						httpMethod: 'GET', 
+						successCallback: function(url) {
+							// only means that it started, not finished
+							console.log('download worked!');
+						},
+						failCallback: function(html, url) {
+							console.log('download failed!');
+						}
+					});
+				}
+				else {			
+					dc.pui.Popup.alert('Error requesting download channel.');
+				}
+			});
+	]]></Function>
+	<Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this image (all variations)?', function() {
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'WebGallery',
+					Op: 'DeleteFolder',
+					Body: {
+						FolderPath: entry.Store.Path + '.v'
+					}
+				}, function(resp) {
+					if (resp.Result > 0) {
+						dc.pui.Popup.alert(resp.Message);
+						return;
+					}
+				
+					dc.pui.Loader.closePage(entry.Params.ReturnTo);
+					//window.history.back();
+				});
+			});
+	]]></Function>
+	<Function Name="DoReturn"><![CDATA[
+			var entry = this;
+			dc.pui.Loader.closePage(entry.Params.ReturnTo);
+			//var path = entry.Store.Path;
+			
+			//if (path.length > 1)
+			//	path = path.substr(0, path.lastIndexOf('/'));
+			
+			//dc.pui.Loader.loadPage('/dcm/cms/files/Gallery', { Path: path });	
+	]]></Function>
+</dcui>

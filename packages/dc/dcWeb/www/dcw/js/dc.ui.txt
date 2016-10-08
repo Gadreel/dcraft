@@ -1,0 +1,119 @@
+/*
+	PAGE:
+	
+	{
+		Name: '',
+		Title: '',
+		RequireStyles: [ path, path, path ],
+			- standard CSS (ignore in Loader.load these were already loaded before first page load)
+			
+		RequireLibs: [ path, path, path ],
+			- standard JS libs (ignore in Loader.load these were already loaded before first page load)
+			
+		RequireModules: [ path, path, path ],
+			- other modules
+			
+		Icons: [
+			{
+				Module: 'name',
+				Icons: [ name, name, name ]
+			}
+		],
+			- list module and name for each icon used
+			
+		Fonts: [
+			{
+				Module: 'name',
+				Fonts: [ name, name, name ]
+			}
+		],
+			- list module and name for each font used
+			
+		Layout: [
+		],
+			- structure for layout
+		
+		Functions: {
+			'name': func...
+		}
+			- functions for use with layout
+			
+		-- reserved functions
+			-- page level
+				Load	
+				
+				Save	
+
+			-- form level
+					
+				LoadRecord
+				 
+				AfterLoadRecord
+				 
+				AfterLoad
+				
+				SaveRecord
+				
+				AfterSaveRecord
+				
+				AfterSave
+			
+	}
+	
+	entry:
+	
+	{
+		Name: [name],
+		
+		Id: [id],
+		
+		Loaded: t/f - once t then does a thaw next visit to this entry
+		
+		Params: { 
+			name: [param]
+		},
+			- parameters for this page
+		
+		Store: {
+			'name': obj
+		}
+			- general data for this page 
+		
+		Forms: {
+			'fname': {
+				Name: n,
+				SaveButton: n,
+				AlwaysNew: t/f,
+				Inputs: { },
+				RecordOrder: [ "Default" ],
+				AsNew: { },
+				InternalValues: { },
+				FreezeValues: null or { }
+				
+			}
+		}
+			- forms data for this page 
+			
+		onResize: [
+			functions...
+		]
+		
+		onDestroy: [
+			functions...
+		]
+		
+		onFrame: [
+		]
+		
+		Timers: [
+			{
+					Title: SSS,
+					Period: N,
+					Op: func,
+					Data: any,
+					__tid: N, 			if timeout
+					__iid: N			if interval	
+			}
+		]
+	}
+*/

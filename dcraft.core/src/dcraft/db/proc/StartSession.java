@@ -18,7 +18,7 @@ public class StartSession extends LoadRecord {
 		RecordStruct params = task.getParamsAsRecord();
 		ICompositeBuilder out = task.getBuilder();
 		TablesAdapter db = new TablesAdapter(conn, task); 
-		String did = task.getDomain();
+		String did = task.getTenant();
 		BigDateTime when = BigDateTime.nowDateTime();
 				
 		String token = null;
@@ -70,7 +70,7 @@ public class StartSession extends LoadRecord {
 			
 			conn.set("dcSession", token, "LastAccess", task.getStamp());
 			conn.set("dcSession", token, "User", uid);
-			conn.set("dcSession", token, "Domain", did);
+			conn.set("dcSession", token, "Tenant", did);
 			
 			// TODO create some way to track last login that doesn't take up db space
 			// or make last login an audit thing...track all logins in StaticList?

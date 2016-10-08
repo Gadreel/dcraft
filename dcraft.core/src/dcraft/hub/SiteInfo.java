@@ -20,6 +20,7 @@ import dcraft.util.MimeUtil;
 import dcraft.util.StringUtil;
 import dcraft.web.core.SiteIntegration;
 import dcraft.web.core.WebSite;
+import dcraft.web.http.SslContextFactory;
 import dcraft.xml.XElement;
 
 /*
@@ -30,19 +31,19 @@ import dcraft.xml.XElement;
  */
 
 public class SiteInfo extends CommonInfo implements ILocaleResource {
-	static public SiteInfo forRoot(DomainInfo domain) {
+	static public SiteInfo forRoot(TenantInfo tenant) {
 		SiteInfo site = new SiteInfo();
-		site.domain = new WeakReference<DomainInfo>(domain);
+		site.tenant = new WeakReference<TenantInfo>(tenant);
 		site.alias = "root";
 		
-		site.init(domain.getSettings());
+		site.init(tenant.getSettings());
 		
 		return site;
 	}
 	
-	static public SiteInfo from(XElement settings, DomainInfo domain) {
+	static public SiteInfo from(XElement settings, TenantInfo tenant) {
 		SiteInfo site = new SiteInfo();
-		site.domain = new WeakReference<DomainInfo>(domain);
+		site.tenant = new WeakReference<TenantInfo>(tenant);
 
 		site.init(settings);
 		
@@ -50,10 +51,11 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	}
 	
 	protected String alias = null;
-	protected WeakReference<DomainInfo> domain = null;
+	protected WeakReference<TenantInfo> tenant = null;
 	protected WebSite website = null;
 	protected GCompClassLoader scriptloader = null;
 	protected XElement settings = null;
+	protected DomainNameMapping<SslContextFactory> certs = null;
 	protected Map<String, Bucket> buckets = new HashMap<String, Bucket>();
 	protected SiteIntegration integration = SiteIntegration.Files;
 	
@@ -68,9 +70,9 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 		return this.alias;
 	}
 	
-	public DomainInfo getDomain() {
-		if (this.domain != null)
-			return this.domain.get();
+	public TenantInfo getTenant() {
+		if (this.tenant != null)
+			return this.tenant.get();
 		
 		return null;
 	}
@@ -146,11 +148,6 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	
 	public void init(XElement settings) {
 		this.settings = settings;
-		
-		for (XElement del : settings.selectAll("Domain")) {
-			String dname = del.getAttribute("Name");					
-			this.domain.get().registerSiteDomain(dname, this);
-		}
 
 		Path cpath = this.resolvePath("/config");
 		
@@ -166,44 +163,63 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 			}		
 		}
 
-		if (settings.hasAttribute("Locale")) {
-			this.locale = settings.getAttribute("Locale");
-			
-			this.localedef = this.getLocaleDefinition(this.locale);
-			
-			// add the list of locales supported for this site
-			this.locales.put(this.locale, this.localedef);
-		}
-		
-		// these settings are valid for root and sub sites
-		
-		for (XElement pel : settings.selectAll("Locale")) {
-			String lname = pel.getAttribute("Name");
-			
-			if (StringUtil.isEmpty(lname))
-				continue;
-
-			LocaleDefinition def = this.getLocaleDefinition(lname);
-			
-			this.locales.put(lname, def);
-			
-			for (XElement del : pel.selectAll("Domain")) {
+		if (settings != null) {
+			for (XElement del : settings.selectAll("Domain")) {
 				String dname = del.getAttribute("Name");					
+				this.tenant.get().registerSiteDomain(dname, this);
+			}
+	
+			if (settings.hasAttribute("Locale")) {
+				this.locale = settings.getAttribute("Locale");
+				
+				this.localedef = this.getLocaleDefinition(this.locale);
+				
+				// add the list of locales supported for this site
+				this.locales.put(this.locale, this.localedef);
+			}
+			
+			// these settings are valid for root and sub sites
+			
+			for (XElement pel : settings.selectAll("Locale")) {
+				String lname = pel.getAttribute("Name");
 				
 				if (StringUtil.isEmpty(lname))
 					continue;
+	
+				LocaleDefinition def = this.getLocaleDefinition(lname);
 				
-				this.sitelocales.put(dname, def);
+				this.locales.put(lname, def);
+				
+				for (XElement del : pel.selectAll("Domain")) {
+					String dname = del.getAttribute("Name");					
+					
+					if (StringUtil.isEmpty(lname))
+						continue;
+					
+					this.sitelocales.put(dname, def);
+				}
+			}		
+			
+			// this setting is only valid for sub sites
+			if (settings.hasAttribute("Integration") && ! this.isRoot()) {
+				try {
+					this.integration = SiteIntegration.valueOf(settings.getAttribute("Integration", "Files"));
+				}
+				catch (Exception x) {
+					this.integration = SiteIntegration.Files;
+				}
 			}
-		}		
-		
-		// this setting is only valid for sub sites
-		if (settings.hasAttribute("Integration") && ! this.isRoot()) {
-			try {
-				this.integration = SiteIntegration.valueOf(settings.getAttribute("Integration", "Files"));
-			}
-			catch (Exception x) {
-				this.integration = SiteIntegration.Files;
+			
+			Path certpath = this.resolvePath("config/certs");
+	
+			if (Files.exists(certpath)) {
+				this.certs = new DomainNameMapping<>();
+				
+				for (XElement cel : settings.selectAll("Certificate")) {
+					SslContextFactory ssl = new SslContextFactory();
+					ssl.init(cel, certpath.toString() + "/", this.tenant.get().getTrustManagers());
+					this.certs.add(cel.getAttribute("Name"), ssl);
+				}
 			}
 		}
 		
@@ -220,6 +236,14 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 		// TODO check settings Site before system - no move to domain, domain is where settings / data go
 		
 		return MimeUtil.getMimeCompress(mime);
+	}
+
+	// matchname might be a wildcard match
+	public SslContextFactory getSecureContextFactory(String matchname) {
+		if (this.certs != null)
+			return this.certs.get(matchname);
+		
+		return null;
 	}
 	
 	@Override
@@ -272,39 +296,39 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	@Override
 	public Path getPath() {
 		if (this.isRoot())
-			return this.domain.get().getPath();
+			return this.tenant.get().getPath();
 		
-		LocalFileStore fs = Hub.instance.getPublicFileStore();
+		LocalFileStore fs = Hub.instance.getTenantsFileStore();
 		
 		if (fs == null)
 			return null;
 		
-		return fs.getFilePath().resolve("dcw/" + this.domain.get().getAlias() + "/sites/" + this.getAlias());
+		return fs.resolvePath(this.tenant.get().getAlias() + "/sites/" + this.getAlias());
 	}
 
 	@Override
 	public CacheFile resolveCachePath(String path) {
 		if (this.isRoot())
-			return this.domain.get().resolveCachePath(path);
+			return this.tenant.get().resolveCachePath(path);
 		
-		LocalFileStore fs = Hub.instance.getPublicFileStore();
+		LocalFileStore fs = Hub.instance.getTenantsFileStore();
 		
 		if (fs == null)
 			return null;
 		
 		if (StringUtil.isEmpty(path))
-			return fs.cacheResolvePath("dcw/" + this.domain.get().getAlias() + "/sites/" + this.getAlias());
+			return fs.cacheResolvePath(this.tenant.get().getAlias() + "/sites/" + this.getAlias());
 		
 		if (path.charAt(0) == '/')
-			return fs.cacheResolvePath("dcw/" + this.domain.get().getAlias() + "/sites/" + this.getAlias() + path);
+			return fs.cacheResolvePath(this.tenant.get().getAlias() + "/sites/" + this.getAlias() + path);
 		
-		return fs.cacheResolvePath("dcw/" + this.domain.get().getAlias() + "/sites/" + this.getAlias() + "/" + path);
+		return fs.cacheResolvePath(this.tenant.get().getAlias() + "/sites/" + this.getAlias() + "/" + path);
 	}
 	
 	public GCompClassLoader getScriptLoader() {
 		if (this.scriptloader == null) {
 			this.scriptloader = new GCompClassLoader();
-			this.scriptloader.init(this.resolvePath("gcache"), this.resolvePath("glib"));
+			this.scriptloader.init(this.resolvePath("cache"), this.resolvePath("glib"));
 		}
 		
 		return this.scriptloader;

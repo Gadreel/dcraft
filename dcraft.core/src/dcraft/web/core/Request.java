@@ -38,6 +38,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
 
+@SuppressWarnings("deprecation")
 public class Request {
 	protected CommonPath path = null;
 	protected CommonPath orgpath = null;

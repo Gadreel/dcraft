@@ -16,7 +16,7 @@
 ************************************************************************ */
 package dcraft.lang.op;
 
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.struct.ListStruct;
@@ -43,7 +43,7 @@ public class UserContext {
 		// keep the domain id if we can
 		return new OperationContextBuilder()
 			.withGuestUserTemplate()
-			.withDomainId(currcon.getUserContext().getDomainId())
+			.withTenantId(currcon.getUserContext().getTenantId())
 			.withSite("root")
 			.toUserContext();
 	}
@@ -159,16 +159,16 @@ public class UserContext {
 	}
 
 	/**
-	 * Domain indicates the domain targeted by a request.
+	 * Tenant indicates the domain targeted by a request.
 	 * 
-	 * @return domain string 
+	 * @return tenant id string 
 	 */
-	public String getDomainId() {
-		return this.context.getFieldAsString("DomainId");
+	public String getTenantId() {
+		return this.context.getFieldAsString("TenantId");
 	}
 
-	public DomainInfo getDomain() {
-		return Hub.instance.getDomainInfo(this.getDomainId());
+	public TenantInfo getTenant() {
+		return Hub.instance.getTenantInfo(this.getTenantId());
 	}
 
 	public String getSiteAlias() {
@@ -176,7 +176,12 @@ public class UserContext {
 	}
 
 	public SiteInfo getSite() {
-		return Hub.instance.getDomainInfo(this.getDomainId()).resolveSiteInfo(this.getSiteAlias());
+		TenantInfo ten = Hub.instance.getTenantInfo(this.getTenantId());
+		
+		if (ten != null)
+			return ten.resolveSiteInfo(this.getSiteAlias());
+		
+		return null;
 	}
 	
 	// only use during booting

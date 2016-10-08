@@ -1,0 +1,258 @@
+
+# Form
+
+<dcf.Form
+	Name="nnn"
+	DataType="bbb or DataTypeMap if multiple records"
+	RecordOrder="a,b,c"
+	DataTypeMap="a=aaa,b=bbb,c=ccc"
+	Focus="input name to focus on"
+	AlwaysNew="true|false"
+	Stacked="true - to make entire form stacked"
+>
+</dcf.Form>
+
+# CoreField
+
+## Common attributes
+
+	Label="Phone:" 
+	Instructions="Short instructions"
+	Message="Error Message"
+	Invalid="false"
+	Stacked="true"
+
+## Common children	
+
+	<Instructions>
+		Html instructions
+	</Instructions>
+	
+	<Message Code="nnn">
+		Error Message for error nnn
+	</Message>
+	<Message Code="zzz">
+		Error Message for error zzz
+	</Message>
+	<Message>
+		Default Error Message 
+	</Message>
+
+
+# InputField
+
+## Common attributes
+
+	id="nnn"					if there is an id for field the input will take the id and the field's <div> will take it with a Field at end - "txtName" becomes "txtNameField" for parent
+	readonly="readonly"			css on parent <div>
+	disabled="disabled"			css on parent <div>
+	value="nnn"					tries to initialize with this
+	placeholder="ggg"			nothing special here, or with many other HTML5 attributes
+
+	Name="Phone" 
+	Record="b"
+	Required="true|false"
+	DataType="nnn"
+	Pattern="xxxx if not DataType"
+	ValidIcon="true|false"
+
+## Common children	
+
+
+# TextField
+
+<dcf.TextField ... >		from InputField
+	<Glyph Label="$" Icon="fa-info-circle" InvalidIcon="warning" Flag="true" />
+	<Input />
+	<Info Label="$" Icon="fa-info-circle" InvalidIcon="warning" Flag="true" />
+	<Button Label="$" Icon="bell" InvalidIcon="warning" Flag="true" Click="aaa" />
+</dcf.TextField>
+
+
+<dcf.PasswordField />    same as TextField
+
+
+<dcf.LabelField />		same as TextField, though not all are meaningful
+
+
+<dcf.MultiTextField ... >		from CoreField
+	<Input Size="40" 					has some of the common attributes of InputField
+		placeholder="First" 	
+		Record="b"
+		Required="true|false"
+		DataType="nnn"
+		Pattern="xxxx if not DataType"
+	 />
+	<Input Size="10" placeholder="M" ... />
+	<Input Size="40" placeholder="Last" ... />
+</dcf.MultiTextField>
+		
+		
+<dcf.ButtonGroup ...			from CoreField
+	Compact="true"
+>
+	<Button Icon="square" Label="nnn" Click="aaa" />
+	<Button Icon="cricle" />
+	<Button Icon="star" />
+	<Button Icon="bell" />
+</dcf.ButtonGroup>
+
+
+<dcf.Instructions ...   		from CoreField
+	Aligned="true"
+>
+	Instructions mixed in, aligned.
+</dcf.Instructions>
+
+
+<dcf.Select  ... >		from InputField
+	<option value="abc">A.B.C.</option>
+</dcf.Select>
+
+
+<dcf.TextAreaField  ... >		from InputField
+
+
+<dcf.RadioGroup ... >		from InputField
+   <RadioButton value="Internship" Label="Yes, a pre-Apprenticeship Internship only right now" />
+   <RadioButton value="Either" Label="Yes, either a pre-Apprenticeship Internship or an Apprenticeship" />
+   <RadioButton value="Apprenticeship" Label="No thanks, an Apprenticeship only please" />
+</dcf.RadioGroup>
+
+
+<dcf.HorizRadioGroup ... >		from InputField
+   <RadioButton value="LessThanFive" Label="0 - 5" />
+   <RadioButton value="FiveToTen" Label="5 - 10" />
+   <RadioButton value="TenToFifteen" Label="10 - 15" />
+   <RadioButton value="FifteenToTwenty" Label="15 - 20" />
+   <RadioButton value="TwentyOrMore" Label="20+" />
+</dcf.HorizRadioGroup>
+
+
+<dcf.YesNo ... />		from InputField
+
+
+<dcf.CheckboxField ... >		from InputField
+
+
+<dcf.CheckGroup ... >		from InputField
+	<Checkbox Label="Apprentice Candidate" value="ApprenticeCandidate" />
+	<Checkbox Label="Apprentice" value="Apprentice" />
+	<Checkbox Label="Master" value="Master" />
+	<Checkbox Label="Staff" value="Staff" />
+	<Checkbox Label="Admin" value="Admin" />
+</dcf.CheckGroup>
+
+
+<dcf.HorizCheckGroup ... >		from CheckGroup
+	<Checkbox Label="Apprentice" value="Apprentice" />
+	<Checkbox Label="Master" value="Master" />
+	<Checkbox Label="Staff" value="Staff" />
+</dcf.HorizCheckGroup>
+
+
+<dcf.HiddenField  ... >		from InputField
+
+
+<dcf.FormButtons ... >			from CoreField
+	<dc.Button Label="Button 1" />
+	<dc.Button Label="Button 2" />
+	<dcf.SubmitButton Label="Save" />
+</dcf.FormButtons>
+
+
+
+
+
+
+
+
+what is coreinput in html?
+
+
+
+
+
+			<div class="dc-pui-control">		* instructions
+				<div class="dc-pui-message dc-pui-message-info">
+					Username formatting info
+				</div>
+			</div>
+
+
+
+		<div class="dc-pui-message dc-pui-message-info">		* instructions
+
+
+
+			<div class="dc-pui-control">		* instructions
+
+		
+
+
+
+		<div class="dc-pui-field dc-pui-field-stacked">			* stacked
+
+
+			<div class="dc-pui-control dc-pui-input-group">			* button group wide, add ons
+
+
+
+			<div class="dc-pui-control dc-pui-button-group">		* button group compact
+		
+		
+		
+		<div class="dc-pui-field dc-pui-field-multi">			* multi
+			<div class="dc-pui-control dc-pui-input-multi">		* multi
+		
+		<div class="dc-pui-field dc-pui-field-multi dc-pui-field-stacked">			* multi stacked
+			<div class="dc-pui-control dc-pui-input-multi">				* multi
+
+
+
+
+			<div class="dc-pui-control dc-pui-input-group">			* special textarea, select, password
+
+
+			* radio and check
+
+			<div class="dc-pui-control dc-pui-controlgroup-vertical">
+		
+			<div class="dc-pui-control dc-pui-controlgroup-horizontal">
+
+
+		
+		<div class="dc-pui-field dc-pui-invalid">				* special invalid
+			<div class="dc-pui-label">
+	            <label>Comm 2c</label>
+			</div>
+			<div class="dc-pui-control">
+				<div class="dc-pui-message dc-pui-message-info">
+					abc
+				</div>
+			</div>
+			
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control dc-pui-controlgroup-vertical">		* special radio/check
+			</div>
+			
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					xyz
+				</div>
+			</div>
+		</div>
+		
+		<div class="dc-pui-field dc-pui-form-buttons">				* special form buttons
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control">
+			</div>
+		</div>
+
+
+
+
+
+
+

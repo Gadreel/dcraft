@@ -29,12 +29,15 @@ public class Constants {
 	final static public byte[] DB_OMEGA_MARKER_ARRAY = new byte[] { (byte)0xFF };
 	final static public byte[] DB_EMPTY_ARRAY = new byte[] { 0x01 };
 	
+	static public String DB_GLOBAL_TENANT_DB = "dcTenant";		// semi-constant, needs to be writable for backward compatibility with dcDomain
+	static public String DB_GLOBAL_TENANT_IDX_DB = "dcTenantIndex";		// semi-constant, needs to be writable for backward compatibility with dcDomainIndex
+	
 	final static public String DB_GLOBAL_RECORD_META = "dcRecordMeta";
 	final static public String DB_GLOBAL_RECORD = "dcRecord";
 	final static public String DB_GLOBAL_INDEX = "dcIndex1";
 	final static public String DB_GLOBAL_INDEX_SUB = "dcIndex2";
 	
-	final static public String DB_GLOBAL_ROOT_DOMAIN = "00000_000000000000001";
+	final static public String DB_GLOBAL_ROOT_TENANT = "00000_000000000000001";
 	final static public String DB_GLOBAL_ROOT_USER = "00000_000000000000001";
 	final static public String DB_GLOBAL_GUEST_USER = "00000_000000000000002";
 }

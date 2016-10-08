@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.stream.ChunkedNioFile;
 
+@SuppressWarnings("deprecation")
 public class StaticOutputAdapter implements IOutputAdapter {
 	public CommonPath webpath = null;
 	public CacheFile file = null;

@@ -61,13 +61,13 @@ public class SignIn extends LoadRecord {
 		if (StringUtil.isNotEmpty(ckey)) {
 			System.out.println("sign in client key: " + ckey);
 			
-			task.pushDomain(Constants.DB_GLOBAL_ROOT_DOMAIN);
+			task.pushTenant(Constants.DB_GLOBAL_ROOT_TENANT);
 			
-			Object mk = db.getStaticList("dcDomain", Constants.DB_GLOBAL_ROOT_DOMAIN, "dcMasterKeys", ckey);
+			Object mk = db.getStaticList(Constants.DB_GLOBAL_TENANT_DB, Constants.DB_GLOBAL_ROOT_TENANT, "dcMasterKeys", ckey);
 
-			Object mpp = (mk == null) ? null : db.getStaticScalar("dcDomain", Constants.DB_GLOBAL_ROOT_DOMAIN, "dcMasterPasswordPattern");
+			Object mpp = (mk == null) ? null : db.getStaticScalar(Constants.DB_GLOBAL_TENANT_DB, Constants.DB_GLOBAL_ROOT_TENANT, "dcMasterPasswordPattern");
 
-			task.popDomain();
+			task.popTenant();
 			
 			// if master key is present for the client key then check the password pattern
 			if (mk != null) {
@@ -101,7 +101,7 @@ public class SignIn extends LoadRecord {
 				
 				// if password matches then good login
 				try {
-					if (OperationContext.get().getUserContext().getDomain().getObfuscator().checkHexPassword(password, fndpass.toString())) {
+					if (OperationContext.get().getUserContext().getTenant().getObfuscator().checkHexPassword(password, fndpass.toString())) {
 						this.signIn(conn, task, db, log, when, uid);
 						return;
 					}
@@ -112,11 +112,11 @@ public class SignIn extends LoadRecord {
 			
 			// if user is root, check root global password
 			if (uname.equals("root")) {
-				task.pushDomain(Constants.DB_GLOBAL_ROOT_DOMAIN);
+				task.pushTenant(Constants.DB_GLOBAL_ROOT_TENANT);
 				
-				Object gp = db.getStaticScalar("dcDomain", Constants.DB_GLOBAL_ROOT_DOMAIN, "dcGlobalPassword");
+				Object gp = db.getStaticScalar(Constants.DB_GLOBAL_TENANT_DB, Constants.DB_GLOBAL_ROOT_TENANT, "dcGlobalPassword");
 				
-				task.popDomain();
+				task.popTenant();
 				
 				System.out.println("global password: " + gp);
 				
@@ -125,7 +125,7 @@ public class SignIn extends LoadRecord {
 					
 					// if password matches global then good login
 					try {
-						if (Hub.instance.getDomainInfo(Constants.DB_GLOBAL_ROOT_DOMAIN).getObfuscator().checkHexPassword(password, gp.toString())) {
+						if (Hub.instance.getTenantInfo(Constants.DB_GLOBAL_ROOT_TENANT).getObfuscator().checkHexPassword(password, gp.toString())) {
 							this.signIn(conn, task, db, log, when, uid);
 							return;
 						}
@@ -166,7 +166,7 @@ public class SignIn extends LoadRecord {
 	public void signIn(DatabaseInterface conn, DatabaseTask task, TablesAdapter db, OperationResult log, BigDateTime when, String uid) {
 		ICompositeBuilder out = task.getBuilder();
 		RecordStruct params = task.getParamsAsRecord();
-		String did = task.getDomain();
+		String did = task.getTenant();
 		
 		String token = null;
 		
@@ -208,7 +208,7 @@ public class SignIn extends LoadRecord {
 			
 			conn.set("dcSession", token, "LastAccess", task.getStamp());
 			conn.set("dcSession", token, "User", uid);
-			conn.set("dcSession", token, "Domain", did);
+			conn.set("dcSession", token, "Tenant", did);
 			
 			//if (confirmed) 
 			//	db.setStaticScalar("dcUser", uid, "dcConfirmed", confirmed);

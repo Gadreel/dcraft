@@ -17,6 +17,7 @@
 
 package dcraft.interchange.sshd;
 
+/*
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,8 +30,9 @@ import org.apache.sshd.common.file.SshFile;
 
 import dcraft.api.ApiSession;
 import dcraft.filestore.CommonPath;
+*/
 
-public class FileSystemViewImpl implements FileSystemView {
+public class FileSystemViewImpl {  /* implements FileSystemView {
 	protected SshFile root = null;
 	protected ApiSession api = null;
 	
@@ -49,7 +51,7 @@ public class FileSystemViewImpl implements FileSystemView {
 
     /**
      * Get file object.
-     */
+     * /
     public SshFile getFile(String file) {
     	if ("/".equals(file) || ".".equals(file))
     		return this.root;
@@ -189,4 +191,5 @@ public class FileSystemViewImpl implements FileSystemView {
         public void handleClose() throws IOException {
         }
     }
+    */
 }

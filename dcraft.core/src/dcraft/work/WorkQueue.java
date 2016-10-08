@@ -82,7 +82,7 @@ public class WorkQueue implements IQueueDriver, IQueueAlerter {
 				if (Hub.instance.getState() != HubState.Running) 		// only grab work when running
 					return;
 				
-				for (WorkBucket pool : Hub.instance.getWorkPool().getBuckets()) {
+				for (WorkTopic pool : Hub.instance.getWorkPool().getTopics()) {
 					if (!pool.getAutomaticQueueLoader())
 						continue;
 					

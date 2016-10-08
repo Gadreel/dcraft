@@ -64,7 +64,7 @@ public class Task {
 		t.withTimeout(parent.getTimeout());
 		t.withThrottle(parent.getThrottle());
 		
-		// subtasks should almost always use default bucket
+		// subtasks should almost always use default 
 		
 		if (cb != null) {
 			t.withObserver(new OperationObserver() {
@@ -190,13 +190,13 @@ public class Task {
 		return this.info.getFieldAsString("WorkClassname");
 	}
 	
-	public Task withBucket(String v) {
-		this.info.setField("Bucket", v);
+	public Task withTopic(String v) {
+		this.info.setField("Topic", v);
 		return this;
 	}
 
-	public String getBucket() {
-		String name = this.info.getFieldAsString("Bucket");
+	public String getTopic() {
+		String name = this.info.getFieldAsString("Topic");
 		
 		if (StringUtil.isEmpty(name))
 			name = "Default";

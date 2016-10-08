@@ -1,0 +1,63 @@
+<dcui Title="Add Top Category">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Add Top Level Category</h1>
+				
+				<Form Name="EditCategory">
+					<FieldContainer Label="Title:">
+						<TextInput Name="Title" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Alias:">
+						<TextInput Name="Alias" Required="true" Pattern="[\w-]+" />
+					</FieldContainer>
+					<FieldContainer Label="Has Subcategories:">
+						<YesNo Name="HasSubs" />
+					</FieldContainer>
+					
+					<div class="formbuttons">
+						<SubmitButton Label="Save" Icon="check" /> 
+					</div> 
+				</Form>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Title').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			e.AsNew = true;
+			e.Data = {
+				HasSubs: false
+			};
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			e.Data.Mode = (e.Data.HasSubs) ? 'TopWithSub' : 'TopWithProduct';
+			
+			this.Store.HasSubs = e.Data.HasSubs;
+			
+			delete e.Data.HasSubs;
+	
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Category',
+				Op: 'Add',
+				Body: e.Data
+			};
+	]]></Function>
+	<Function Name="AfterSaveRecord" Params="e"><![CDATA[
+			this.Store.NewId = e.Data.Id;
+	]]></Function>	
+	<Function Name="AfterSave"><![CDATA[
+			console.log('id: ' + this.Store.NewId);
+			
+			if (this.Store.HasSubs)
+				dc.pui.Loader.loadPage('/dcm/store/cat/EditTop', { Id: this.Store.NewId });
+			else			
+				dc.pui.Loader.loadPage('/dcm/store/cat/Edit', { Id: this.Store.NewId });
+	]]></Function>
+</dcui>

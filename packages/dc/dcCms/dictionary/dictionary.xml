@@ -1,0 +1,9 @@
+<Dictionary>
+	<Locale Id="en">
+		<Entry Token="dcmPageTitle" Value="{$1}: {$2}" />
+		<Entry Token="_code_200000" Value="Invalid domain name: {$1}" />
+		<Entry Token="_code_200001" Value="Missing site config" />
+		<Entry Token="_code_200002" Value="Cache record missing" />
+	</Locale>
+</Dictionary>
+

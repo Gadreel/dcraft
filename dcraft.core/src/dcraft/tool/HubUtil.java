@@ -24,9 +24,10 @@ package dcraft.tool;
 import static dcraft.db.Constants.DB_GLOBAL_INDEX_SUB;
 import static dcraft.db.Constants.DB_GLOBAL_RECORD;
 import static dcraft.db.Constants.DB_GLOBAL_RECORD_META;
-import static dcraft.db.Constants.DB_GLOBAL_ROOT_DOMAIN;
+import static dcraft.db.Constants.DB_GLOBAL_ROOT_TENANT;
 import static dcraft.db.Constants.DB_GLOBAL_ROOT_USER;
 import static dcraft.db.Constants.DB_OMEGA_MARKER_ARRAY;
+import static dcraft.db.Constants.DB_GLOBAL_TENANT_DB;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -53,8 +54,8 @@ import dcraft.db.rocks.DatabaseManager;
 import dcraft.db.rocks.RocksInterface;
 import dcraft.db.rocks.keyquery.KeyQuery;
 import dcraft.db.util.ByteUtil;
-import dcraft.hub.DomainInfo;
-import dcraft.hub.DomainsManager;
+import dcraft.hub.TenantInfo;
+import dcraft.hub.TenantManager;
 import dcraft.hub.Foreground;
 import dcraft.hub.Hub;
 import dcraft.hub.ILocalCommandLine;
@@ -73,6 +74,13 @@ import dcraft.xml.XAttribute;
 import dcraft.xml.XElement;
 
 public class HubUtil implements ILocalCommandLine {
+	/*
+	 * Consider developing CLI further with libraries like these:
+	 * 
+	 * https://github.com/jline/jline3
+	 * https://github.com/fusesource/jansi
+	 * 
+	 */
 	@Override
 	public void run(final Scanner scan, final ApiSession api) {
 		boolean running = true;
@@ -181,7 +189,7 @@ public class HubUtil implements ILocalCommandLine {
 				System.out.println("0)  Exit");
 				System.out.println("1)  Database Dump");
 				System.out.println("2)  Create Database");
-				System.out.println("3)  Initialize Root Domain (create db if not present)");
+				System.out.println("3)  Initialize Root Tenant (create db if not present)");
 				System.out.println("4)  Backup Database");
 				System.out.println("5)  Database Backup Info");
 				System.out.println("6)  Restore Database");
@@ -291,7 +299,7 @@ public class HubUtil implements ILocalCommandLine {
 				}
 				
 				case 3: {
-					System.out.println("Initialize Root Domain");
+					System.out.println("Initialize Root Tenant");
 					Path dbpath = this.getDbPath(scan);
 					
 					if (dbpath == null) 
@@ -314,7 +322,7 @@ public class HubUtil implements ILocalCommandLine {
 						obfseed = obfconfig.getAttribute("Feed");
 					}
 
-					System.out.print("Root Domain Name (empty for localhost only): ");
+					System.out.print("Root Tenant Name (empty for localhost only): ");
 					String dname = scan.nextLine();
 
 					System.out.print("Global Root Password (required): ");
@@ -341,7 +349,7 @@ public class HubUtil implements ILocalCommandLine {
 					}					
 					
 					try {
-						ISettingsObfuscator obfuscator = DomainInfo.prepDomainObfuscator(obfclass, obfseed);
+						ISettingsObfuscator obfuscator = TenantInfo.prepTenantObfuscator(obfclass, obfseed);
 						
 						if (obfuscator == null) {
 							OperationContext.get().error("dcDatabase prep error, obfuscator bad");
@@ -353,31 +361,31 @@ public class HubUtil implements ILocalCommandLine {
 						BigDecimal stamp = db.allocateStamp(0);
 						
 						// insert root domain title
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcTitle", stamp, "Data", "Root Domain");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcTitle", stamp, "Data", "Root Domain");
 						
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcAlias", stamp, "Data", "root");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcAlias", stamp, "Data", "root");
 						
 						// insert root domain name
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcName", "root", stamp, "Data", "root");
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcName", "localhost", stamp, "Data", "localhost");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcName", "root", stamp, "Data", "root");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcName", "localhost", stamp, "Data", "localhost");
 						
 						if (StringUtil.isNotEmpty(dname)) 
-							dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcName", dname, stamp, "Data", dname);
+							dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcName", dname, stamp, "Data", dname);
 						
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcObscureClass", stamp, "Data", obfclass);
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcObscureSeed", stamp, "Data", obfseed);
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcObscureClass", stamp, "Data", obfclass);
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcObscureSeed", stamp, "Data", obfseed);
 						
 						// insert global root user password 
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcGlobalPassword", stamp, "Data", obfuscator.hashPassword(password));
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcGlobalPassword", stamp, "Data", obfuscator.hashPassword(password));
 
 						/*
 						XElement domainsettings = new XElement("Settings",
 								new XElement("Web", 
 										new XAttribute("UI", "Custom"),
-										new XAttribute("SiteTitle", "Root Domain Manager"),
+										new XAttribute("SiteTitle", "Root Tenant Manager"),
 										new XAttribute("SiteAuthor", "DivConq"),
 										new XAttribute("SiteCopyright", new DateTime().getYear() + ""),
-										new XAttribute("HomePath", "/dcw/root/Home"),								
+										new XAttribute("HomePath", "/tenants/root/Home"),								
 										new XElement("Package", 
 												new XAttribute("Name", "dcWeb")
 										),
@@ -388,55 +396,55 @@ public class HubUtil implements ILocalCommandLine {
 						);
 						*/
 						
-						//dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcCompiledSettings", stamp, "Data", domainsettings);
+						//dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_DOMAIN, "dcCompiledSettings", stamp, "Data", domainsettings);
 						
 						// insert root domain index
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcDomainIndex", DB_GLOBAL_ROOT_DOMAIN, stamp, "Data", DB_GLOBAL_ROOT_DOMAIN);
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, Constants.DB_GLOBAL_TENANT_IDX_DB, DB_GLOBAL_ROOT_TENANT, stamp, "Data", DB_GLOBAL_ROOT_TENANT);
 						
 						// insert hub domain record id sequence
-						dbconn.set(DB_GLOBAL_RECORD_META, "dcDomain", "Id", "00000", 1);
+						dbconn.set(DB_GLOBAL_RECORD_META, DB_GLOBAL_TENANT_DB, "Id", "00000", 1);
 						
 						// insert root domain record count
-						dbconn.set(DB_GLOBAL_RECORD_META, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", "Count", 1);
+						dbconn.set(DB_GLOBAL_RECORD_META, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, "Count", 1);
 								
 						String unamesub = db.allocateSubkey();
 						
 						// insert root user name
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcUser", DB_GLOBAL_ROOT_USER, "dcUsername", unamesub, stamp, "Data", "root");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, "dcUser", DB_GLOBAL_ROOT_USER, "dcUsername", unamesub, stamp, "Data", "root");
 						// increment index count
-						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcUsername", "root");					
+						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcUsername", "root");					
 						// set the new index new
-						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcUsername", "root", DB_GLOBAL_ROOT_USER, unamesub, null);
+						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcUsername", "root", DB_GLOBAL_ROOT_USER, unamesub, null);
 						
 						String emailsub = db.allocateSubkey();
 	
 						// insert root user email
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcUser", DB_GLOBAL_ROOT_USER, "dcEmail", emailsub, stamp, "Data", email);
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, "dcUser", DB_GLOBAL_ROOT_USER, "dcEmail", emailsub, stamp, "Data", email);
 						// increment index count
-						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcEmail", email.toLowerCase(Locale.ROOT));
+						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcEmail", email.toLowerCase(Locale.ROOT));
 						// set the new index new
-						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcEmail", email.toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, emailsub, null);
+						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcEmail", email.toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, emailsub, null);
 						
 						// insert root user auth tags
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "SysAdmin", stamp, "Data", "SysAdmin");
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "Admin", stamp, "Data", "Admin");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "SysAdmin", stamp, "Data", "SysAdmin");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "Admin", stamp, "Data", "Admin");
 						//dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "PowerUser", stamp, "Data", "PowerUser");
 						
 						// increment index count
-						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcAuthorizationTag", "Admin".toLowerCase(Locale.ROOT));
+						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcAuthorizationTag", "Admin".toLowerCase(Locale.ROOT));
 						// set the new index new
-						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcAuthorizationTag", "Admin".toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, "Admin", null);
+						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcAuthorizationTag", "Admin".toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, "Admin", null);
 						
 						// increment index count
-						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcAuthorizationTag", "SysAdmin".toLowerCase(Locale.ROOT));
+						dbconn.inc(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcAuthorizationTag", "SysAdmin".toLowerCase(Locale.ROOT));
 						// set the new index new
-						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "dcAuthorizationTag", "SysAdmin".toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, "SysAdmin", null);
+						dbconn.set(DB_GLOBAL_INDEX_SUB, DB_GLOBAL_ROOT_TENANT, "dcUser", "dcAuthorizationTag", "SysAdmin".toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, "SysAdmin", null);
 						
 						// insert hub domain record id sequence - set to 2 because root and guest are both users - guest just isn't entered
 						dbconn.set(DB_GLOBAL_RECORD_META, "dcUser", "Id", "00000", 2);
 						
 						// insert root domain record count
-						dbconn.set(DB_GLOBAL_RECORD_META, DB_GLOBAL_ROOT_DOMAIN, "dcUser", "Count", 1);	
+						dbconn.set(DB_GLOBAL_RECORD_META, DB_GLOBAL_ROOT_TENANT, "dcUser", "Count", 1);	
 					}
 					finally {
 						db.stop();
@@ -578,9 +586,9 @@ public class HubUtil implements ILocalCommandLine {
 						
 						BigDecimal stamp = db.allocateStamp(0);
 						
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcTitle", stamp, "Data", "BLAH!!");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcTitle", stamp, "Data", "BLAH!!");
 						
-						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_DOMAIN, "dcDomain", DB_GLOBAL_ROOT_DOMAIN, "dcAlias", stamp, "Data", "foobar");
+						dbconn.set(DB_GLOBAL_RECORD, DB_GLOBAL_ROOT_TENANT, DB_GLOBAL_TENANT_DB, DB_GLOBAL_ROOT_TENANT, "dcAlias", stamp, "Data", "foobar");
 						
 						System.out.println("Database messed up!");
 					}
@@ -609,7 +617,7 @@ public class HubUtil implements ILocalCommandLine {
 					}					
 					
 					try {
-						DomainsManager dm = new DomainsManager();
+						TenantManager dm = new TenantManager();
 						
 						dm.initFromDB(db, new OperationCallback() {							
 							@Override
@@ -794,7 +802,7 @@ public class HubUtil implements ILocalCommandLine {
 				
 				case 224: {
 					DbRecordRequest req = new InsertRecordRequest()
-							.withTable("dcDomain")
+							.withTable(DB_GLOBAL_TENANT_DB)
 							.withSetField("dcTitle", "Betty Site")
 							.withSetField("dcName", "betty.com", "betty.com")
 							.withSetField("dcName", "www.betty.com", "www.betty.com")
@@ -812,7 +820,7 @@ public class HubUtil implements ILocalCommandLine {
 				
 				case 225: {
 					DbRecordRequest req = new UpdateRecordRequest()
-							.withTable("dcDomain")
+							.withTable(DB_GLOBAL_TENANT_DB)
 							.withId("00100_000000000000001")
 							.withSetField("dcName", "mail.betty.com", "mail.betty.com")			// add mail
 							.withSetField("dcName", "www.betty.com", "web.betty.com")			// change www to web
@@ -832,7 +840,7 @@ public class HubUtil implements ILocalCommandLine {
 				case 226: {
 					// alternative syntax
 					DbRecordRequest req = new InsertRecordRequest()
-						.withTable("dcDomain")
+						.withTable(DB_GLOBAL_TENANT_DB)
 						.withSetField("dcTitle", "Mandy Site")
 						.withSetField("dcDescription", "Website for Mandy Example")
 						.withSetField("dcName", "mandy.com", "mandy.com")
@@ -939,8 +947,8 @@ public class HubUtil implements ILocalCommandLine {
 				
 				case 231: {
 					LoadRecordRequest req = new LoadRecordRequest()
-						.withTable("dcDomain")
-						.withId(OperationContext.get().getUserContext().getDomainId()) 
+						.withTable(DB_GLOBAL_TENANT_DB)
+						.withId(OperationContext.get().getUserContext().getTenantId()) 
 						.withSelect(new SelectFields()
 							.withField("dcTitle", "SiteName")
 							.withField("dcDescription", "Description")

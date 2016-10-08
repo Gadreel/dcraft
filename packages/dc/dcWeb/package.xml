@@ -1,0 +1,17 @@
+<Package 
+	ClassRoot="dcraft" 
+	Abbrv="dcw" 
+	Version="0.9.5"
+	MessageCodes="150000-199999"
+>
+	<DependsOn>
+		<Package Name="dc/dcCorePublic" MinVersion="0.9" />
+	
+		<Library File="commons-lang3-3.1.jar" />
+	</DependsOn>
+	
+	<!-- may also list CompatibleWith for tested co-existance -->
+	<NoLongerDependsOn>
+		<Library File="markdown4j-2.2.jar" />
+	</NoLongerDependsOn>
+</Package>

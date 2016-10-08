@@ -1,0 +1,10 @@
+<Package 
+	ClassRoot="dcraft" 
+	Abbrv="dcm" 
+	Version="0.9.6"
+	MessageCodes="200000-249999"
+>
+	<DependsOn>
+		<Package Name="dc/dcWeb" MinVersion="0.9" />
+	</DependsOn>
+</Package>

@@ -1,0 +1,109 @@
+<dcui Title="Add Page" AuthTags="Admin">
+	<RequireLib Path="/dcw/js/vkbeautify.0.99.00.beta.js" />
+	<RequireLib Path="/dcw/js/speakingurl-5.0.1.min.js" />
+	
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<TitledSection Title="Add Page">
+					<Form Name="AddPage">
+						<FieldContainer Label="Title:">
+							<TextInput Name="Title" Required="true" />
+						</FieldContainer>
+						<FieldContainer Label="Path:">
+							<TextInput Name="Path" Required="true"  Pattern="[\w-\/]+" />
+						</FieldContainer>
+						<FieldContainer Label="Template:">
+							<Select Name="Template" Required="true">
+								<option data-placeholder="true" value="NULL">Select Template</option>
+							</Select>
+						</FieldContainer>
+						
+						<div class="formbuttons">
+							<SubmitButton Label="Add" Icon="check" /> 
+						</div> 
+					</Form>
+				</TitledSection>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'Feeds',
+				Op: 'LoadFeedsDefinition'
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to load feed definitions: ' + rmsg.Message);
+					return;
+				}
+								
+				entry.Store.FeedsXml = rmsg.Body.FeedsXml ? $($.parseXML(rmsg.Body.FeedsXml)) : null;
+				
+				if (!entry.Store.FeedsXml)
+					return;
+
+				var ulist = [];
+				
+				$(entry.Store.FeedsXml).find('Feed > Channel[Name="Pages"] > Template').each(function() {
+					var name = $(this).attr('Name');
+					var title = $(this).attr('Title');
+					
+					if (!title)
+						title = name;
+				
+					ulist.push({ Value: name, Label: title });
+				});
+
+				if (ulist.length) 
+					entry.form('AddPage').input('Template').add(ulist);
+			});				
+	
+			//this.form().query('Path').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			e.AsNew = true;
+			e.Data = {
+				//Path: this.Params.Path
+			};
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			var path = e.Data.Path;
+			
+			var pos = path.indexOf('/');
+			
+			if (pos != 0)
+				path = '/' + path;
+	
+			if (entry.Params.Path != '/')
+				path = entry.Params.Path + path;
+	
+			entry.Store.Path = path;
+			
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Feeds',
+				Op: 'AddPageFiles',
+				Body: {
+					Path: path,
+					Title: e.Data.Title,
+					Template: e.Data.Template
+				}
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Loader.loadPage('/dcm/cms/feeds/Edit', { 
+				Path: entry.Store.Path, 
+				Channel: 'Pages'
+			}, true);
+	]]></Function>
+</dcui>

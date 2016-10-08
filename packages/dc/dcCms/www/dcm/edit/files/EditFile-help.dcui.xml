@@ -1,0 +1,8 @@
+<dcui Title="Help" AuthTags="Admin,Editor">
+	<Skeleton><div class="dcuiHelpViewer" data-dcui-mode="enhance"><MD><![CDATA[
+## Edit File Help
+
+Text based files - html, css, xml, json, js - may be edited on the server via this editor.  Click `Save` to store your updates.
+
+	]]></MD></div></Skeleton>
+</dcui>

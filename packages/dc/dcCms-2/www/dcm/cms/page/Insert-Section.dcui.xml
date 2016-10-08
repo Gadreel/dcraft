@@ -1,0 +1,43 @@
+<dcui Title="Insert Section" AuthTags="Admin,Editor">
+	<Skeleton>
+		<Form Name="DepIsSection" AlwaysNew="true">
+			<TitledSection Title="Section Options" class="titledform">
+				<RadioGroup Label="Section Type:" Name="Plugin" Required="true">
+				   <RadioButton Value="StandardSection" Label="Markdown" />
+				   <RadioButton Value="PairedMediaSection" Label="Markdown paired with Media" />
+				   <RadioButton Value="GallerySection" Label="Images Linked to Gallery" />
+				   <RadioButton Value="HtmlSection" Label="Html" />
+				</RadioGroup>
+			</TitledSection>
+			
+			<div class="formbuttons">
+				<SubmitButton Label="Next" />
+			</div>
+		</Form>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+    ]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			e.Data = {
+				Plugin: 'StandardSection'
+			};
+    ]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+		    var ctx = dc.cms.edit.Loader.getContext();
+				
+			ctx.Menu = dc.cms.edit.MenuEnum.PagePartSection;
+			
+			if (!ctx.Params.Section.Id)
+				ctx.Params.Section.Id = 'sectAuto' + dc.util.Crypto.makeSimpleKey();
+				
+			ctx.Params.Section.Plugin = entry.form().getValue('Plugin');
+				
+			dc.cms.edit.Loader.openPane('/dcm/edit/page/Edit-Section-Content');
+	]]></Function>
+</dcui>

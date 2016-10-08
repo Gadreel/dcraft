@@ -123,7 +123,7 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 		Task task = Task
 			.taskWithSubContext()
 			.withTitle("Working on web content: " + this.getFile().getFilePath())
-			.withBucket("www")
+			.withTopic("Web")
 			.withObserver(new OperationObserver() {
 				@Override
 				public void completed(OperationContext octx) {

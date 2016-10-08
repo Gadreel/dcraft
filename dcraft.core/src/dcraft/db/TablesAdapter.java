@@ -10,7 +10,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import dcraft.db.util.ByteUtil;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.BigDateTime;
 import dcraft.lang.op.FuncResult;
@@ -193,7 +193,7 @@ public class TablesAdapter {
 	public OperationResult setFields(String table, String id, RecordStruct fields) {
 		OperationResult or = new OperationResult();
 		
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		try {
 			boolean recPresent = this.conn.hasAny(DB_GLOBAL_RECORD, did, table, id);
@@ -612,7 +612,7 @@ public class TablesAdapter {
 	
 	public boolean isDeleted(String table, String id) {
 		try {
-			return this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, task.getDomain(), table, id, "Deleted");
+			return this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, task.getTenant(), table, id, "Deleted");
 		} 
 		catch (DatabaseException x) {
 			// TODO logger
@@ -623,10 +623,10 @@ public class TablesAdapter {
 	
 	public boolean isRetired(String table, String id) {
 		try {
-			if (!this.conn.hasAny(DB_GLOBAL_RECORD, task.getDomain(), table, id))
+			if (!this.conn.hasAny(DB_GLOBAL_RECORD, task.getTenant(), table, id))
 				return true;
 			
-			if (this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, task.getDomain(), table, id, "Deleted"))
+			if (this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, task.getTenant(), table, id, "Deleted"))
 				return true;
 			
 			if (Struct.objectToBooleanOrFalse(this.getStaticScalar(table, id, "Retired")))
@@ -681,7 +681,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, stamp, "Data");
+			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, stamp, "Data");
 			
 			// TODO format
 			
@@ -702,7 +702,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, stamp, "Data");
+			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, stamp, "Data");
 		}
 		catch (Exception x) {
 			OperationContext.get().error("getStaticScalar error: " + x);
@@ -722,9 +722,9 @@ public class TablesAdapter {
 			
 			// TODO format data
 			
-			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, stamp, "Data"));
-			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, stamp, "Tags"));
-			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, stamp, "Retired"));
+			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, stamp, "Data"));
+			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, stamp, "Tags"));
+			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, stamp, "Retired"));
 			
 			return ret;
 		}
@@ -737,14 +737,14 @@ public class TablesAdapter {
 	
 	public BigDecimal getStaticScalarStamp(String table, String id, String field) {
 		try {
-			byte[] olderStamp = this.conn.getOrNextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, this.task.getStamp());
+			byte[] olderStamp = this.conn.getOrNextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, this.task.getStamp());
 			
 			if (olderStamp == null) 
 				return null;
 			
 			BigDecimal oldStamp = Struct.objectToDecimal(ByteUtil.extractValue(olderStamp));
 			
-			if (this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, oldStamp, "Retired"))
+			if (this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, oldStamp, "Retired"))
 				return null;
 			
 			return oldStamp;
@@ -768,7 +768,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data");
+			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data");
 			
 			// TODO format
 			
@@ -789,7 +789,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data");
+			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data");
 		}
 		catch (Exception x) {
 			OperationContext.get().error("getStaticList error: " + x);
@@ -810,9 +810,9 @@ public class TablesAdapter {
 			// TODO format
 			
 			ret.setField("SubId", subid);
-			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data"));
-			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Tags"));
-			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Retired"));
+			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data"));
+			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Tags"));
+			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Retired"));
 			
 			return ret;
 		}
@@ -827,14 +827,14 @@ public class TablesAdapter {
 		List<String> ret = new ArrayList<>();
 		
 		try {
-			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 			
 			while (subid != null) {
 				Object sid = ByteUtil.extractValue(subid);
 				
 				ret.add(Struct.objectToString(sid));
 				
-				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 			}
 		}
 		catch (Exception x) {
@@ -861,7 +861,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data");
+			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data");
 			
 			// TODO format
 			
@@ -887,7 +887,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data");
+			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data");
 		}
 		catch (Exception x) {
 			OperationContext.get().error("getDynamicScalar error: " + x);
@@ -911,10 +911,10 @@ public class TablesAdapter {
 			RecordStruct ret = new RecordStruct();
 			
 			ret.setField("SubId", subid);
-			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data"));
-			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Tags"));
-			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Retired"));
-			ret.setField("From", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "From"));
+			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data"));
+			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Tags"));
+			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Retired"));
+			ret.setField("From", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "From"));
 			
 			return ret;
 		}
@@ -941,18 +941,18 @@ public class TablesAdapter {
 		String matchSid = null;
 		
 		try {
-			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 			
 			while (subid != null) {
 				Object sid = ByteUtil.extractValue(subid);
 				
-				byte[] stmp = this.conn.getOrNextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid, this.task.getStamp());
+				byte[] stmp = this.conn.getOrNextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid, this.task.getStamp());
 				
 				if (stmp != null) {
 					Object stamp = ByteUtil.extractValue(stmp);
 					
-					if (!this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid, stamp, "Retired")) {
-						BigDateTime from = this.conn.getAsBigDateTime(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid, stamp, "From");
+					if (!this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid, stamp, "Retired")) {
+						BigDateTime from = this.conn.getAsBigDateTime(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid, stamp, "From");
 						
 						if (from == null) 
 							from = Struct.objectToBigDateTime(this.getStaticScalar(table, id, "From"));
@@ -970,7 +970,7 @@ public class TablesAdapter {
 					}					
 				}
 				
-				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 			}
 		}
 		catch (Exception x) {
@@ -984,14 +984,14 @@ public class TablesAdapter {
 		List<String> ret = new ArrayList<>();
 		
 		try {
-			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 			
 			while (subid != null) {
 				Object sid = ByteUtil.extractValue(subid);
 				
 				ret.add(Struct.objectToString(sid));
 				
-				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 			}
 		}
 		catch (Exception x) {
@@ -1013,7 +1013,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data");
+			Object val = this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data");
 			
 			// TODO format
 			
@@ -1034,7 +1034,7 @@ public class TablesAdapter {
 			return null;
 		
 		try {
-			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data");
+			return this.conn.getRaw(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data");
 		}
 		catch (Exception x) {
 			OperationContext.get().error("getDynamicList error: " + x);
@@ -1053,11 +1053,11 @@ public class TablesAdapter {
 			RecordStruct ret = new RecordStruct();
 			
 			ret.setField("SubId", subid);
-			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Data"));
-			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Tags"));
-			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "Retired"));
-			ret.setField("From", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "From"));
-			ret.setField("To", this.conn.get(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, stamp, "To"));
+			ret.setField("Data", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Data"));
+			ret.setField("Tags", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Tags"));
+			ret.setField("Retired", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "Retired"));
+			ret.setField("From", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "From"));
+			ret.setField("To", this.conn.get(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, stamp, "To"));
 			
 			return ret;
 		}
@@ -1070,20 +1070,20 @@ public class TablesAdapter {
 		
 	public BigDecimal getListStamp(String table, String id, String field, String subid, BigDateTime when) {
 		try {
-			byte[] olderStamp = this.conn.getOrNextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, this.task.getStamp());
+			byte[] olderStamp = this.conn.getOrNextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, this.task.getStamp());
 			
 			if (olderStamp == null) 
 				return null;
 			
 			BigDecimal oldStamp = Struct.objectToDecimal(ByteUtil.extractValue(olderStamp));
 			
-			if (this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, oldStamp, "Retired"))
+			if (this.conn.getAsBooleanOrFalse(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, oldStamp, "Retired"))
 				return null;
 			
 			if (when == null)
 				return oldStamp;
 			
-			BigDateTime to = this.conn.getAsBigDateTime(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, oldStamp, "To");
+			BigDateTime to = this.conn.getAsBigDateTime(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, oldStamp, "To");
 			
 			if (to == null) 
 				to = Struct.objectToBigDateTime(this.getStaticScalar(table, id, "To"));
@@ -1092,7 +1092,7 @@ public class TablesAdapter {
 			if ((to != null) && (to.compareTo(when) <= 0))
 				return null;
 			
-			BigDateTime from = this.conn.getAsBigDateTime(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, subid, oldStamp, "From");
+			BigDateTime from = this.conn.getAsBigDateTime(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, subid, oldStamp, "From");
 			
 			if (from == null) 
 				from = Struct.objectToBigDateTime(this.getStaticScalar(table, id, "From"));
@@ -1115,14 +1115,14 @@ public class TablesAdapter {
 		List<String> ret = new ArrayList<>();
 		
 		try {
-			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 			
 			while (subid != null) {
 				Object sid = ByteUtil.extractValue(subid);
 				
 				ret.add(Struct.objectToString(sid));
 				
-				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+				subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 			}
 		}
 		catch (Exception x) {
@@ -1163,7 +1163,7 @@ public class TablesAdapter {
 		}
 		else {
 			try {
-				byte[] bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+				byte[] bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 				
 				while (bsubid != null) {
 					Object sid = ByteUtil.extractValue(bsubid);
@@ -1173,7 +1173,7 @@ public class TablesAdapter {
 					else
 						ret.add(this.getDynamicList(table, id, field, Struct.objectToString(sid), when, format));
 					
-					bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+					bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 				}
 			}
 			catch (Exception x) {
@@ -1210,7 +1210,7 @@ public class TablesAdapter {
 		}
 		else {
 			try {
-				byte[] bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+				byte[] bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 				
 				while (bsubid != null) {
 					Object sid = ByteUtil.extractValue(bsubid);
@@ -1220,7 +1220,7 @@ public class TablesAdapter {
 					else
 						ret.add(this.getDynamicListExtended(table, id, field, Struct.objectToString(sid), when, format));
 					
-					bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+					bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 				}
 			}
 			catch (Exception x) {
@@ -1258,7 +1258,7 @@ public class TablesAdapter {
 		}
 		else {
 			try {
-				byte[] bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, null);
+				byte[] bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, null);
 				
 				while (bsubid != null) {
 					Object sid = ByteUtil.extractValue(bsubid);
@@ -1268,7 +1268,7 @@ public class TablesAdapter {
 					else
 						ret.add(this.getDynamicListRaw(table, id, field, Struct.objectToString(sid), when));	// TODO check if this returns null sometimes, not what we want right?
 					
-					bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getDomain(), table, id, field, sid);
+					bsubid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, this.task.getTenant(), table, id, field, sid);
 				}
 			}
 			catch (Exception x) {
@@ -1846,7 +1846,7 @@ public class TablesAdapter {
 	}
 
 	public void traverseSubIds(String table, String id, String fname, BigDateTime when, boolean historical, Function<Object,Boolean> out) {
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		try {
 			byte[] subid = this.conn.nextPeerKey(DB_GLOBAL_RECORD, did, table, id, fname, null);
@@ -1867,7 +1867,7 @@ public class TablesAdapter {
 	}
 
 	public void traverseRecords(String table, BigDateTime when, boolean historical, Function<Object,Boolean> out) {
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		try {
 			byte[] id = this.conn.nextPeerKey(DB_GLOBAL_RECORD, did, table, null);
@@ -1891,7 +1891,7 @@ public class TablesAdapter {
 	}
 	
 	public void traverseIndex(String table, String fname, Object val, String subid, BigDateTime when, boolean historical, Function<Object,Boolean> out) {
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		DbField ffdef = this.task.getSchema().getDbField(table, fname);
 		
@@ -1959,7 +1959,7 @@ public class TablesAdapter {
 	}
 	
 	public Object firstInIndex(String table, String fname, Object val, BigDateTime when, boolean historical) {
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		DbField ffdef = this.task.getSchema().getDbField(table, fname);
 		
@@ -2025,7 +2025,7 @@ public class TablesAdapter {
 	
 	// traverse the values
 	public void traverseIndexValRange(String table, String fname, Object fromval, Object toval, BigDateTime when, boolean historical, Function<Object,Boolean> out) {
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		DbField ffdef = this.task.getSchema().getDbField(table, fname);
 		
@@ -2061,7 +2061,7 @@ public class TablesAdapter {
 	
 	// traverse the record ids
 	public void traverseIndexRange(String table, String fname, Object fromval, Object toval, BigDateTime when, boolean historical, Function<Object,Boolean> out) {
-		String did = this.task.getDomain();
+		String did = this.task.getTenant();
 		
 		DbField ffdef = this.task.getSchema().getDbField(table, fname);
 		
@@ -2428,10 +2428,10 @@ srchTxt2(params,ret) n score,table,field,id,sid,pos,word,sources,find,fnd,sscore
 	 */
 
 	public void rebuildIndexes() {
-		this.rebuildIndexes(Hub.instance.getDomainInfo(this.task.getDomain()), BigDateTime.nowDateTime());
+		this.rebuildIndexes(Hub.instance.getTenantInfo(this.task.getTenant()), BigDateTime.nowDateTime());
 	}
 
-	public void rebuildIndexes(DomainInfo di, BigDateTime when) {
+	public void rebuildIndexes(TenantInfo di, BigDateTime when) {
 		try {
 			for (DbTable tbl : di.getSchema().getDbTables()) {
 				this.rebuildTableIndex(di, tbl.getName(), when);
@@ -2450,18 +2450,18 @@ srchTxt2(params,ret) n score,table,field,id,sid,pos,word,sources,find,fnd,sscore
 			*/
 		}
 		catch (Exception x) {
-			OperationContext.get().error("rebuildDomainIndexes error: " + x);
+			OperationContext.get().error("rebuildTenantIndexes error: " + x);
 		}
 		finally {
-			task.popDomain();
+			task.popTenant();
 		}
 	}
 
 	public void rebuildTableIndex(String table) {
-		this.rebuildTableIndex(Hub.instance.getDomainInfo(this.task.getDomain()), table, BigDateTime.nowDateTime());
+		this.rebuildTableIndex(Hub.instance.getTenantInfo(this.task.getTenant()), table, BigDateTime.nowDateTime());
 	}
 	
-	public void rebuildTableIndex(DomainInfo di, String table, BigDateTime when) {
+	public void rebuildTableIndex(TenantInfo di, String table, BigDateTime when) {
 		try {
 			// kill the indexes
 			this.conn.kill(DB_GLOBAL_INDEX_SUB, di.getId(), table);			

@@ -28,9 +28,7 @@ public class LocalSessionFactory implements IApiSessionFactory {
 
 	@Override
 	public ApiSession create() {
-		ApiSession sess = new LocalSession();
-		sess.init(this.config);
-		return sess;
+		return this.create(this.config);
 	}
 	
 	@Override

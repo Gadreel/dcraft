@@ -266,7 +266,7 @@ public class McUtil {
 		}
 		
 		/*
-		File dir = new File("./public/dcw/nari/files/mc-update-queue");
+		File dir = new File("./public/tenants/nari/files/mc-update-queue");
 		
 		File[] filesList = dir.listFiles();
 		

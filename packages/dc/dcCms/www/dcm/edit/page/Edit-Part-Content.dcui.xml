@@ -1,0 +1,145 @@
+<dcui Title="Edit Part Content" AuthTags="Admin,Editor">
+	<RequireLib Path="/dcw/js/ace-1.1.8/ace.js" />
+	
+	<Skeleton>
+		<div data-role="header">
+			<div data-role="controlgroup" data-type="horizontal" class="ui-mini" style="padding-right: 12px; text-align: right;">
+				<Button Click="DoSelectImage" Label="Link Image" />
+				<Button Click="DoSelectFile" Label="Link File" />
+				<Button Click="DoSavePublish" Label="Save &amp; Publish" /> 
+				<!-- Link Click="DoSave" Label="Save Draft" class="ui-btn" / -->
+		    </div>
+		</div>
+	
+		<div id="sectDepEpcEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+
+			if (!entry.Store.Editor) {
+				entry.Store.Changed = false;
+				entry.Store.SetMode = false;
+				entry.Store.PublishFlag = false; 
+			    entry.Store.Editor = ace.edit('sectDepEpcEdit');
+			    entry.Store.Params = dc.cms.edit.Loader.getContext().Params;
+			    
+			    var editor = entry.Store.Editor;
+			    
+			    editor.setTheme("ace/theme/chrome");
+			    editor.getSession().setMode("ace/mode/markdown");
+				editor.setShowPrintMargin(false);
+				editor.getSession().setTabSize(5);
+				editor.getSession().setUseSoftTabs(false);	    
+				editor.getSession().setUseWrapMode(true);
+			
+				editor.on("change", function() {
+					if (!entry.Store.SetMode)
+						entry.Store.Changed = true;
+				});	
+				
+				if (dc.cms.edit.Loader.getContext().IsNew) {
+					entry.Store.Params.Data = {
+						For: entry.Store.Params.For,
+						Locale: 'en',		// TODO
+						Format: entry.Store.Params.Format ? entry.Store.Params.Format : 'md',
+						Value: entry.Store.Params.Content ? entry.Store.Params.Content : ''
+					};
+					
+					entry.Store.SetMode = true;
+					
+					if (entry.Store.Params.Format == 'html')
+					    editor.getSession().setMode("ace/mode/xml");
+					
+					if (entry.Store.Params.Content)
+						editor.setValue(entry.Store.Params.Content, -1);
+					
+					entry.Store.SetMode = false;
+				}
+				else {			
+					dc.comm.sendMessage({ 
+						Service: 'dcmCms', 
+						Feature: 'Feeds', 
+						Op: 'LoadFeedPart', 
+						Body: entry.Store.Params.Part
+					}, function(rmsg) {
+						if (rmsg.Result != 0) {
+							dc.pui.Popup.alert(rmsg.Message);
+							return;
+						}
+						
+						entry.Store.Params.Data = rmsg.Body;
+						
+						entry.Store.SetMode = true;
+						
+						if (rmsg.Body.Format == 'html')
+						    editor.getSession().setMode("ace/mode/xml");
+						
+						editor.setValue(rmsg.Body.Value, -1);
+						
+						entry.Store.SetMode = false;
+					});
+				}
+			}
+				
+			entry.Store.Editor.focus();
+    ]]></Function>
+	<Function Name="DoSavePublish"><![CDATA[
+			var entry = this;
+			
+			entry.Store.PublishFlag = true; 
+			entry.callPageFunc('DoSave')
+	]]></Function>
+	<Function Name="DoSave"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Params.Data.Value = entry.Store.Editor.getValue();
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms', 
+				Feature: 'Feeds', 
+				Op: 'AlterFeedPart', 
+				Body: {
+					Part: entry.Store.Params.Part,
+					Data: entry.Store.Params.Data,
+					Publish: entry.Store.PublishFlag
+				}
+			}, function(rmsg) {
+				if (rmsg.Result != 0) 
+					dc.pui.Popup.alert(rmsg.Message);
+				else
+					dc.pui.Popup.alert('Saved');
+			});
+	]]></Function>
+	<Function Name="DoSelectImage"><![CDATA[			
+			var entry = this;
+		
+			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/Chooser', { 
+				Callback: function(imgs) {
+					if (imgs) {
+						for (var i = 0; i < imgs.length; i++) 
+							entry.Store.Editor.insert('![](' + imgs[i].FullPath + ' "") ');
+					}
+				} 
+			});
+	]]></Function>
+	<Function Name="DoSelectFile"><![CDATA[			
+			var entry = this;
+		
+			dc.cms.edit.Loader.loadPane('/dcm/edit/files/Chooser', { 
+				Callback: function(files) {
+					if (files) {
+						for (var i = 0; i < files.length; i++) 
+							entry.Store.Editor.insert('[click here](/files' + files[i].FullPath + ' "") ');
+					}
+				} 
+			});
+	]]></Function>
+	<Function Name="onDestroy"><![CDATA[
+			var entry = this;
+			
+			if (entry.Store.Editor) {
+				entry.Store.Editor.destroy();		
+				delete entry.Store.Editor;
+			}
+	]]></Function>
+</dcui>

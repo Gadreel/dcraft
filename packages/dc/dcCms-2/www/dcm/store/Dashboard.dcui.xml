@@ -1,0 +1,30 @@
+<dcui Title="Store Dashboard">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<WideButton Label="Categories" Page="/dcm/store/cat/List" /> 
+				<WideButton Label="Products" Page="/dcm/store/prod/List" /> 
+				<WideButton Label="My Account" Page="/dcm/cms/EditSelf" /> 
+				<WideButton Label="Sign Out" Click="DoSignOut" />
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+				if (!dc.user.isVerified()) {
+					dc.pui.Loader.loadPage('/SignIn');	
+					return;				
+				}
+				
+				dc.pui.Loader.__appTitle = 'Website Store';
+				dc.pui.Loader.__appHome = '/dcm/store/Dashboard';
+				
+				this.callPageFunc('hdrLoadReal');
+	]]></Function>
+	<Function Name="DoSignOut"><![CDATA[
+				dc.pui.Loader.signout();
+	]]></Function>
+</dcui>

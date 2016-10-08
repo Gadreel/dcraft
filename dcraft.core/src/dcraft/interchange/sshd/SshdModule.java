@@ -16,6 +16,7 @@
 ************************************************************************ */
 package dcraft.interchange.sshd;
 
+/*
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,8 +36,9 @@ import org.apache.sshd.server.session.ServerSession;
 import dcraft.api.ApiSession;
 import dcraft.log.Logger;
 import dcraft.mod.ModuleBase;
+*/
 
-public class SshdModule extends ModuleBase {
+public class SshdModule { /* extends ModuleBase {
     protected SshServer sshd = null;
     protected Map<Session, ApiSession> apimap = new HashMap<>(); 
 
@@ -61,7 +63,7 @@ public class SshdModule extends ModuleBase {
 		 * 
 		 * @Override public boolean authenticate(String user, PublicKey key,
 		 * ServerSession session) { //session. return "jack".equals(user); } });
-		 */
+		 * /
 
 		this.sshd.setPasswordAuthenticator(new PasswordAuthenticator() {
 			@Override
@@ -109,4 +111,5 @@ public class SshdModule extends ModuleBase {
             Logger.error("Error stopping sshd module: " + x);
         }
 	}
+	*/
 }

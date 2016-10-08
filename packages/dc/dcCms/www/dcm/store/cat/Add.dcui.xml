@@ -1,0 +1,51 @@
+<dcui Title="Add Subcategory">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Add Subcategory</h1>
+				
+				<Form Name="EditCategory">
+					<FieldContainer Label="Title:">
+						<TextInput Name="Title" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Alias:">
+						<TextInput Name="Alias" Required="true" Pattern="[\w-]+" />
+					</FieldContainer>
+					
+					<div class="formbuttons">
+						<SubmitButton Label="Save" Icon="check" /> 
+					</div> 
+				</Form>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Title').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			e.AsNew = true;
+			e.Data = {
+			};
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			e.Data.Mode = 'Sub';
+			e.Data.Parent = this.Params.ParentId;
+	
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Category',
+				Op: 'Add',
+				Body: e.Data
+			};
+	]]></Function>
+	<Function Name="AfterSaveRecord" Params="e"><![CDATA[
+			this.Store.NewId = e.Data.Id;
+	]]></Function>	
+	<Function Name="AfterSave"><![CDATA[
+			dc.pui.Loader.loadPage('/dcm/store/cat/Edit', { Id: this.Store.NewId });			
+	]]></Function>
+</dcui>

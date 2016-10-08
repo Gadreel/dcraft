@@ -18,10 +18,8 @@ package dcraft.service.simple;
 
 import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import dcraft.bus.IService;
 import dcraft.bus.Message;
@@ -39,40 +37,62 @@ import dcraft.work.TaskRun;
 import dcraft.xml.XElement;
 
 public class AuthService extends ExtensionBase implements IService {
-	protected Set<String> sessions = new HashSet<String>(); 
 	protected SecureRandom random = new SecureRandom();
-	protected String authpass = null;
 	
-	protected boolean xmlMode = false;
-	protected Map<String, DomainUsers> xmlData = null;
+	protected Map<String, TenantUsers> tenantusers = new HashMap<>();
 	
 	@Override
 	public void init(XElement config) {
 		super.init(config);
 		
-		if (config != null) 
-			this.authpass = config.getAttribute("Password");
+		XElement tenants = Hub.instance.getConfig().selectFirst("Tenants");
 		
-		XElement mdomains = Hub.instance.getConfig().selectFirst("Domains");
-		
-		if (mdomains != null) {
-			this.xmlData = new HashMap<>();
-			this.xmlMode = true;
+		// create a root tenant if none listed
+		if (tenants == null) {
+			String pw = "A1s2d3f4";
+			String epw = "";
 			
-			for (XElement mdomain : mdomains.selectAll("Domain")) {
-				String id = mdomain.getAttribute("Id");
-				
-				DomainUsers du = new DomainUsers();
-				du.load(id, mdomain);
-				
-				this.xmlData.put(id, du);
+			if (config != null) { 
+				pw = config.getAttribute("Password", pw);
+				epw = config.getAttribute("EncryptedPassword", epw);
 			}
+			
+			tenants = new XElement("Tenants")
+					.with(new XElement("Tenant")
+							.withAttribute("Id", "0")
+							.withAttribute("Alias", "root")
+							.withAttribute("Title", "Root and Local")
+							.with(new XElement("Name").withText("localhost"))
+							.with(new XElement("Name").withText("root"))
+							.with(new XElement("User")
+									.withAttribute("Id", "0")
+									.withAttribute("Username", "root")
+									.withAttribute("First", "Root")
+									.withAttribute("Last", "User")
+									.withAttribute("Email", "root@locahost")
+									.withAttribute("Password", pw)
+									.withAttribute("EncryptedPassword", epw)
+									.with(new XElement("AuthTag").withText("Admin"))
+									.with(new XElement("AuthTag").withText("SysAdmin"))
+							)
+					);
+			
+			Hub.instance.getConfig().with(tenants);
+		}
+		
+		// load the tenant user directory
+		for (XElement mtenant : tenants.selectAll("Tenant")) {
+			String id = mtenant.getAttribute("Id");
+			
+			TenantUsers du = new TenantUsers();
+			du.load(id, mtenant);
+			
+			this.tenantusers.put(id, du);
 		}
 	}
 	
 	@Override
 	public String serviceName() {
-		// TODO if through Loader then get name there (super)
 		return "dcAuth";
 	}
 	
@@ -92,32 +112,22 @@ public class AuthService extends ExtensionBase implements IService {
 				
 				String uname = uc.getUsername();
 				
-				if (this.xmlMode) {
-					DomainUsers du = this.xmlData.get(uc.getDomainId());
-					
-					if (du == null) {
-						this.clearUserContext(request.getContext());
-						request.error("Domain not found");
-					}
-					else {
-						RecordStruct urec = du.info(uname);
-						
-						if (urec == null) {
-							this.clearUserContext(request.getContext());
-							request.error("User not found");
-						}
-						else {
-							request.setResult(urec);
-						}
-					}
+				TenantUsers du = this.tenantusers.get(uc.getTenantId());
+				
+				if (du == null) {
+					this.clearUserContext(request.getContext());
+					request.error("Tenant not found");
 				}
 				else {
-					request.setResult(new RecordStruct(
-							new FieldStruct("Username", "root"),
-							new FieldStruct("FirstName", "Root"),
-							new FieldStruct("LastName", "User"),
-							new FieldStruct("Email", "root@locahost")
-					));
+					RecordStruct urec = du.info(uname);
+					
+					if (urec == null) {
+						this.clearUserContext(request.getContext());
+						request.error("User not found");
+					}
+					else {
+						request.setResult(urec);
+					}
 				}
 				
 				request.complete();
@@ -130,22 +140,14 @@ public class AuthService extends ExtensionBase implements IService {
 				if (StringUtil.isNotEmpty(authToken)) {
 					//System.out.println("---------- Token not empty");
 					
-					if (this.xmlMode) {
-						Session sess = request.getContext().getSession();
+					Session sess = request.getContext().getSession();
+					
+					//System.out.println("---------- Xml Mode");
+					
+					if ((sess != null) && authToken.equals(sess.getUser().getAuthToken())) {
+						//System.out.println("---------- Token verified");
 						
-						//System.out.println("---------- Xml Mode");
-						
-						if ((sess != null) && authToken.equals(sess.getUser().getAuthToken())) {
-							//System.out.println("---------- Token verified");
-							
-							// verified
-							request.complete();
-							return;
-						}
-					}
-					else if (this.sessions.contains(authToken)) {
-						//System.out.println("verify existing");
-						
+						// verified
 						request.complete();
 						return;
 					}
@@ -168,35 +170,13 @@ public class AuthService extends ExtensionBase implements IService {
 				String uname = creds.getFieldAsString("Username"); 
 				String passwd = creds.getFieldAsString("Password");
 				
-				if (this.xmlMode) {
-					//System.out.println("---------- Xml Mode");
-					
-					DomainUsers du = this.xmlData.get(uc.getDomainId());
-					
-					if ((du == null) || !du.verify(uname, passwd)) {
-						this.clearUserContext(request.getContext());
-						request.errorTr(442);
-						request.complete();
-						return;
-					}
-				}
-				else if (StringUtil.isNotEmpty(this.authpass)) {
-					passwd = Hub.instance.getClock().getObfuscator().hashStringToHex(passwd);
-					
-					if (!"root".equals(uname) || !this.authpass.equals(passwd)) {
-						this.clearUserContext(request.getContext());
-						request.errorTr(442);
-						request.complete();
-						return;
-					}
-				}
-				else {
-					if (!"root".equals(uname) || !"A1s2d3f4".equals(passwd)) {
-						this.clearUserContext(request.getContext());
-						request.errorTr(442);
-						request.complete();
-						return;
-					}
+				TenantUsers du = this.tenantusers.get(uc.getTenantId());
+				
+				if ((du == null) || !du.verify(uname, passwd)) {
+					this.clearUserContext(request.getContext());
+					request.errorTr(442);
+					request.complete();
+					return;
 				}
 				
 				byte[] feedbuff = new byte[32];
@@ -206,22 +186,12 @@ public class AuthService extends ExtensionBase implements IService {
 				//System.out.println("---------- Verified and token");
 				
 				// create the new context
-				if (this.xmlMode) 
-					uc = this.xmlData.get(uc.getDomainId()).context(uname, token);
-				else 
-					uc = request.getContext().toBuilder().elevateToRootTask().withAuthToken(token).toUserContext();
+				uc = this.tenantusers.get(uc.getTenantId()).context(uname, token);
 				
 				// make sure we use the new context in our return
 				OperationContext.switchUser(request.getContext(), uc);
 				
-				if (this.xmlMode) {
-					//Session ss = 
-					Hub.instance.getSessions().findOrCreateTether(request.getContext());
-					//System.out.println("---------- Session added: " + ss);
-				}
-				else {
-					this.sessions.add(token);
-				}
+				Hub.instance.getSessions().findOrCreateTether(request.getContext());
 				
 				//System.out.println("verify new");
 				
@@ -230,14 +200,8 @@ public class AuthService extends ExtensionBase implements IService {
 			}			
 			
 			if ("SignOut".equals(op)) {
-				String authToken = uc.getAuthToken();
-				
-				if (this.xmlMode) {
-					Hub.instance.getSessions().terminate(request.getContext().getSessionId());
-					//System.out.println("---------- Session removed");
-				}
-				else if (StringUtil.isNotEmpty(authToken)) 
-					this.sessions.remove(authToken);
+				Hub.instance.getSessions().terminate(request.getContext().getSessionId());
+				//System.out.println("---------- Session removed");
 				
 				this.clearUserContext(request.getContext());
 				
@@ -256,22 +220,19 @@ public class AuthService extends ExtensionBase implements IService {
 		request.complete();
 	}
 	
-	// be sure we keep the domain id
+	// be sure we keep the tenant id
 	public void clearUserContext(OperationContext ctx) {
 		UserContext uc = ctx.getUserContext();
 		
 		OperationContext.switchUser(ctx, new OperationContextBuilder()
 			.withGuestUserTemplate()
-			.withDomainId(uc.getDomainId())
+			.withTenantId(uc.getTenantId())
 			.toUserContext());
 	}
 	
-	public class DomainUsers {
-		protected String did = null;
-		protected Map<String, XElement> cachedElement = new HashMap<>();
+	public class TenantUsers {
+		protected String tenantid = null;
 		protected Map<String, XElement> cachedIndex = new HashMap<>();
-		protected Map<String, RecordStruct> cachedUserRecord = new HashMap<>();
-		protected Map<String, OperationContextBuilder> cachedUserContext = new HashMap<>();
 		
 		public boolean verify(String username, String password) {
 			XElement usr = this.cachedIndex.get(username);
@@ -279,17 +240,10 @@ public class AuthService extends ExtensionBase implements IService {
 			if (usr == null)
 				return false;
 			
-			String upass = usr.getAttribute("Password");
+			String upass = usr.getAttribute("EncryptedPassword");
 			
-			// any setting in the config file is set with Hub crypto not domain crypto
-			String passwd = Hub.instance.getClock().getObfuscator().hashStringToHex(password);
-
-			// if they are the same length then xml file must have hashed value too, use it
-			if ((passwd != null) && (passwd.length() == upass.length()))
-				return passwd.equals(upass);
-			
-			// if not same length then xml file is probably plain text, use that
-			return password.equals(upass);
+			// any setting in the config file is set with Hub crypto not tenant crypto
+			return Hub.instance.getClock().getObfuscator().checkHexPassword(password, upass);
 		}
 		
 		public UserContext context(String username, String token) {
@@ -300,7 +254,25 @@ public class AuthService extends ExtensionBase implements IService {
 
 			String uid = usr.getAttribute("Id");
 			
-			return this.cachedUserContext.get(uid).withAuthToken(token).toUserContext(); 
+			List<XElement> tags = usr.selectAll("AuthTag");
+			
+			String[] atags = new String[tags.size() + 1];
+			
+			atags[0] = "User";
+			
+			for (int i = 1; i < atags.length; i++) 
+				atags[i] = tags.get(i - 1).getText();
+			
+			return new OperationContextBuilder()
+				.withTenantId(tenantid)
+				.withUserId(uid)
+				.withUsername(usr.getAttribute("Username"))
+				.withFullName(usr.getAttribute("FullName"))
+				.withEmail(usr.getAttribute("Email"))
+				.withVerified(true)
+				.withAuthTags(atags)
+				.withAuthToken(token)
+				.toUserContext(); 
 		}
 		
 		public RecordStruct info(String username) {
@@ -308,59 +280,41 @@ public class AuthService extends ExtensionBase implements IService {
 			
 			if (usr == null) 
 				return null;
-
-			String uid = usr.getAttribute("Id");
 			
-			return this.cachedUserRecord.get(uid);
+			return new RecordStruct(
+				new FieldStruct("Username", usr.getAttribute("Username")),
+				new FieldStruct("FirstName", usr.getAttribute("First")),
+				new FieldStruct("LastName", usr.getAttribute("Last")),
+				new FieldStruct("Email", usr.getAttribute("Email"))
+			);
 		}
 		
-		public void load(String did, XElement domain) {
-			this.did = did;
+		public void load(String did, XElement tenant) {
+			this.tenantid = did;
 			
-			for (XElement usr : domain.selectAll("User")) {
-				String uid = usr.getAttribute("Id");
-				
-				this.cachedElement.put(uid, usr);
+			for (XElement usr : tenant.selectAll("User")) {
 				this.cachedIndex.put(usr.getAttribute("Username"), usr);
+
+				// make sure we have an encrypted password for use with verify
+				if (! usr.hasNotEmptyAttribute("EncryptedPassword") && usr.hasNotEmptyAttribute("Password")) 
+					usr.withAttribute("EncryptedPassword", Hub.instance.getClock().getObfuscator().hashPassword(usr.getAttribute("Password")));
 				
-				this.cachedUserRecord.put(uid, new RecordStruct(
-					new FieldStruct("Username", usr.getAttribute("Username")),
-					new FieldStruct("FirstName", usr.getAttribute("First")),
-					new FieldStruct("LastName", usr.getAttribute("Last")),
-					new FieldStruct("Email", usr.getAttribute("Email"))
-				));
-				
-				List<XElement> tags = usr.selectAll("AuthTag");
-				
-				String[] atags = new String[tags.size() + 1];
-				
-				atags[0] = "User";
-				
-				for (int i = 1; i < atags.length; i++) 
-					atags[i] = tags.get(i - 1).getText();
-				
-				String fullname = "";
-				
-				if (usr.hasAttribute("First"))
-					fullname = usr.getAttribute("First");
-				
-				if (usr.hasAttribute("Last") && StringUtil.isNotEmpty(fullname))
-					fullname += " " + usr.getAttribute("Last");
-				else if (usr.hasAttribute("Last"))
-					fullname = usr.getAttribute("Last");
-				
-				if (StringUtil.isEmpty(fullname))
-					fullname = "[unknown]";
-				
-				this.cachedUserContext.put(uid, new OperationContextBuilder()
-						.withDomainId(did)
-						.withUserId(uid)
-						.withUsername(usr.getAttribute("Username"))
-						.withFullName(fullname)
-						.withEmail(usr.getAttribute("Email"))
-						.withVerified(true)
-						.withAuthTags(atags)
-				);		
+				if (! usr.hasNotEmptyAttribute("FullName")) {
+					String fullname = "";
+					
+					if (usr.hasAttribute("First"))
+						fullname = usr.getAttribute("First");
+					
+					if (usr.hasAttribute("Last") && StringUtil.isNotEmpty(fullname))
+						fullname += " " + usr.getAttribute("Last");
+					else if (usr.hasAttribute("Last"))
+						fullname = usr.getAttribute("Last");
+					
+					if (StringUtil.isEmpty(fullname))
+						fullname = "[unknown]";
+					
+					usr.withAttribute("FullName", fullname);
+				}
 			}
 		}
 	}

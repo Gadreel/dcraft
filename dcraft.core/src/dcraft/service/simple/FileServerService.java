@@ -28,7 +28,7 @@ import dcraft.bus.MessageUtil;
 import dcraft.filestore.CommonPath;
 import dcraft.filestore.IFileStoreFile;
 import dcraft.filestore.local.FileSystemDriver;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.HubEvents;
 import dcraft.hub.IEventSubscriber;
@@ -93,7 +93,7 @@ public class FileServerService extends ExtensionBase implements IService {
 		Hub.instance.subscribeToEvent(HubEvents.Running, new IEventSubscriber() {
 			@Override
 			public void eventFired(Object e) {
-				for (DomainInfo domain : Hub.instance.getDomains().getDomains()) {
+				for (TenantInfo domain : Hub.instance.getTenants().getTenants()) {
 					XElement dset = domain.getSettings();
 					
 					if (dset != null) {
@@ -382,7 +382,7 @@ public class FileServerService extends ExtensionBase implements IService {
 		String op = msg.getFieldAsString("Op");
 		
 		// find the correct file store for this domain
-		FileSystemDriver fs = this.domainFsd.get(request.getContext().getUserContext().getDomainId());
+		FileSystemDriver fs = this.domainFsd.get(request.getContext().getUserContext().getTenantId());
 		
 		if (fs == null)
 			fs = this.fsd;

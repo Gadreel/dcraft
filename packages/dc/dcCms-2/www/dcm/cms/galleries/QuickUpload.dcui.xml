@@ -1,0 +1,153 @@
+<dcui Title="Upload Image" AuthTags="Admin,Editor">
+	<RequireLib Path="/dcm/cms/js/main.js" />
+	<!--  RequireLib Path="/dcm/js/load-image.all.min.js" / -->
+	
+	<RequireLib Path="/dcm/js/blueimp/dc.load-image.js" />
+	<RequireLib Path="/dcm/js/blueimp/load-image-meta.js" />
+	<RequireLib Path="/dcm/js/blueimp/load-image-orientation.js" />
+	<RequireLib Path="/dcm/js/blueimp/load-image-exif.js" />
+	<RequireLib Path="/dcm/js/blueimp/load-image-exif-map.js" />
+	
+	<RequireLib Path="/dcm/js/canvas-to-blob.min.js" />
+	<RequireLib Path="/dcm/edit/js/image.js" />
+	<RequireLib Path="/dcw/js/speakingurl-5.0.1.min.js" />
+	
+	<Skeleton>
+		<TitledSection Title="Upload Image">
+			<Form Name="DepQuUploadFile">
+				<div class="formbuttons">
+					<Button Click="DoUpload" Label="Upload" />
+				</div>
+				
+				<!--  Variation description here -->
+				<div id="lblDepQUsizing" />
+				
+				<div class="ui-field-contain">
+					<div class="realfile">
+						<input type="file" id="fileDepQuFile" class="file" />
+					</div>
+				</div>
+				
+				<FieldContainer>
+					<FormInstruction>Give your file a useful name, no spaces, no file extension.</FormInstruction>
+				</FieldContainer>
+				<FieldContainer Label="File Name:">
+					<TextInput Name="FileName" Required="true"  Pattern="[\w-\.]+" />
+				</FieldContainer>
+				
+				<div class="ui-field-contain">
+					<label id="lblTransfer" class="tlabel">Progress</label>		
+					<div class="progress">
+						<div id="fileProgressBar" class="pbar"></div>
+						<div id="fileProgressLabel" class="pbarlabel">0%</div>
+					</div>
+				</div>
+			</Form>
+		</TitledSection>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[	
+			var entry = this;
+			
+			// TODO switch to using buckets
+			
+			// set the image description in an instruction block above the file chooser
+			if (entry.Params.Variation)
+				$('#lblDepQUsizing').text("Target image size: " + dc.cms.vary.formatDims(entry.Params.Variation));
+			
+			dcm.upload.init();
+			
+			// when user selects a file, check if it matches the resume
+			$('#fileDepQuFile').change(function() {
+				var fname = this.files[0].name;
+				var extpos = fname.lastIndexOf('.');
+				
+				if (extpos == -1) {
+					dc.pui.Popup.alert('File name extension required, please enter one.');
+					return;
+				}
+				
+				var ext = fname.substr(extpos).toLowerCase();
+				var fname = fname.substr(0, extpos);
+
+				var fslug = getSlug(fname, {
+					truncate: 64,
+					maintainCase: true
+				});
+
+				entry.form('DepQuUploadFile').setValue('FileName', fslug);
+			});
+			
+			dc.cms.image.Loader.loadGallery(entry.Params.Path, function(g) { 
+				if (!g)
+					g = dc.cms.image.Loader.defaultGallery(entry.Params.Path);
+					
+				entry.Store.Gallery = g;  
+				
+				if (!entry.Params.Variation) {
+					var tv = g.topVariation();
+					
+					if (tv)
+						$('#lblDepQUsizing').text("Target image size: " + g.formatVariation(tv.Alias));
+				}
+			});
+	]]></Function>
+	<Function Name="DoUpload"><![CDATA[
+			var entry = this;
+			
+			var fname = entry.form('DepQuUploadFile').getValue('FileName');
+			
+			if (!fname) {
+				dc.pui.Popup.alert('File name required, please enter one.');
+				return;
+			}
+			
+			var fcon = $('#fileDepQuFile').get(0);
+			
+			// if no file selected then stop and prompt
+			if (fcon.files.length == 0) {
+				dc.pui.Popup.alert('Select a file to upload');
+				return;
+			}
+			
+			var blob = fcon.files[0];
+			var bname = blob.name;
+			
+			var extpos = bname.lastIndexOf('.');
+			
+			if (extpos == -1) {
+				dc.pui.Popup.alert('File name extension required, please enter one.');
+				return;
+			}
+			
+			var ext = bname.substr(extpos).toLowerCase();
+			
+			if (ext == '.jpeg')
+				ext = '.jpg';
+			
+			if ((ext != '.jpg') && (ext != '.png') && (ext != '.gif')) {
+				dc.pui.Popup.alert('File ext not recognized (' + ext + '), please use jpg, png or gif.');
+				return;
+			}
+			
+			entry.Store.Gallery.processBlob(blob, fname, {
+				Bucket: 'WebGallery'
+			}, 
+			entry.Params.Variation ? entry.Params.Variation.Alias : null, 
+			function(resp) {
+				if (resp.Code > 0) {
+					dc.pui.Popup.alert(resp.Message);
+				}
+				else {
+					dc.cms.edit.Loader.closePane();
+					
+					if (entry.Params.Callback)
+						entry.Params.Callback(resp.Result);
+				}
+			});
+	]]></Function>
+	<Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			dc.cms.edit.Loader.closePane();
+	]]></Function>
+</dcui>

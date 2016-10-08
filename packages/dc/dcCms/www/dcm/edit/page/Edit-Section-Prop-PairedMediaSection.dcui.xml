@@ -1,0 +1,98 @@
+<dcui Title="Edit Section Properties" AuthTags="Admin,Editor">
+	
+	<Skeleton>
+		<Form Name="DepEsppProperties">
+			<TitledSection Title="Section Properties" class="titledform">
+				<FieldContainer Label="CSS Classes:">
+					<TextInput Name="Class" placeholder="custom styling for this section" />
+				</FieldContainer>
+				<FieldContainer Label="Language:">
+					<TextInput Name="Lang" placeholder="blank for default - es = Spanish, en = English, etc" />
+				</FieldContainer>
+				<FieldContainer Label="Image:">
+					<TextInput Name="Image" />
+				</FieldContainer>
+				<FieldContainer Label="YouTube Video Id:">
+					<TextInput Name="YouTubeId" />
+				</FieldContainer>
+				<FieldContainer Label="Media Id:">
+					<TextInput Name="MediaId" />
+				</FieldContainer>
+			</TitledSection>
+			
+			<div class="formbuttons">
+				<SubmitButton Label="Save" />
+			</div>
+		</Form>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+    ]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+		    var ctxparams = dc.cms.edit.Loader.getContext().Params;
+	    
+			var params = $.extend(true, { }, ctxparams.Part);
+			
+			params.Section = ctxparams.Section.Id;
+			
+			if (dc.cms.edit.Loader.getContext().IsNew) {
+				e.Data = $.extend(true, { }, ctxparams.Section);
+			}
+			else {
+				e.Message = { 
+					Service: 'dcmCms', 
+					Feature: 'Feeds', 
+					Op: 'LoadFeedSection', 
+					Body: params
+				};
+			}
+    ]]></Function>
+	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Data = e.Data;
+			
+			e.Data = e.Data.Params;
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+
+			// copy the section context
+			var params = $.extend(true, { }, dc.cms.edit.Loader.getContext().Params);
+			
+			// store the copy of the section we loaded
+			$.extend(params.Section, entry.Store.Data);
+			
+			// but include in Params any additions we have from Saving
+			params.Section.Params = $.extend({ }, params.Section.Params, e.Data);
+			
+			Object.getOwnPropertyNames(params).forEach(function(name) {
+				if (name != 'Action' && name != 'Part' && name != 'Section')
+					delete params[name];
+			});
+			
+			params.Action.Publish = true;
+			
+			e.Message = { 
+				Service: 'dcmCms', 
+				Feature: 'Feeds', 
+				Op: 'AlterFeedSection', 
+				Body: params
+			};					
+    ]]></Function>
+	<Function Name="AfterSaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			dc.cms.edit.Loader.getContext().IsNew = false;
+			
+			// switch insert actions into edits
+		    dc.cms.edit.Loader.getContext().Params.Action = {
+		    	Op: 'Edit'
+		    };
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			dc.pui.Popup.alert('Saved');
+	]]></Function>
+</dcui>

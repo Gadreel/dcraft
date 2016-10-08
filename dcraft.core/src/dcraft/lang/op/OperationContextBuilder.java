@@ -37,7 +37,7 @@ import dcraft.struct.RecordStruct;
 			<Field Name="Verified" Type="Boolean" />
 			<Field Name="Locale" Type="dcSmallString" />
 			<Field Name="Chronology" Type="dcSmallString" />
-			<Field Name="DomainId" Type="Id" />
+			<Field Name="TenantId" Type="Id" />
 			<Field Name="SiteAlias" Type="dcSmallString" />
 			<Field Name="AuthTags">
 				<List Type="dcTinyString" />
@@ -86,7 +86,7 @@ public class OperationContextBuilder {
 
 	public OperationContextBuilder withGuestUserTemplate() {
 		return this
-			.withDomainId("00000_000000000000001")		// guest is part of root domain
+			.withTenantId("00000_000000000000001")		// guest is part of root domain
 			.withSite("root")
 			.withUserId("00000_000000000000002")
 			.withUsername("guest")
@@ -97,7 +97,7 @@ public class OperationContextBuilder {
 
 	public OperationContextBuilder withRootUserTemplate() {
 		return this		
-			.withDomainId("00000_000000000000001")		// root is part of root domain
+			.withTenantId("00000_000000000000001")		// root is part of root domain
 			.withSite("root")
 			.withUserId("00000_000000000000001")
 			.withUsername("root")
@@ -110,7 +110,7 @@ public class OperationContextBuilder {
 	public OperationContextBuilder elevateToRootTask() {
 		return this
 			.withElevated(true)
-			.withDomainId("00000_000000000000001")		// root is part of root domain
+			.withTenantId("00000_000000000000001")		// root is part of root domain
 			.withSite("root")
 			.withUserId("00000_000000000000001")
 			.withUsername("root")
@@ -205,8 +205,8 @@ public class OperationContextBuilder {
 		return this;
 	}
 
-	public OperationContextBuilder withDomainId(String v) {
-		this.values.setField("DomainId", v);
+	public OperationContextBuilder withTenantId(String v) {
+		this.values.setField("TenantId", v);
 		return this;
 	}
 

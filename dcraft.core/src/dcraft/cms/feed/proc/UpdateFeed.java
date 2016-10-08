@@ -80,7 +80,7 @@ public class UpdateFeed implements IStoredProc {
 					return;
 				}
 
-				String did = task.getDomain();
+				String did = task.getTenant();
 				
 				String ochan = null;
 				DateTime opubtime = null;

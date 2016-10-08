@@ -55,6 +55,7 @@ import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.concurrent.Future;
 
+@SuppressWarnings("deprecation")
 public class UploadPutHandler extends SimpleChannelInboundHandler<HttpObject> { 
     protected Channel dest = null;
     protected ReadableByteChannel src = null;

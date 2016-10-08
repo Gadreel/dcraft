@@ -19,12 +19,10 @@ public class SecurityPolicy {
 	public void hardenHttpResponse(HttpResponse resp) {
 		OperationContext ctx = OperationContext.get();
 		
-		String did = ctx.getUserContext().getDomainId();
+		SiteInfo site = ctx.getUserContext().getSite();
 		
-		if (StringUtil.isNotEmpty(did)) {
-			DomainInfo domain = Hub.instance.getDomainInfo(did);
-			
-			XElement config = domain.getSettings();
+		if (site != null) {
+			XElement config = site.getSettings();
 			
 			XElement http = null;
 			

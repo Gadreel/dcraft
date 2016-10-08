@@ -31,7 +31,6 @@ import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
 import dcraft.log.DebugLevel;
 import dcraft.log.Logger;
-import dcraft.mod.ModuleLoader;
 import dcraft.script.Activity;
 import dcraft.script.IDebuggerHandler;
 import dcraft.script.ui.ScriptUtility;
@@ -40,7 +39,7 @@ import dcraft.struct.RecordStruct;
 import dcraft.struct.builder.JsonStreamBuilder;
 import dcraft.util.StringUtil;
 import dcraft.work.TaskRun;
-import dcraft.work.WorkBucket;
+import dcraft.work.WorkTopic;
 import dcraft.work.WorkPool;
 import dcraft.xml.XElement;
 
@@ -98,115 +97,116 @@ public class Foreground {
 		
 		XElement cliel = croot.find("CommandLine");
 		
-		if ((cliel == null) || !cliel.hasAttribute("ClientClass")) {
-			System.out.println("Missing CommadLine configuration");
+		if (cliel == null) {
+			cliel = new XElement("CommandLine");
+			croot.with(cliel);
 		}
-		else {
-			ModuleLoader loader = new ModuleLoader(Hub.class.getClassLoader());
-			loader.init(cliel);
-			ILocalCommandLine cli = (ILocalCommandLine) loader.getInstance(cliel.getAttribute("ClientClass"));
+		
+		if (!cliel.hasAttribute("ClientClass")) 
+			cliel.withAttribute("ClientClass", "dcraft.tool.HubUtil");
+		
+		ILocalCommandLine cli = (ILocalCommandLine) Hub.instance.getInstance(cliel.getAttribute("ClientClass"));
+		
+		ApiSession capi = null;
+		boolean auth = true;
+		
+		String mode = cliel.getAttribute("Mode", "domain");
+		String sess = cliel.getAttribute("Session");
+		
+		if ("root".equals(mode)) {
+			if (StringUtil.isEmpty(sess))
+				capi = ApiSession.createLocalSession(mode);
+			else
+				capi = ApiSession.createSessionFromConfig(sess);  //LocalSession("root");
 			
-			ApiSession capi = null;
-			boolean auth = true;
+			//System.out.print("Password: ");
+			//String pass = scan.nextLine();
 			
-			String mode = cliel.getAttribute("Mode", "domain");
-			String sess = cliel.getAttribute("Session");
-			
-			if ("root".equals(mode)) {
-				if (StringUtil.isEmpty(sess))
-					capi = ApiSession.createLocalSession(mode);
-				else
-					capi = ApiSession.createSessionFromConfig(sess);  //LocalSession("root");
-				
-				//System.out.print("Password: ");
-				//String pass = scan.nextLine();
-				
-				Console cons = null;
-				String pass = null; 
-				char[] passwd = null;
-				 
-				if ((cons = System.console()) != null &&
-				    (passwd = cons.readPassword("Password:")) != null) {
-					pass = new String(passwd);
-				}
-				else {
-					System.out.print("Password: ");
-					pass = scan.nextLine();
-				}
-				
-				//System.out.println("Entered: " + pass);
-				
-				if (StringUtil.isEmpty(pass) || "0".equals(pass))
-					System.out.println("Stopping.");
-				else if (capi.startSession("root", pass)) 
-					cli.run(scan, capi);
-				else
-					System.out.println("Error logging in session");
+			Console cons = null;
+			String pass = null; 
+			char[] passwd = null;
+			 
+			if ((cons = System.console()) != null &&
+			    (passwd = cons.readPassword("Password:")) != null) {
+				pass = new String(passwd);
 			}
 			else {
-				while (true) {			
-					System.out.print("Domain (e.g. root): ");
-					String domain = scan.nextLine();
-					
-					if ("-".equals(domain)) {
-						System.out.println("--------------------------------------------");
-						continue;
-					}
-					
-					if ("0".equals(domain)) {
-						auth = false;
-						break;
-					}
-					
-					if ("*".equals(domain)) {
-						if (StringUtil.isEmpty(sess))
-							capi = ApiSession.createLocalSession("root");
-						else
-							capi = ApiSession.createSessionFromConfig(sess);  // LocalSession("root");
+				System.out.print("Password: ");
+				pass = scan.nextLine();
+			}
+			
+			//System.out.println("Entered: " + pass);
+			
+			if (StringUtil.isEmpty(pass) || "0".equals(pass))
+				System.out.println("Stopping.");
+			else if (capi.startSession("root", pass)) 
+				cli.run(scan, capi);
+			else
+				System.out.println("Error logging in session");
+		}
+		else {
+			while (true) {			
+				System.out.print("Tenant (e.g. root): ");
+				String domain = scan.nextLine();
 				
-						if (capi.startSession("root", "A1s2d3f4"))
-							break;
+				if ("-".equals(domain)) {
+					System.out.println("--------------------------------------------");
+					continue;
+				}
+				
+				if ("0".equals(domain)) {
+					auth = false;
+					break;
+				}
+				
+				if ("*".equals(domain)) {
+					if (StringUtil.isEmpty(sess))
+						capi = ApiSession.createLocalSession("root");
+					else
+						capi = ApiSession.createSessionFromConfig(sess);  // LocalSession("root");
+			
+					if (capi.startSession("root", "A1s2d3f4"))
+						break;
+				}
+				else {
+					if (StringUtil.isEmpty(sess))
+						capi = ApiSession.createLocalSession(domain);
+					else
+						capi = ApiSession.createSessionFromConfig(sess);  //  LocalSession(domain);
+					
+					//capi = CoreApi.createSessionFromConfig(domain);
+					
+					System.out.print("Username: ");
+					String user = scan.nextLine();
+					
+					Console cons = null;
+					String pass = null; 
+					char[] passwd = null;
+					 
+					if ((cons = System.console()) != null &&
+					    (passwd = cons.readPassword("Password:")) != null) {
+						pass = new String(passwd);
 					}
 					else {
-						if (StringUtil.isEmpty(sess))
-							capi = ApiSession.createLocalSession(domain);
-						else
-							capi = ApiSession.createSessionFromConfig(sess);  //  LocalSession(domain);
-						
-						//capi = CoreApi.createSessionFromConfig(domain);
-						
-						System.out.print("Username: ");
-						String user = scan.nextLine();
-						
-						Console cons = null;
-						String pass = null; 
-						char[] passwd = null;
-						 
-						if ((cons = System.console()) != null &&
-						    (passwd = cons.readPassword("Password:")) != null) {
-							pass = new String(passwd);
-						}
-						else {
-							System.out.print("Password: ");
-							pass = scan.nextLine();
-						}
-				
-						if (capi.startSession(user, pass))
-							break;
+						System.out.print("Password: ");
+						pass = scan.nextLine();
 					}
-					
-					System.out.println("Failed");
+			
+					if (capi.startSession(user, pass))
+						break;
 				}
-	
-				if (auth)
-					cli.run(scan, capi);
+				
+				System.out.println("Failed");
 			}
 
-			if (capi != null)
-				capi.stop();
-			
-			Hub.instance.stop();
+			if (auth)
+				cli.run(scan, capi);
 		}
+
+		if (capi != null)
+			capi.stop();
+		
+		Hub.instance.stop();
 	}
 		
 	static public void utilityMenu(Scanner scan) { 	
@@ -397,11 +397,11 @@ public class Foreground {
 		System.out.println("      # Hung: " + pool.threadsHung());
 		System.out.println(" ------------------------------------------- ");
 		
-		for (WorkBucket bucket : pool.getBuckets()) {
-			System.out.println(" Bucket:        " + bucket.getName());
-			System.out.println(" - In Progress: " + bucket.inprogress());
+		for (WorkTopic topic : pool.getTopics()) {
+			System.out.println(" Topic:        " + topic.getName());
+			System.out.println(" - In Progress: " + topic.inprogress());
 			
-			for (TaskRun task : bucket.tasksInProgress()) {
+			for (TaskRun task : topic.tasksInProgress()) {
 				System.out.println(" -- " + task.getTask().getId());
 			}
 		}

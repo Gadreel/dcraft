@@ -32,7 +32,7 @@ import dcraft.db.update.InsertRecordRequest;
 import dcraft.db.update.RetireRecordRequest;
 import dcraft.db.update.ReviveRecordRequest;
 import dcraft.db.update.UpdateRecordRequest;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.OperationContext;
 import dcraft.struct.CompositeStruct;
@@ -129,12 +129,12 @@ public class Products {
 				@Override
 				public void process(CompositeStruct result) {
 					if (!this.hasErrors()) {
-						DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+						TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 						
 						String path = "/dcw/" + domain.getAlias() + "/galleries/store/category/" + rec.getFieldAsString("Alias");
 						
 						try {
-							Files.createDirectories(Hub.instance.getPublicFileStore().resolvePath(path));
+							Files.createDirectories(Hub.instance.getTenantsFileStore().resolvePath(path));
 						} 
 						catch (IOException x) {
 							// TODO Auto-generated catch block
@@ -307,12 +307,12 @@ public class Products {
 				@Override
 				public void process(CompositeStruct result) {
 					if (!this.hasErrors()) {
-						DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+						TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 						
 						String path = "/dcw/" + domain.getAlias() + "/galleries/store/category/" + rec.getFieldAsString("Alias");
 						
 						try {
-							Files.createDirectories(Hub.instance.getPublicFileStore().resolvePath(path));
+							Files.createDirectories(Hub.instance.getTenantsFileStore().resolvePath(path));
 						} 
 						catch (IOException x) {
 							// TODO Auto-generated catch block
@@ -443,12 +443,12 @@ public class Products {
 				@Override
 				public void process(CompositeStruct result) {
 					if (!this.hasErrors()) {
-						DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+						TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 						
 						String path = "/dcw/" + domain.getAlias() + "/galleries/store/product/" + rec.getFieldAsString("Alias");
 						
 						try {
-							Files.createDirectories(Hub.instance.getPublicFileStore().resolvePath(path));
+							Files.createDirectories(Hub.instance.getTenantsFileStore().resolvePath(path));
 						} 
 						catch (IOException x) {
 							// TODO Auto-generated catch block

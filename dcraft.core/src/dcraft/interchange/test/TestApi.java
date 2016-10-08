@@ -50,7 +50,7 @@ public class TestApi {
 		
 		final Scanner scan = new Scanner(System.in);
 		
-		System.out.print("Domain (e.g. root): ");
+		System.out.print("Tenant (e.g. root): ");
 		String domain = scan.nextLine();
 		
 		OperationContext.useNewRoot();
@@ -75,7 +75,7 @@ public class TestApi {
 				System.out.println("7)  Check InBox");
 				System.out.println("8)  Upload Test");
 				System.out.println("9)  Download Test");
-				System.out.println("10)  Switch Domain");
+				System.out.println("10)  Switch Tenant");
 				System.out.println("11)  User Functions");
 				System.out.println("12)  Group Functions");
 
@@ -204,12 +204,12 @@ public class TestApi {
 					case 10 : {
 						// TODO this is not really accurate, we want to change the domain remotely
 						// using a call to session probably!
-						System.out.print("Domain (e.g. root): ");
+						System.out.print("Tenant (e.g. root): ");
 						domain = scan.nextLine();
 						
-						domain = Hub.instance.getDomains().resolveDomainId(domain);
+						domain = Hub.instance.getTenants().resolveTenantId(domain);
 					
-						// TODO capi.getSession().getUser().setDomainId(domain);
+						// TODO capi.getSession().getUser().setTenantId(domain);
 					}
 					
 					case 11:

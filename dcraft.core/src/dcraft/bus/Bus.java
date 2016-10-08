@@ -53,7 +53,7 @@ import dcraft.bus.net.StreamEncoder;
 import dcraft.bus.net.StreamHandler;
 import dcraft.bus.net.StreamMessage;
 import dcraft.bus.net.StreamSession;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.ISystemWork;
 import dcraft.hub.SysReporter;
@@ -262,7 +262,7 @@ public class Bus {
 			return or;
 		}
     	
-		DomainInfo di = tc.getDomain();
+		TenantInfo di = tc.getTenant();
 		
 		ServiceRouter router = (di != null) ? di.getServiceRouter(srv) : null;
 		
@@ -942,7 +942,7 @@ public class Bus {
 			System.out.println("  >>> " + StringUtil.join(al, ","));
 		}
 		
-		Hub.instance.getDomains().dumpDomainNames();
+		Hub.instance.getTenants().dumpTenantNames();
 	}
 
 	public AclFilter getAcl() {

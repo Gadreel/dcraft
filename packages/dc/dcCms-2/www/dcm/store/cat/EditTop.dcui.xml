@@ -1,0 +1,129 @@
+<dcui Title="Edit Category">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Edit Category</h1>
+				
+				<Form Name="EditCategory">
+					<FieldContainer Label="Title:">
+						<TextInput Name="Title" Required="true" />
+					</FieldContainer>
+					
+					<div class="formbuttons">
+						<Button Click="DoAdd" Label="Add Subcategory" Icon="plus" />
+						<Button Click="DoDelete" Label="Delete This" Icon="minus" />
+						<SubmitButton Label="Save" Icon="check" /> 
+						<Button Page="/dcm/store/cat/List" Label="Return to Categories" Icon="back" />
+					</div> 
+				</Form>
+				
+				<div id="areaCats" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Subcategories</h4>
+					
+					<ul id="lstCats" data-role="listview" data-inset="true" data-count-theme="a" />					
+				</div>			 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Title').focus();				
+				
+			var list = $('#lstCats');		
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			list.listview('refresh');
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			// TODO load sub categories too
+			
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Category',
+				Op: 'Load',
+				Body: { Id: this.Params.Id }
+			};
+	]]></Function>
+	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			//console.log('c: ' + JSON.stringify(e.Data.Children));
+				
+			var list = $('#lstCats');		
+	
+			list.empty();
+			
+			var cats = e.Data.Children;
+			
+			var sfield = 'Title';					
+			cats.sort(dc.util.List.sortObjects(sfield));
+
+			// output
+			for (var i = 0; i < cats.length; i++) {
+				var item = cats[i];
+				
+				var litm = $('<li></li>');
+				
+				var anchr = $('<a href="#"><h2>' + String.escapeHtml(item.Title) + '</h2>'
+						+ '<p class="ui-li-aside"><strong>' + String.escapeHtml(item.Alias) + '</strong></p></a>');
+				
+				anchr.click(item, function(e) {
+					dc.pui.Loader.loadPage('/dcm/store/cat/Edit', { Id: e.data.Id });
+					
+					e.preventDefault();
+					return false;
+				});
+				
+				litm.append(anchr);
+				list.append(litm);
+			}
+			
+			list.listview('refresh');			
+	]]></Function>	
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			e.Data.Id = this.Params.Id;
+			
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Category',
+				Op: 'Update',
+				Body: e.Data
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			//window.history.back();
+	]]></Function>
+	<Function Name="DoAdd"><![CDATA[
+			dc.pui.Loader.loadPage('/dcm/store/cat/Add', { ParentId: this.Params.Id });
+	]]></Function>
+	<Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Params.Id) {
+				window.history.back();
+				return;
+			}
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this Category?', function() {
+				//console.log('delete');
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'Category',
+					Op: 'Retire',
+					Body: { 
+						Id: entry.Params.Id
+					}
+				}, function(resp) {
+					if (resp.Result > 0) {
+						dc.pui.Popup.alert(resp.Message);
+						return;
+					}
+				
+					window.history.back();
+				});
+			});
+	]]></Function>
+</dcui>

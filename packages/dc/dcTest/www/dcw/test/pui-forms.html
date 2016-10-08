@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="description" content="Simple CSS for HTML forms - borrowed from purecss.io." /> 
+
+    <title>Forms &ndash; Pure</title>
+    
+	<link rel="stylesheet" href="/css/font-awesome.css" />
+	<link rel="stylesheet" href="/css/dc.pui.css" />
+	
+	<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Raleway:200" />
+	
+	<script src="/js/vendor/jquery-3.0.0.slim.min.js"></script>
+	<script src="/js/dc/dc.pui.js"></script>
+</head>
+<body style="padding: 16px;">
+
+	<!-- 
+		TODO add more features
+		
+		http://purecss.io/forms/
+		
+		http://demos.jquerymobile.com/1.4.5/datepicker/
+		
+		http://getbootstrap.com/components/
+	
+		TODO review other examples
+	
+		http://tutorialzine.com/2015/07/freebie-7-clean-and-responsive-forms/
+		
+		http://codepen.io/andy31415/pen/FtKzs
+		
+		https://www.freshdesignweb.com/css-registration-form-templates/
+		
+		http://formoid.com/
+	-->
+
+	  <h2>Panel Group</h2>
+	  <div class="dc-pui-panel-group">
+		<div class="dc-pui-panel dc-pui-panel-default">
+		  <div class="dc-pui-panel-heading">Panel with panel-default class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+
+		<div class="dc-pui-panel dc-pui-panel-primary">
+		  <div class="dc-pui-panel-heading">Panel with panel-primary class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+
+		<div class="dc-pui-panel dc-pui-panel-success">
+		  <div class="dc-pui-panel-heading">Panel with panel-success class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+
+		<div class="dc-pui-panel dc-pui-panel-info">
+		  <div class="dc-pui-panel-heading">Panel with panel-info class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+
+		<div class="dc-pui-panel dc-pui-panel-warning">
+		  <div class="dc-pui-panel-heading">Panel with panel-warning class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+
+		<div class="dc-pui-panel dc-pui-panel-danger">
+		  <div class="dc-pui-panel-heading">Panel with panel-danger class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+	  </div>
+
+	  <h2>Solo Panel</h2>
+
+		<div class="dc-pui-panel dc-pui-panel-info">
+		  <div class="dc-pui-panel-heading">Panel with panel-info class</div>
+		  <div class="dc-pui-panel-body">Panel Content</div>
+		</div>
+
+	  <h2>Pure Form</h2>
+
+		<div class="dc-pui-panel dc-pui-panel-info">
+		  <div class="dc-pui-panel-heading">Form in a panel</div>
+		  <div class="dc-pui-panel-body">
+			<form class="pure-form pure-form-aligned">
+				<div class="pure-control-group">
+					<label for="name">Username</label>
+					<input id="name" type="text" placeholder="Username">
+				</div>
+
+				<div class="pure-control-group">
+					<label for="aligned-password">Password</label>
+					<input id="aligned-password" type="password" placeholder="Password">
+				</div>
+
+				<div class="pure-control-group">
+					<label for="aligned-email">Email Address</label>
+					<input id="aligned-email" type="email" placeholder="Email Address">
+				</div>
+
+				<div class="pure-controls">
+					<button type="submit" class="pure-button pure-button-primary">Submit</button>
+				</div>
+			</form>
+		  </div>
+		</div>
+
+
+	<h2>Labels</h2>
+
+		<div class="dc-pui-panel dc-pui-panel-info">
+		  <div class="dc-pui-panel-heading">Labels in a panel</div>
+		  <div class="dc-pui-panel-body">
+			<span class="dc-pui-tag dc-pui-tag-default">Default</span>
+			<span class="dc-pui-tag dc-pui-tag-primary">Primary</span>
+			<span class="dc-pui-tag dc-pui-tag-success">Success</span>
+			<span class="dc-pui-tag dc-pui-tag-info">Info</span>
+			<span class="dc-pui-tag dc-pui-tag-warning">Warning</span>
+			<span class="dc-pui-tag dc-pui-tag-danger">Danger</span>
+		  </div>
+		</div>
+
+	<h2>Callouts</h2>
+
+	<div class="dc-pui-callout dc-pui-callout-info"> 
+		<h4>Changing the icon font location</h4> 
+		<p>Bootstrap assumes icon font files will be located in the <code>../fonts/</code> directory, relative to the compiled CSS files. Moving or renaming those font files means updating the CSS in one of three ways:</p> <ul> <li>Change the <code>@icon-font-path</code> and/or <code>@icon-font-name</code> variables in the source Less files.</li> <li>Utilize the <a href="http://lesscss.org/usage/#command-line-usage-relative-urls">relative URLs option</a> provided by the Less compiler.</li> <li>Change the <code>url()</code> paths in the compiled CSS.</li> </ul> <p>Use whatever option best suits your specific development setup.</p> 
+	</div>
+
+	<div class="dc-pui-callout dc-pui-callout-warning"> 
+		<h4>Accessible icons</h4> 
+		<p>Modern versions of assistive technologies will announce CSS generated content, as well as specific Unicode characters. To avoid unintended and confusing output in screen readers (particularly when icons are used purely for decoration), we hide them with the <code>aria-hidden="true"</code> attribute.</p> <p>If you're using an icon to convey meaning (rather than only as a decorative element), ensure that this meaning is also conveyed to assistive technologies – for instance, include additional content, visually hidden with the <code>.sr-only</code> class.</p> <p>If you're creating controls with no other text (such as a <code>&lt;button&gt;</code> that only contains an icon), you should always provide alternative content to identify the purpose of the control, so that it will make sense to users of assistive technologies. In this case, you could add an <code>aria-label</code> attribute on the control itself.</p> 
+	</div>
+	
+	<div class="dc-pui-callout dc-pui-callout-danger"> 
+		<h4>Don't mix with other components</h4> 
+		<p>Icon classes cannot be directly combined with other components. They should not be used along with other classes on the same element. Instead, add a nested <code>&lt;span&gt;</code> and apply the icon classes to the <code>&lt;span&gt;</code>.</p> 
+	</div>
+
+	<h2>Complex Form</h2>
+
+		<div class="dc-pui-panel dc-pui-panel-info">
+		  <div class="dc-pui-panel-heading">Form in a panel</div>
+		  <div class="dc-pui-panel-body">
+		  
+	<form class="dc-pui-form">
+		<div class="dc-pui-field dc-pui-invalid">
+			<div class="dc-pui-label">
+				<label for="name">Username (invalid + instr)</label>
+			</div>
+			<div class="dc-pui-control">
+				<div class="dc-pui-message dc-pui-message-info">
+					Username formatting info
+				</div>
+			</div>
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="name" type="text" placeholder="Username"  />
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Username validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-invalid">
+			<div class="dc-pui-label">
+				<label for="name">Username (invalid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="name" type="text" placeholder="Username"  />
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Username validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="name">Username (valid + instr)</label>
+			</div>
+			<div class="dc-pui-control">
+				<div class="dc-pui-message dc-pui-message-info">
+					Username formatting info
+				</div>
+			</div>
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="name" type="text" placeholder="Username"  />
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Username validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="name">Username (valid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="name" type="text" placeholder="Username"  />
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Username validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-invalid">
+			<div class="dc-pui-label">
+				<label for="email">Email (invalid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph dc-pui-valid-flag">$</span>
+				<input id="email" type="text" placeholder="Email" />
+				<span class="dc-pui-input-group-addon dc-pui-addon-button dc-pui-addon-glyph-button"><i class="fa fa-info-circle dc-pui-invalid-hidden"></i><i class="fa fa-warning dc-pui-valid-hidden dc-pui-valid-flag"></i></span>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Email validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Email (valid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph dc-pui-valid-flag">$</span>
+				<input id="email" type="text" placeholder="Email" />
+				<span class="dc-pui-input-group-addon dc-pui-addon-button dc-pui-addon-glyph-button"><i class="fa fa-info-circle dc-pui-invalid-hidden"></i><i class="fa fa-warning dc-pui-valid-hidden dc-pui-valid-flag"></i></span>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Email validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Phone (label)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<label>555.888.3333</label>
+			</div>
+		</div>
+		<div class="dc-pui-message dc-pui-message-info">
+			Instructions mixed in.
+		</div>
+		<div class="dc-pui-field dc-pui-invalid">
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control">
+				<div class="dc-pui-message dc-pui-message-info">
+					Instructions mixed in, aligned.
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Phone (readonly)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="email" type="text" placeholder="Phone" value="555.888.3333" readonly="readonly" />
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Phone (disabled)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="email" type="text" placeholder="Phone" disabled="disabled" />
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-invalid">
+			<div class="dc-pui-label">
+				<label for="email">Add-ons (invalid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-info"><i class="fa fa-square"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph dc-pui-valid-flag"><i class="fa fa-circle"></i></span>
+				<input id="email" type="text" placeholder="Email"  />
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph"><i class="fa fa-star"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-info">@designcraft.io</span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button dc-pui-addon-glyph-button"><i class="fa fa-bell dc-pui-valid-flag"></i></span>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					add-on validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Add-ons (valid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-info"><i class="fa fa-square"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph dc-pui-valid-flag"><i class="fa fa-circle"></i></span>
+				<input id="email" type="text" placeholder="Email"  />
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph"><i class="fa fa-star"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-info">@designcraft.io</i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button dc-pui-addon-glyph-button"><i class="fa fa-bell dc-pui-valid-flag"></i></span>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					add-on validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-field-stacked">
+			<div class="dc-pui-label">
+				<label for="email">Add-ons (valid + stacked)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-info"><i class="fa fa-square"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph dc-pui-valid-flag"><i class="fa fa-circle"></i></span>
+				<input id="email" type="text" placeholder="Email"  />
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph"><i class="fa fa-star"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button dc-pui-addon-glyph-button"><i class="fa fa-bell dc-pui-valid-flag"></i></span>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					add-on validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Button Group</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-square"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-circle"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-star"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-bell"></i></span>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+				<label for="email">Button Group</label>
+			</div>
+			<div class="dc-pui-control dc-pui-button-group">
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-square"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-circle"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-star"></i></span>
+				<span class="dc-pui-input-group-addon dc-pui-addon-button"><i class="fa fa-bell"></i></span>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-field-multi">
+			<div class="dc-pui-label">
+				<label for="email">Name (valid)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-multi">
+				<input id="first" placeholder="First" class="dc-pui-input-40"  />
+				<input id="mid" placeholder="M" class="dc-pui-input-10"  />
+				<input id="last" placeholder="Last"  class="dc-pui-input-40" />
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					name validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-field-multi dc-pui-field-stacked">
+			<div class="dc-pui-label">
+				<label for="email">Name (valid + stacked)</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-multi">
+				<input id="first" placeholder="First" class="dc-pui-input-40"  />
+				<input id="mid" placeholder="M" class="dc-pui-input-10"  />
+				<input id="last" placeholder="Last"  class="dc-pui-input-40" />
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					name validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label for="password">Password</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<input id="password" type="password" placeholder="Password"  />
+				<span class="dc-pui-input-group-addon dc-pui-addon-glyph">?</span>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Password validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label for="state">State</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<select id="state">
+					<option>AL</option>
+					<option>CA</option>
+					<option>IL</option>
+				</select>		
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					State validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label for="comment">Comment</label>
+			</div>
+			<div class="dc-pui-control dc-pui-input-group">
+				<textarea id="comment" name="comment" class="dc-pui-textarea"></textarea>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Comment validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label>Comm</label>
+			</div>
+			<div class="dc-pui-control dc-pui-controlgroup-horizontal">
+				<div class="dc-pui-radio">
+					<input type="radio" id="comm1" name="CertInterest" value="No" />
+					<label for="comm1" class="dc-pui-input-button"><i class="fa fa-circle" aria-hidden="true"></i> Not Interested</label>
+				</div>
+				<div class="dc-pui-radio">
+					<input type="radio" id="comm2" name="CertInterest" value="Yes" />
+					<label for="comm2" class="dc-pui-input-button"><i class="fa fa-circle" aria-hidden="true"></i> Interested</label>
+				</div>
+				<div class="dc-pui-radio">
+					<input type="radio" id="comm3" name="CertInterest" value="Maybe" />
+					<label for="comm3" class="dc-pui-input-button"><i class="fa fa-circle" aria-hidden="true"></i> Maybe</label>
+				</div>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Comm validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label>Comm b</label>
+			</div>
+			<div class="dc-pui-control dc-pui-controlgroup-vertical">
+				<div class="dc-pui-radio">
+					<input type="radio" id="comm1b" name="CertInterestb" value="No" />
+					<label for="comm1b" class="dc-pui-input-button"><i class="fa fa-circle" aria-hidden="true"></i> Not Interested</label>
+				</div>
+				<div class="dc-pui-radio">
+					<input type="radio" id="comm2b" name="CertInterestb" value="Yes" />
+					<label for="comm2b" class="dc-pui-input-button"><i class="fa fa-circle" aria-hidden="true"></i> Interested</label>
+				</div>
+				<div class="dc-pui-radio">
+					<input type="radio" id="comm3b" name="CertInterestb" value="Maybe" />
+					<label for="comm3b" class="dc-pui-input-button"><i class="fa fa-circle" aria-hidden="true"></i> Maybe</label>
+				</div>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Comm validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label>Comm 2</label>
+			</div>
+			<div class="dc-pui-control dc-pui-controlgroup-horizontal">
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm21" name="CertInterest2" value="No" />
+					<label for="comm21" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i>  Not Interested</label>
+				</div>
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm22" name="CertInterest2" value="Yes" />
+					<label for="comm22" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i>  Interested</label>
+				</div>
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm23" name="CertInterest2" value="Maybe" />
+					<label for="comm23" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i>  Maybe</label>
+				</div>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Comm validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field">
+			<div class="dc-pui-label">
+	            <label>Comm 2b</label>
+			</div>
+			<div class="dc-pui-control dc-pui-controlgroup-vertical">
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm21b" name="CertInterest2b" value="No" />
+					<label for="comm21b" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i> Not Interested</label>
+				</div>
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm22b" name="CertInterest2b" value="Yes" />
+					<label for="comm22b" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i> Interested</label>
+				</div>
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm23b" name="CertInterest2b" value="Maybe" />
+					<label for="comm23b" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i> Maybe</label>
+				</div>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Comm validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-invalid">
+			<div class="dc-pui-label">
+	            <label>Comm 2c (invalid + inst)</label>
+			</div>
+			<div class="dc-pui-control">
+				<div class="dc-pui-message dc-pui-message-info">
+					Username formatting info
+				</div>
+			</div>
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control dc-pui-controlgroup-vertical">
+				<div class="dc-pui-checkbox">
+					<input type="checkbox" id="comm21c" name="CertInterest2b" value="No" />
+					<label for="comm21c" class="dc-pui-input-button"><i class="fa fa-square" aria-hidden="true"></i> <i class="fa fa-check" aria-hidden="true"></i> Not Interested</label>
+				</div>
+			</div>
+			<div class="dc-pui-spacer dc-pui-valid-hidden"></div>
+			<div class="dc-pui-control dc-pui-valid-hidden">
+				<div class="dc-pui-message dc-pui-message-danger">
+					Comm validation
+				</div>
+			</div>
+		</div>
+		<div class="dc-pui-field dc-pui-form-buttons">
+			<div class="dc-pui-spacer"></div>
+			<div class="dc-pui-control">
+				<button type="submit" class="pure-button pure-button-primary">Submit</button>
+			</div>
+		</div>
+	</form>
+		  </div>
+		</div>
+		
+</body>
+</html>

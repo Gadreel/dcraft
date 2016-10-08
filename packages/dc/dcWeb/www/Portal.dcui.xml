@@ -1,0 +1,22 @@
+<dcui Title="Portal" AuthTags="User">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<div id="areaEditor" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Editor Menu</h4>
+					
+					<WideButton Label="Pages" Icon="gear" Page="/dcm/cms/feeds/PageList" /> 
+					<WideButton Label="Feeds" Icon="gear" Page="/dcm/cms/feeds/FeedList" /> 
+					<WideButton Label="Gallery" Icon="bars" Page="/dcm/cms/files/Gallery" /> 
+					<WideButton Label="Web Files" Icon="bars" Page="/dcm/cms/files/WebFiles" /> 
+					<WideButton Label="My Account" Icon="edit" Page="/dcm/cms/EditSelf" /> 
+					<WideButton Label="Sign Out" Icon="sign-out" Click="DoSignOut" />
+				</div>			 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+</dcui>

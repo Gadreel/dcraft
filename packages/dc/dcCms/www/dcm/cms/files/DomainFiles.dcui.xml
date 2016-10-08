@@ -1,0 +1,275 @@
+<dcui Title="Domain File Browser" AuthTags="Admin">
+	<RequireLib Path="/dcm/cms/js/main.js" />
+	<RequireLib Path="/dcw/js/jquery.fileDownload.js" />
+	
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Domain File Browser</h1>
+	
+				<div id="areaFiles" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Files</h4>
+		
+					<div class="formbuttons">
+						<Button Click="DoUpload" Label="Upload File" Icon="carat-u" />
+						<Button Click="DoAddFolder" Label="Add Folder" Icon="plus" />
+						<Button Click="DoRefresh" Label="Refresh" Icon="refresh" />
+					</div> 
+					
+					<table data-role="table" id="lstFiles" class="ui-body-d ui-shadow table-stripe table-thin-breakpoint">
+					<thead>
+						<tr class="ui-bar-d">
+							<th><a href="#" data-fname="IsFolder">&nbsp;</a></th>
+							<th><a href="#" data-fname="FileName">Name</a></th>
+							<th><a href="#" data-fname="Size">Size</a></th>
+							<th><a href="#" data-fname="LastModified">Modified</a></th>
+						</tr>
+					</thead>
+					<tbody id="lstFilesBody">
+					</tbody>
+					</table>			
+				</div>
+			</article>
+			
+			<div data-role="popup" id="puFileOpts" data-theme="b">
+				<ul data-role="listview" data-inset="true" style="min-width:210px;">
+					<li data-role="list-divider">Choose an action</li>
+					<li><Link Click="DoDownload" Label="Download" /></li>
+					<li><Link Click="DoImport" Label="Import Page" /></li>
+					<li><Link Click="DoEdit" Label="Edit" /></li>
+					<li><a href="#">Delete</a></li>
+				</ul>
+			</div>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (this.Params.Path)
+				entry.Store.Path = this.Params.Path;
+			else
+				entry.Store.Path = '/';
+		
+			$('#areaFiles h4 a').contents()[0].nodeValue = 'Files: ' + entry.Store.Path;
+		
+			$('#lstFiles th a').click(function(e) {
+				entry.Store.SortField = $(this).attr('data-fname');
+				entry.callPageFunc('LoadList');
+				
+				e.preventDefault();
+				return false;
+			});
+			
+			this.callPageFunc('LoadList');
+	]]></Function>
+	<Function Name="LoadList"><![CDATA[
+			var entry = this;
+		
+			$('#lstFilesBody').empty();
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'DomainFileStore',
+				Op: 'ListFiles',
+				Body: { 
+					FolderPath: entry.Store.Path
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				var list = $('#lstFilesBody');
+
+				// add current folder				
+				list.append('<tr><td><i class="fa fa-folder-o"></i></td><td>.</td><td></td><td></td></tr>');
+				
+				// add paren folder
+				if (entry.Store.Path.length > 1) {
+					var litm = $('<tr></tr>');
+					
+					litm.append('<td><i class="fa fa-folder-o"></i></td>');
+				
+					var uncell = $('<td></td>');							
+					var anchr = $('<a href="#">.. [parent]</a>');
+					
+					anchr.click(item, function(e) {
+						var curr = entry.Store.Path;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+						
+						dc.pui.Loader.loadPage('/dcm/cms/files/DomainFiles', { Path: path });	
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					uncell.append(anchr);
+					litm.append(uncell);
+					
+					list.append(litm);
+				}
+				
+				var items = resp.Body;
+				var sfield = entry.Store.SortField ? entry.Store.SortField : 'FileName';
+
+				// add calculated fields
+				//for (var i = 0; i < items.length; i++) {
+				//	var item = items[i];
+					
+					//item.TotalCharges = item.Sales + item.Shipping;
+				//}
+				
+				// sort
+				items.sort(dc.util.List.sortObjects(sfield));
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					var litm = $('<tr></tr>');
+
+					if (item.IsFolder) 					
+						litm.append('<td><i class="fa fa-folder-o"></i></td>');
+					else
+						litm.append('<td><i class="fa fa-file-o"></i></td>');
+					
+					var uncell = $('<td></td>');							
+					var anchr = $('<a href="#">' + String.escapeHtml(item.FileName) + '</a>');
+					
+					anchr.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						if (e.data.IsFolder) {
+							dc.pui.Loader.loadPage('/dcm/cms/files/DomainFiles', { Path: path });	
+						}
+						else {
+							entry.Store.PopPath = path;
+						
+							$('#puFileOpts').popup('open', { positionTo: e.currentTarget });
+						}
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					uncell.append(anchr);
+					litm.append(uncell);
+					
+					if (item.IsFolder) 					
+						litm.append('<td></td>');
+					else
+						litm.append('<td>' + dcm.upload.fmtFileSize(item.Size) + '</td>');
+					
+					if (item.LastModified) 
+						litm.append('<td>' + dc.util.Date.formatZLocalMedium(item.LastModified) + '</td>');
+					else
+						litm.append('<td></td>');
+					
+					list.append(litm);
+				}
+				
+				$('#lstFiles').table('refresh').promise().then(function() {
+					$('#lstFiles td .ui-table-cell-label a').click(function(e) {
+						entry.Store.SortField = $(this).attr('data-fname');
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+				});
+			});	
+	]]></Function>
+	<Function Name="DoRefresh"><![CDATA[
+			this.callPageFunc('LoadList');
+	]]></Function>
+	<Function Name="DoAddFolder"><![CDATA[
+			dc.pui.Loader.loadPage('/dcm/cms/files/AddDomainFolder', { Path: this.Store.Path });	
+	]]></Function>
+	<Function Name="DoUpload"><![CDATA[
+			dc.pui.Loader.loadPage('/dcm/cms/files/UploadDomainFile', { Path: this.Store.Path });	
+	]]></Function>
+	<Function Name="DoDownload"><![CDATA[
+			$('#puFileOpts').popup('close');
+			
+			//console.log('dl: ' + this.Store.PopPath);
+		
+			// TODO move all this to dcm.download.FUNC
+			
+			dc.util.Cookies.deleteCookie('fileDownload');
+			
+			var tmsg = { 
+				Service: 'dcmCms',
+				Feature: 'DomainFileStore',
+				Op: 'StartDownload',
+				Body: {
+					FilePath: this.Store.PopPath
+				}
+			};
+			
+			var cmsg = { 
+				Service: 'Session',
+				Feature: 'DataChannel',
+				Op: 'Establish',
+				Body: {
+					Title: "Downloading " + this.Store.PopPath,
+					StreamRequest: tmsg
+				}
+			};
+			
+			dc.comm.sendMessage(cmsg, function(rmsg) {
+				if (rmsg.Result == 0) { 
+					var binding = rmsg.Body;
+					
+					$.fileDownload('/download/' + binding.ChannelId, {
+						httpMethod: 'GET', 
+						successCallback: function(url) {
+							// only means that it started, not finished
+							console.log('download worked!');
+						},
+						failCallback: function(html, url) {
+							console.log('download failed!');
+						}
+					});
+				}
+				else {			
+					dc.pui.Popup.alert('Error requesting upload channel.');
+				}
+			});
+	]]></Function>
+	<Function Name="DoImport"><![CDATA[
+			$('#puFileOpts').popup('close');
+			
+			console.log('im: ' + this.Store.PopPath);
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'Feeds',
+				Op: 'ImportFeedFiles',
+				Body: { 
+					Path: this.Store.PopPath
+				}
+			}, function(resp) {
+				if (resp.Result > 0) 
+					dc.pui.Popup.alert(resp.Message);
+				else
+					dc.pui.Popup.alert("File imported.");
+			});	
+	]]></Function>
+	<Function Name="DoEdit"><![CDATA[
+			$('#puFileOpts').popup('close');
+			
+			dc.pui.Loader.loadPage('/dcm/cms/files/EditFile', { Path: this.Store.PopPath });	
+	]]></Function>
+</dcui>

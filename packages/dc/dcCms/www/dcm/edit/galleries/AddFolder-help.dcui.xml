@@ -1,0 +1,8 @@
+<dcui Title="Help" AuthTags="Admin,Editor">
+	<Skeleton><div class="dcuiHelpViewer" data-dcui-mode="enhance"><MD><![CDATA[
+## Add Folder Help
+
+Give the new folder a name. Do not use spaces or special characters, except for - may be used in place of spaces.  For example `Faces` is acceptable.
+
+	]]></MD></div></Skeleton>
+</dcui>

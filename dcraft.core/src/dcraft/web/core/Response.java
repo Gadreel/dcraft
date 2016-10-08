@@ -54,6 +54,7 @@ import dcraft.util.MimeUtil;
 import dcraft.util.StringUtil;
 import dcraft.web.parse.DateParser;
 
+@SuppressWarnings("deprecation")
 public class Response {
     protected Map<String, Cookie> cookies = new HashMap<>();
     protected boolean keepAlive = false; 

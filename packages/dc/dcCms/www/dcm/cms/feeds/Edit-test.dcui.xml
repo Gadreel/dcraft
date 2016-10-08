@@ -1,0 +1,563 @@
+<dcui Title="Edit Feed">
+	<RequireStyle Path="/dcm/cms/css/main.css" />
+	
+	<RequireLib Path="/dcw/js/ace-1.1.8/ace.js" />
+	<RequireLib Path="/dcw/js/marked.min.js" />
+	<RequireLib Path="/dcw/js/vkbeautify.0.99.00.beta.js" />
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+	
+	<RequireLib Path="/dcw/js/xml2json.min.js" />
+	
+	<Skeleton>
+		<article id="dcappMain" class="dcFlexColumn" style="height: 100%; padding: 0;">
+			<div id="editImageControls" data-role="header" style="display: flex; justify-content: flex-end;">
+			    <h1>Edit Feed</h1>
+				
+				<div data-role="controlgroup" data-type="horizontal" class="ui-mini ui-btn-right">
+					<Link Click="DoSave" Label="Save Draft" class="ui-btn" />
+					<Link Click="DoSavePublish" Label="Save &amp; Publish" class="ui-btn" /> 
+					<Link Click="DoOpenGallery" Label="Gallery" class="ui-btn" />
+					<Link Click="DoHelp" Label="Help" class="ui-btn" />
+					<Link Click="DoClose" Label="Close" class="ui-btn" />
+			    </div>
+			</div>
+		
+			<div id="sectEdit" style="display: flex; flex: 1; overflow: auto;">
+			    <div style="width: 300px;">
+					<h3 style="margin-left: 16px;">Sections</h3>
+					
+					<ul id="sectList" data-role="listview" data-inset="false" data-icon="false">
+						<li><Link Label="Properties" Click="DoShowOption" data-sect="formArea" /></li>
+					</ul>					
+				</div>
+
+				<div id="formArea" style="flex: 1; overflow: auto;" class="ui-body ui-body-a ui-corner-all">
+					<Form Name="EditPage">
+						<FieldContainer Label="Title:">
+							<TextInput Name="Title" Required="true" />
+						</FieldContainer>
+						<FieldContainer Label="Path:">
+							<TextInput Name="Path" readonly="true" />
+						</FieldContainer>
+						<FieldContainer Label="Keywords:">
+							<TextInput Name="Keywords" />
+						</FieldContainer>
+						<FieldContainer Label="Description:">
+							<TextArea Name="Description" />
+						</FieldContainer>
+						<FieldContainer Label="Published:">
+							<TextInput Name="Published" Pattern="\d\d\d\d-\d\d-\d\d(\s\d\d:\d\d)?" placeholder="YYYY-MM-DD or YYYY-MM-DD hh:mm, military time" />
+						</FieldContainer>
+						<FieldContainer Label="Author:">
+							<TextInput Name="AuthorName" readonly="true" />
+						</FieldContainer>
+						<FieldContainer Label="Created:">
+							<TextInput Name="Created" readonly="true" />
+						</FieldContainer>
+						<FieldContainer Label="Modified:">
+							<TextInput Name="Modified" readonly="true" />
+						</FieldContainer>
+					</Form>
+				</div>
+			</div>
+		</article>			
+		
+		<IncludePart Path="/dcm/cms/files/GalleryChooser" />
+	</Skeleton>
+	<Function Name="DoDecorate"><![CDATA[
+			var entry = this;
+    ]]></Function>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			// TODO keep params, remove this
+			//entry.Params.Channel = 'Blog'; 
+			//entry.Params.Path = '/Blog/Lorem-7'; 
+			
+			//console.log('a: ' + entry.Params.InitialGallery);
+			
+			entry.Store.Destroy = [];
+			entry.Store.Editors = {};
+			entry.Store.ChangedEditors = {};
+			entry.Store.CurrentEditor = null;
+			entry.Store.PublishFlag = false; 
+			
+			entry.Store.XmlParser = new X2JS({ 
+				useDoubleQuotes : true, 
+				attributePrefix: '$', 
+				arrayAccessFormPaths: [ 
+					'dcf.Field', 
+					'dcf.PagePart', 
+					'Channel.PagePartDef', 
+					'Channel.Template.PagePartDef' 
+				] 
+			});
+			
+			entry.Store.XmlParser.dcVal = function(n) {
+			    var v = n.$Value;
+			    
+			    if (!v)
+			    	v = n.$value;
+			    
+			    if (!v)
+			    	v = n.__text;
+			    
+			    return v;
+			};
+			
+			//this.form().query('Title').focus();
+    ]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			if (entry.Params.Channel && entry.Params.Path) {
+				e.Message = { 
+					Service: 'dcmCms',
+					Feature: 'Feeds',
+					Op: 'LoadFeedFiles',
+					Body: { 
+						Channel: entry.Params.Channel, 
+						Path: entry.Params.Path 
+					}
+				};
+			}
+			else {
+				e.AsNew = true;
+				e.Data = {
+				};
+			}
+	]]></Function>
+	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+
+			entry.Store.Data = e.Data;
+			
+			entry.Store.ContentXml = e.Data.ContentXml ? entry.Store.XmlParser.xml_str2json(e.Data.ContentXml) : null;
+			entry.Store.ChannelXml = e.Data.ChannelXml ? entry.Store.XmlParser.xml_str2json(e.Data.ChannelXml) : null;
+			
+			// collect all the content properties into a usable format
+			e.Data = {
+				Path: entry.Params.Path ? entry.Params.Path : ''
+			};
+			
+			var flds = [];
+			
+			if (entry.Store.ContentXml && entry.Store.ContentXml.dcf)
+				flds = entry.Store.XmlParser.asArray(entry.Store.ContentXml.dcf.Field);
+			
+			for (var i = 0; i < flds.length; i++) 
+				e.Data[flds[i].$Name] = entry.Store.XmlParser.dcVal(flds[i]); 
+			
+			if (e.Data.Created)
+				e.Data.Created = dc.util.Date.formatZLocalMedium(e.Data.Created);
+			
+			if (e.Data.Modified)
+				e.Data.Modified = dc.util.Date.formatZLocalMedium(e.Data.Modified);
+			
+			if (e.Data.Published)
+				e.Data.Published = e.Data.Published.replace('T', ' ');  
+			
+			var dtags = [];
+
+			var tags = [];
+			
+			if (entry.Store.ContentXml && entry.Store.ContentXml.dcf)
+				tags = entry.Store.XmlParser.asArray(entry.Store.ContentXml.dcf.Tag);
+			
+			for (var i = 0; i < tags.length; i++) 
+				dtags.push(tags[i].$Alias);
+			
+			if (dtags.length)
+				e.Data.Tags = dtags;
+
+			// add to the properties form layout			
+			var xtralayout = [];
+			
+			var cflds = [];
+			
+			if (entry.Store.ChannelXml && entry.Store.ChannelXml.Channel)
+				cflds = entry.Store.XmlParser.asArray(entry.Store.ChannelXml.Channel.CustomFields);
+			
+			for (var i = 0; i < cflds.length; i++) {
+				// TODO this parse might be a little ineffecient, consider optimizing
+				var lst = dc.cms.feed.parseFormLayout(entry.Store.XmlParser.json2xml_str(cflds[i]));
+				
+				for (var i = 0; i < lst.length; i++) 
+					xtralayout.push(lst[i]);
+			}
+			
+			var atags = [];
+			
+			var ctags = [];
+			
+			if (entry.Store.ChannelXml && entry.Store.ChannelXml.Channel)
+				ctags = entry.Store.XmlParser.asArray(entry.Store.ChannelXml.Channel.Tag);
+			
+			for (var i = 0; i < ctags.length; i++) {
+				var name = ctags[i].$Name;
+				var alias = ctags[i].$Alias;
+				
+				if (!alias)
+					alias = name;
+				
+				atags.push({
+					Element: 'RadioCheck',
+					Value: alias,
+					Label: name
+				});
+			}
+			
+			if (atags.length) 
+				xtralayout.push({
+					Element: 'CheckGroup',
+					Label: 'Tags:',
+					Name: 'Tags',
+					Children: atags
+				});	
+			
+			entry.addFormLayout('EditPage', xtralayout);
+				
+			entry.callPageFunc('LoadParts');
+	]]></Function>
+	<Function Name="ThawRecord" Params="e"><![CDATA[
+			// TODO review ... entry.callPageFunc('LoadParts');
+	]]></Function>
+	<Function Name="LoadParts" Params="e"><![CDATA[
+			var entry = this;
+	
+			// TODO check/handle locales
+			
+			var ppdefs = [];
+			
+			if (entry.Store.ChannelXml && entry.Store.ChannelXml.Channel)
+				ppdefs = entry.Store.XmlParser.asArray(entry.Store.ChannelXml.Channel.PagePartDef);
+			
+			for (var i = 0; i < ppdefs.length; i++) {
+				var ppdef = ppdefs[i];
+	
+				var edname = ppdef.$Editor;
+				
+				if (edname == 'internal')
+					return;
+			
+				var eid = 'part-editor-' + ppdef.$For;
+				
+				$('#sectEdit').append('<div id="' + eid + '" style="flex: 1; display: none;">' + eid + '</div>');
+					
+				var litm = $('<li></li>');					
+				var anchr = $('<a href="#" data-sect="' + eid + '">' + String.escapeHtml(ppdef.$Title) + '</a>');
+				
+				anchr.click(ppdef, function(e2) {
+					var forsect = e2.data.$For;
+					
+					if (!entry.Store.Editors[forsect]) {
+						var editor = dc.cms.createEditor(e2.data, e2.data['$data-sect'], function(e) {
+							entry.Store.ChangedEditors[forsect] = true;	
+							//console.log('editor changed: ' + forsect);
+						});
+						
+						if (editor) {
+							var pfnd = false;
+
+							var pps = [];
+							
+							if (entry.Store.ContentXml && entry.Store.ContentXml.dcf)
+								pps = entry.Store.XmlParser.asArray(entry.Store.ContentXml.dcf.PagePart);
+							
+							for (var i = 0; i < pps.length; i++) {
+								var pp = pps[i];
+								
+								if (pp.$For != forsect)
+									continue;
+							
+								var fmt = pp.$Format;
+								var ppath = entry.Params.Path;
+								var pname = ppath.substr(ppath.lastIndexOf('/') + 1) + '.' + forsect + '.en.' + fmt;
+								
+								var pcontent = entry.Store.XmlParser.dcVal(pp);
+
+								if (pcontent) {
+									editor.setContent(pcontent);
+									pfnd = true;
+								}
+								else {
+									for (var i2 = 0; i2 < entry.Store.Data.Files.length; i2++) {
+										var pdata = entry.Store.Data.Files[i2];
+										
+										if (pdata.Name == pname) {
+											editor.setContent(pdata.Content);
+											pfnd = true;
+											break;
+										}
+									}
+								}
+							}
+							
+							if (!pfnd) {
+								var temp = editor.getTemplate ? editor.getTemplate() : null; 
+							
+								if (temp && temp.Content)
+									editor.setContent(temp.Content);
+								else
+									editor.setContent('');
+							}
+							
+							entry.Store.Destroy.push(editor);
+						
+							entry.Store.Editors[forsect] = editor;	
+						}
+					}
+				
+					entry.callPageFunc('DoShowOption', e2, this);
+					
+					if (entry.Store.Editors[forsect])
+						entry.Store.Editors[forsect].focus();
+					
+					e2.preventDefault();
+					return false;
+				});
+				
+				litm.append(anchr);
+				$('#sectList').append(litm);
+			}
+				
+			$('#sectList').listview('refresh');
+	]]></Function>
+	<Function Name="DoShowOption" Params="e,target"><![CDATA[
+			var entry = this;
+			
+			var eid = $(target).attr('data-sect');
+			entry.Store.CurrentEditor = eid.substr(12);
+			
+			//console.log('current: ' + entry.Store.CurrentEditor);
+			
+			delete entry.Store.__LastFocus;
+	
+			$('#sectEdit > div:not(:nth-child(1))').hide();
+			$('#' + eid).show();
+	]]></Function>
+	<Function Name="DoSave"><![CDATA[
+			$('#frmEditPage').submit();   
+	]]></Function>
+	<Function Name="DoSavePublish"><![CDATA[
+			this.Store.PublishFlag = true; 
+			$('#frmEditPage').submit();   
+	]]></Function>
+	<Function Name="IsRecordChanged" Params="e"><![CDATA[
+			var entry = this;
+			
+			$(entry.Store.ChannelXml).find('Channel > PagePartDef').each(function() {
+				var eid = $(this).attr('For');
+				
+				if (entry.Store.ChangedEditors[eid]) {
+					e.Changed = true;
+					
+					//console.log('changed: ' + eid);
+				}
+			});
+			
+			var fel = entry.Store.ContentXml.find('dcf > Field[Name="Published"]').get(0);
+			
+			// if not published yet, make sure the publish field gets set before we copy the files
+			if (!fel && this.Store.PublishFlag) 
+				e.Changed = true;
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			var savedata = {
+				Path: entry.Params.Path,
+				Channel: entry.Params.Channel,
+				ContentXml: entry.Store.ContentXml,
+				UpdateFiles: [],
+				DeleteFiles: []
+			};
+			
+			for (var fldname in e.Data) {
+				if (e.Data.hasOwnProperty(fldname) && (fldname != 'Tags')) {
+					var fld = e.Data[fldname];
+
+					if (fldname == 'Published')
+						fld = fld.replace(' ', 'T');
+				
+					var fel = savedata.ContentXml.find('dcf > Field[Name="' + fldname + '"]').get(0);
+					
+					if (!fel) {
+						savedata.ContentXml.find('dcf').append('<Field Name="' + fldname + '" />');
+						fel = savedata.ContentXml.find('dcf > Field[Name="' + fldname + '"]').get(0);
+					}
+	
+					// save using CDATA or Value				
+					if (fld && ((fld.indexOf('\n') != -1) || (fld.indexOf('<') != -1) || (fld.indexOf('>') != -1) || (fld.indexOf('&') != -1))) {
+						var tmpCdata = savedata.ContentXml[0].createCDATASection(fld);
+						$(fel).removeAttr('Value').empty().append(tmpCdata);
+					}
+					else {
+						$(fel).empty().attr('Value', fld);
+					}
+				}
+			}
+			
+			if (e.Data.Tags) {
+				savedata.ContentXml.find('dcf > Tag').remove();
+
+				for (var i = 0; i < e.Data.Tags.length; i++)
+					savedata.ContentXml.find('dcf').append('<Tag Alias="' + e.Data.Tags[i] + '" />');
+			}
+			
+			// Author
+			var fel = savedata.ContentXml.find('dcf > Field[Name="AuthorName"]').get(0);
+			
+			if (!fel) {
+				if (dc.user.getUserInfo().FullName) {
+					savedata.ContentXml.find('dcf').append('<Field Name="AuthorName" />');
+					savedata.ContentXml.find('dcf > Field[Name="AuthorName"]').empty().attr('Value', dc.user.getUserInfo().FullName);
+				}
+				
+				savedata.ContentXml.find('dcf').append('<Field Name="AuthorUsername" />');
+				savedata.ContentXml.find('dcf > Field[Name="AuthorUsername"]').empty().attr('Value', dc.user.getUserInfo().Username);
+			}
+			
+			// Created
+			var fel = savedata.ContentXml.find('dcf > Field[Name="Created"]').get(0);
+			
+			if (!fel) {
+				savedata.ContentXml.find('dcf').append('<Field Name="Created" />');
+				savedata.ContentXml.find('dcf > Field[Name="Created"]').empty().attr('Value', dc.util.Date.stamp());
+			}
+			
+			// Published
+			var fel = savedata.ContentXml.find('dcf > Field[Name="Published"]').get(0);
+			
+			if (!fel && this.Store.PublishFlag) {
+				savedata.ContentXml.find('dcf').append('<Field Name="Published" />');
+				savedata.ContentXml.find('dcf > Field[Name="Published"]').empty().attr('Value', moment().format('YYYY-MM-DD'));
+			}
+    
+			// Update Parts    			
+			$(entry.Store.ChannelXml).find('Channel > PagePartDef').each(function() {
+				var eid = $(this).attr('For');
+				
+				if (entry.Store.ChangedEditors[eid]) {
+					//console.log('saving: ' + eid);
+
+					entry.Store.Editors[eid].updateContent(savedata);
+				}
+			});
+			
+			// convert XML to string for transport
+			var ba = new XMLSerializer().serializeToString(savedata.ContentXml[0]);
+			savedata.ContentXml = vkbeautify.xml(ba);
+			
+			//console.log('ready to save: ' + vkbeautify.xml(ba));
+			//console.log('ready to update files: ' + JSON.stringify(savedata.UpdateFiles)); 
+			//console.log('ready to delete files: ' + JSON.stringify(savedata.DeleteFiles));
+			
+			//console.log('ready to save: ' + JSON.stringify(savedata));
+			
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Feeds',
+				Op: this.Store.PublishFlag ? 'UpdatePublishFeedFiles' : 'UpdateFeedFiles',
+				Body: savedata
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			var entry = this;
+
+			// TODO review this - add /Pages to path?  only for Pages?
+			dc.pui.Loader.clearPageCache(entry.Params.Path); 
+			
+			entry.Store.ChangedEditors = {};
+			
+			if (this.Store.PublishFlag) {
+				this.Store.PublishFlag = false;
+				
+				dc.pui.Popup.alert('Saved and published');
+			}
+			else {
+				dc.pui.Popup.alert('Saved as draft');
+			}
+	]]></Function>
+	<Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Loader.closePage(entry.Params.ReturnTo);
+	]]></Function>
+	<Function Name="onDestroy"><![CDATA[
+			var entry = this;
+			
+			for (var i = 0; i < entry.Store.Destroy.length; i++)
+				entry.Store.Destroy[i].destroy();
+	
+			delete entry.Store.Editors;
+			delete entry.Store.ChangedEditors;
+			delete entry.Store.Destroy;			
+			delete entry.Store.CurrentEditor;
+	]]></Function>
+	<Function Name="DoOpenGallery"><![CDATA[
+			var entry = this;
+			
+			var lf = entry.Store.__LastFocus;
+			
+			var scope = lf ? entry.form(lf.Form).query(lf.Field).attr('data-gallery-scope') : null;
+
+			if (scope) {
+				entry.callPageFunc('DoShowGallery', scope, entry.form(lf.Form).query(lf.Field).attr('data-gallery-path'), function(img) {
+					//console.log('i: ' + img);
+					entry.form(lf.Form).query(lf.Field).val(img);
+				});
+			}
+			else {
+				//entry.callPageFunc('DoShowGallery');
+				var ce = entry.Store.CurrentEditor;
+				
+				if (ce && entry.Store.Editors[ce] && entry.Store.Editors[ce].openGallery) {
+					entry.Store.Editors[ce].openGallery(entry.Params.InitialGallery); 
+				}
+				else {
+					dc.pui.Popup.alert('This section does not accept images, change to a section that does.');
+				}
+			}
+	]]></Function>
+	<Function Name="DoSelectGallery" Params="path,data"><![CDATA[
+			var entry = this;
+			
+			var ce = entry.Store.CurrentEditor;
+			
+			if (ce && entry.Store.Editors[ce] && entry.Store.Editors[ce].selectGallery) {
+				entry.Store.Editors[ce].selectGallery(path,data); 
+			}
+			else {
+				dc.pui.Popup.alert('This section does not accept images, change to a section that does.');
+			}
+	]]></Function>
+	<Function Name="DoHelp"><![CDATA[
+			var entry = this;
+			var help = null;
+	
+			var ce = entry.Store.CurrentEditor;
+			
+			if (ce && entry.Store.Editors[ce] && entry.Store.Editors[ce].getHelp) {
+				help = entry.Store.Editors[ce].getHelp();
+			}	
+			else {
+				help = entry.Store.Data.Help;
+			}
+			
+			if (help) {
+				marked.setOptions({
+				  renderer: new marked.Renderer(),
+				  gfm: true,
+				  tables: true,
+				  breaks: true,
+				  pedantic: false,
+				  sanitize: false,
+				  smartLists: true,
+				  smartypants: false
+				});
+				
+				dc.pui.Popup.help(marked(help));
+			}
+	]]></Function>
+</dcui>

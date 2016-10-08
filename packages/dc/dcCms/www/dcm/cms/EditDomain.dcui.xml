@@ -1,0 +1,121 @@
+<dcui Title="Edit Domain">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Edit Domain</h1>
+				
+				<Form Name="EditDomain">
+					<FieldContainer Label="Title:">
+						<TextInput Name="Title" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Alias:">
+						<TextInput Name="Alias" Required="true" Pattern="[\w-]+" />
+					</FieldContainer>
+					<FieldContainer Label="Names:">
+						<TextInput Name="Names" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Description:">
+						<TextArea Name="Description" />
+					</FieldContainer>
+					
+					<div class="formbuttons">
+						<SubmitButton Label="Save" /> 
+					</div> 
+				</Form>
+				
+				<br />
+				<br />
+				
+				<div class="formbuttons">
+					<Button Label="Build Sitemap" Click="DoBuildSitemap" /> 
+					<Button Label="Import Site" Click="DoImportSite" /> 
+					<Button Label="Reindex Domain" Click="DoReindex" /> 
+				</div> 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Title').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			e.Message = { 
+				Service: 'dcCoreDataServices',
+				Feature: 'Domains',
+				Op: 'MyLoadDomain'
+			};
+	]]></Function>
+	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			if (e.Data && e.Data.Names) {
+				e.Data.Names = e.Data.Names.join(',')
+			}
+	]]></Function>	
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			if (this.Params.Id) 
+				e.Data.Id = this.Params.Id;
+				
+			// if names changed
+			if (e.Data.Names) {
+				e.Data.Names = e.Data.Names.split(',');
+				
+				for (var i = 0; i < e.Data.Names.length; i++)
+					e.Data.Names[i] = e.Data.Names[i].trim();
+			}
+			
+			e.Message = { 
+				Service: 'dcCoreDataServices',
+				Feature: 'Domains',
+				Op: 'MyUpdateDomain',
+				Body: e.Data
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			window.history.back();
+	]]></Function>
+	<Function Name="DoBuildSitemap"><![CDATA[
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'Site',
+				Op: 'BuildMap'
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to run BuildMap: ' + rmsg.Message);
+					return;
+				}
+
+				dc.pui.Popup.alert('Completed!');
+			});
+	]]></Function>
+	<Function Name="DoImportSite"><![CDATA[
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'Site',
+				Op: 'ImportSite'
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to run ImportSite: ' + rmsg.Message);
+					return;
+				}
+
+				dc.pui.Popup.alert('Completed!');
+			});
+	]]></Function>
+	<Function Name="DoReindex"><![CDATA[
+			dc.comm.sendMessage({ 
+				Service: 'dcCoreDataServices',
+				Feature: 'Database',
+				Op: 'ExecuteProc', 
+				Body: { Proc: 'dcReindexDomain' }
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to reindex tables: ' + rmsg.Message);
+					return;
+				}
+
+				dc.pui.Popup.alert('Completed!');
+			});
+	]]></Function>
+</dcui>

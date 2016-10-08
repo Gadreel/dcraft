@@ -27,7 +27,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import dcraft.bus.Message;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.locale.ILocaleResource;
@@ -493,11 +493,11 @@ public class OperationContext implements ITranslationAdapter {
 		return this.userctx;
 	}
 	
-	public DomainInfo getDomain() {
+	public TenantInfo getTenant() {
 		//if (this.schema != null)
 		//	return this.schema;
 		
-		return this.userctx.getDomain();
+		return this.userctx.getTenant();
 	}
 	
 	public SiteInfo getSite() {
@@ -508,7 +508,7 @@ public class OperationContext implements ITranslationAdapter {
 		//if (this.schema != null)
 		//	return this.schema;
 		
-		DomainInfo di = this.userctx.getDomain();
+		TenantInfo di = this.userctx.getTenant();
 		
 		return (di != null) ? di.getSchema() : Hub.instance.getSchema();
 	}

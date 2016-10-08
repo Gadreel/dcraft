@@ -13,7 +13,7 @@ import org.joda.time.LocalDate;
 import dcraft.db.DataRequest;
 import dcraft.db.ObjectResult;
 import dcraft.db.ReplicatedDataRequest;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.FuncResult;
@@ -89,7 +89,7 @@ public class FeedInfo {
 		String prepath = "root".equals(site) ? "/feed-preview" + this.innerpath + ".dcf.xml" : "/sites/" + site + "/feed-preview" + this.innerpath + ".dcf.xml";
 		String ppath = "root".equals(site) ? "/feed" + this.innerpath + ".dcf.xml" : "/sites/" + site + "/feed" + this.innerpath + ".dcf.xml";
 		
-		DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+		TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 		
 		this.prepath = domain.resolvePath(prepath).toAbsolutePath().normalize();
 		this.pubpath = domain.resolvePath(ppath).toAbsolutePath().normalize();
@@ -245,7 +245,7 @@ public class FeedInfo {
 			locale = OperationContext.get().getSite().getDefaultLocale();		// TODO really want from the Site
 		
 		if ("Pages".equals(this.getChannel()) && StringUtil.isNotEmpty(dcui)) {
-			DomainInfo domain = OperationContext.get().getDomain();
+			TenantInfo domain = OperationContext.get().getTenant();
 			
 			// don't go to www-preview at first, www-preview would only be used by a developer showing an altered page
 			// for first time save, it makes sense to have the dcui file in www
@@ -516,13 +516,13 @@ public class FeedInfo {
 			
 			String channel = this.getChannel();
 			String path = this.getOuterPath();
-			String alias = OperationContext.get().getDomain().getAlias();
+			String alias = OperationContext.get().getTenant().getAlias();
 			
 			// load Page definitions...
 			if ("Pages".equals(channel) || "Block".equals(channel)) {
 				Path srcpath = draft 
-						? Hub.instance.getPublicFileStore().resolvePath("dcw/" + alias + "/www-preview/" + path + ".dcui.xml")
-						: Hub.instance.getPublicFileStore().resolvePath("dcw/" + alias + "/www/" + path + ".dcui.xml");
+						? Hub.instance.getTenantsFileStore().resolvePath("dcw/" + alias + "/www-preview/" + path + ".dcui.xml")
+						: Hub.instance.getTenantsFileStore().resolvePath("dcw/" + alias + "/www/" + path + ".dcui.xml");
 				
 				try {
 					Files.deleteIfExists(srcpath);

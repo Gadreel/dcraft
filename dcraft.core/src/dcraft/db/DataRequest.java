@@ -37,21 +37,21 @@ public class DataRequest implements IDatabaseRequest {
 	protected String domain = null;
 	
 	@Override
-	public boolean hasDomain() {		
+	public boolean hasTenant() {		
 		return StringUtil.isNotEmpty(this.domain);
 	}
 	
 	@Override
-	public String getDomain() {
+	public String getTenant() {
 		return this.domain;
 	}
 	
-	public DataRequest withRootDomain() {
-		this.domain = Constants.DB_GLOBAL_ROOT_DOMAIN;
+	public DataRequest withRootTenant() {
+		this.domain = Constants.DB_GLOBAL_ROOT_TENANT;
 		return this;
 	}
 	
-	public DataRequest withDomain(String v) {
+	public DataRequest withTenant(String v) {
 		this.domain = v;
 		return this;
 	}

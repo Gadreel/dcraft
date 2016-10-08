@@ -1,0 +1,17 @@
+<dcui Title="Help" AuthTags="Admin,Editor">
+	<Skeleton><div class="dcuiHelpViewer" data-dcui-mode="enhance"><MD><![CDATA[
+## Gallery Chooser Help
+
+The chooser allows you to navigate images on your server.  These files may be JPG, PNG or GIF files that you wish to share with the end-users.  Clicking an image will select that file, clicking a folder will open the folder listing.
+
+When selecting an image in the chooser you don't need to know the details of the file path.  But in case you are concerned or interested  here is how the image path works:
+
+1. you must prepend the path with `/galleries` 
+2. you must appened the path with the variation you desire - `.v/full.jpg` for the `full` variation or `.v/original.jpg` for the `original` variation.
+
+So for example if you select an image called `Happy-Clock` in the gallery `/Faces` then the full path to that image would be `/galleries/Faces/Happy-Clock.v/full.jpg`.  
+
+For more information on [Upload File](/dcm/edit/galleries/QuickUpload-help) and [Add Folder](/dcm/edit/galleries/AddFolder-help) visit the links.  `Refresh` will reload the file listing in case someone else changed the files since you last opened the gallery.
+
+	]]></MD></div></Skeleton>
+</dcui>

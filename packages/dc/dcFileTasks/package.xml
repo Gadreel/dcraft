@@ -1,0 +1,15 @@
+<Package 
+	ClassRoot="dcraft" 
+	Abbrv="dcf" 
+	Version="0.9.5"
+	LastVersion="0.9.4"
+	MessageCodes="600,000-699,999"
+>
+	<Install />
+	
+	<DependsOn>
+		<Package Name="dc/dcWeb" MinVersion="0.9" />
+		<Package Name="dc/dcInterchange" MinVersion="0.9" />
+		<Package Name="dc/dcFilePublic" />
+	</DependsOn>
+</Package>

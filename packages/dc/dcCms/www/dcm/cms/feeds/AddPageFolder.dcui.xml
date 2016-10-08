@@ -1,0 +1,45 @@
+<dcui Title="Add Folder" AuthTags="User">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<TitledSection Title="Add Folder">
+					<Form Name="AddFolder">
+						<FieldContainer Label="Path:">
+							<TextInput Name="Path" Required="true" Pattern="[\w-\/]+" placeholder="folder name, no spaces - use dash instead of space" />
+						</FieldContainer>
+						
+						<div class="formbuttons">
+							<SubmitButton Label="Add" /> 
+						</div> 
+					</Form>
+				</TitledSection>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Path').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e">
+			e.AsNew = true;
+			e.Data = {
+				Path: this.Params.Path
+			};
+	</Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Feeds',
+				Op: 'AddPageFolder',
+				Body: {
+					Path: e.Data.Path
+				}
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			window.history.back();
+	]]></Function>
+</dcui>

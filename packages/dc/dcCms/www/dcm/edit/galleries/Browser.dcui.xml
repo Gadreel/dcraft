@@ -1,0 +1,383 @@
+<dcui Title="Gallery" AuthTags="Admin,Editor">
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+	<RequireLib Path="/dcw/js/marked.min.js" />
+	
+	<Skeleton>
+		<TitledSection Title="Gallery" class="titledform">
+			<div class="formbuttons">
+				<Button Click="DoUpload" Label="Quick Upload Image" />
+				<!-- TODO Button Click="DoNewImage" Label="New Image" / -->
+				<Button Click="DoAddFolder" Label="Add Folder" />
+				<Button id="btnDepBDelete" Click="DoDelete" Label="Delete Folder" />
+				<Button Click="DoRefresh" Label="Refresh" />
+			</div>
+			
+			<h4 id="lblDepBPath" />
+			
+			<table data-role="table" id="lstDepCFiles" class="ui-body-d ui-shadow table-stripe table-thin-breakpoint">
+			<thead>
+				<tr class="ui-bar-d">
+					<th><a href="#" data-fname="IsFolder"><nbsp /></a></th>
+					<th><a href="#" data-fname="FileName">Name</a></th>
+					<th><a href="#" data-fname="LastModified">Date</a></th>
+				</tr>
+			</thead>
+			<tbody id="lstDepBFilesBody" />
+			</table>
+		</TitledSection>
+		
+		<TitledSection id="sectDesBVari" Title="Variations" class="titledform">
+			<div class="formbuttons">
+				<Button Click="DoAddVari" Label="Add" />
+			</div> 
+			
+			<ul id="sectDepBVList" data-role="listview" data-inset="true" data-count-theme="a" />					
+		</TitledSection>
+		
+		<TitledSection id="sectDesBImages" Title="Image Lists" class="titledform">
+			<div class="formbuttons">
+				<Button Click="DoAddShow" Label="Add" />
+			</div> 
+			
+			<ul id="sectDepBSList" data-role="listview" data-inset="true" data-count-theme="a" />					
+		</TitledSection>
+		
+		<TitledSection id="sectDesBSettings" Title="Settings" class="titledform">
+			<div class="formbuttons">
+				<!--  TODO
+				<Button Click="DoEditDataFile" Label="Edit Data File" />
+				<Button Click="DoEditMetaFile" Label="Edit Meta File" />
+				 -->
+				<!--  TODO Button Click="DoEditHelpFile" Label="Edit Help File" / -->
+			</div> 
+				
+			<h3 id="lblDepBDataFile">Data File: No</h3>
+			
+			<h3>Notes</h3>
+			
+			<p id="lblDepBNotes">[none]</p>					
+		</TitledSection>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+
+			// if not thawing then initialize			
+			if (!entry.Store.Path) {
+				if (this.Params.Path)
+					entry.Store.Path = this.Params.Path;
+				else
+					entry.Store.Path = '/';
+					
+				entry.Store.RootPath = entry.Store.Path;
+					
+				$('#lstDepCFiles th a').click(function(e) {
+					entry.Store.SortField = $(this).attr('data-fname');
+					entry.callPageFunc('LoadList');
+					
+					e.preventDefault();
+					return false;
+				});
+				
+				if (entry.Params.Select)
+					$('#sectDesBVari,#sectDesBImages,#sectDesBSettings,#btnDepBDelete').hide();
+			}
+			
+			this.callPageFunc('LoadList');
+	]]></Function>
+	<Function Name="LoadList"><![CDATA[
+			var entry = this;
+		
+			$('#lblDepBPath').text(entry.Store.Path);
+		
+			$('#lstDepBFilesBody').empty();
+			
+			var list = $('#sectDepBVList');		
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			list.listview('refresh');
+			
+			var slist = $('#sectDepBSList');		
+	
+			slist.empty();
+			slist.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			slist.listview('refresh');
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'ListFiles',
+				Body: { 
+					FolderPath: entry.Store.Path
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				var flist = $('#lstDepBFilesBody');
+
+				// chained - no up or down folders
+				// rooted - no up folders from starting folder
+				var showpar = !entry.Params.Chained && (!entry.Params.Rooted || (entry.Store.RootPath != entry.Store.Path));
+				
+				// add paren folder
+				if (showpar && entry.Store.Path.length > 1) {
+					var litm = $('<tr></tr>');
+					
+					litm.append('<td><i class="fa fa-folder-o"></i></td>');
+				
+					var uncell = $('<td></td>');
+					var anchr = $('<a href="#">.. [parent]</a>');
+					
+					anchr.click(item, function(e) {
+						var curr = entry.Store.Path;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+						
+						if (!path)
+							path = "/";
+						
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					uncell.append(anchr);
+					litm.append(uncell);
+					
+					flist.append(litm);
+				}
+				
+				var items = resp.Body.Files;
+				var sfield = entry.Store.SortField ? entry.Store.SortField : 'FileName';
+				
+				// sort
+				items.sort(dc.util.List.sortObjects(sfield));
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (entry.Params.Chained && item.IsFolder)
+						continue;
+						
+					var litm = $('<tr></tr>');
+
+					if (item.IsFolder) 		
+						litm.append('<td><i class="fa fa-folder-o"></i></td>');
+					else
+						litm.append('<td><i class="fa fa-file-image-o"></i></td>');
+					
+					var uncell = $('<td></td>');							
+					var anchr = $('<a href="#">' + String.escapeHtml(item.FileName) + '</a>');
+					
+					anchr.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						if (e.data.IsFolder) {
+							entry.Store.Path = path;
+							entry.callPageFunc('LoadList');
+						}
+						else if (entry.Params.Callback) {
+							dc.cms.edit.Loader.closePane();
+							entry.Params.Callback( [ e.data ] );
+						}
+						else {
+							dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/ImageDetail', { 
+								Path: path
+							});	
+						}
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					uncell.append(anchr);
+					litm.append(uncell);
+					
+					if (item.LastModified) 
+						litm.append('<td>' + dc.util.Date.formatZLocalMedium(item.LastModified) + '</td>');
+					else
+						litm.append('<td></td>');
+					
+					flist.append(litm);
+				}
+				
+				$('#lstDepCFiles').table('refresh').promise().then(function() {
+					$('#lstDepCFiles td .ui-table-cell-label a').click(function(e) {
+						entry.Store.SortField = $(this).attr('data-fname');
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+				});
+				
+				// --------------------------------------------
+				list.empty();
+				slist.empty();
+					
+				if (resp.Body.Help) 
+					$('#lblDepBNotes').dcMD(resp.Body.Help);
+				
+				if (resp.Body.Settings) {
+					var gsettings = resp.Body.Settings;
+					
+					if (gsettings.DataFile)
+						$('#lblDepBDataFile').text("Data File: Yes");
+					
+					// variations shows list 
+					
+					if (gsettings.Variations && (gsettings.Variations.length)) {
+						for (var i1 = 0; i1 < gsettings.Variations.length; i1++) {
+							var v = gsettings.Variations[i1]; 
+						
+							var litm = $('<li></li>');
+							
+							var anchr = $('<a href="#"><h2>' + String.escapeHtml(v.Name) + '</h2>'
+									+ '<p>Alias: ' + String.escapeHtml(v.Alias) + ', Dimensions: ' + dc.cms.vary.formatDims(v) + '</p>'
+									+ '</a>')
+							
+							anchr.click(v, function(e) {
+								dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/EditVariation', { Path: entry.Store.Path, Alias: e.data.Alias });
+								
+								e.preventDefault();
+								return false;
+							});
+							
+							litm.append(anchr);
+							list.append(litm);
+						}
+					}
+					else {
+						list.append('<li>[none]</li>');
+					}
+					
+					// --------------------------------------------
+					// slide shows list 
+					
+					if (gsettings.Shows && (gsettings.Shows.length)) {
+						for (var i1 = 0; i1 < gsettings.Shows.length; i1++) {
+							var v = gsettings.Shows[i1]; 
+						
+							var litm = $('<li></li>');
+							
+							var anchr = $('<a href="#"><h2>' + String.escapeHtml(v.Title) + '</h2>'
+									+ '<p>Alias: ' + String.escapeHtml(v.Alias) + ', Variation: ' + v.Variation + '</p>'
+									+ '</a>')
+							
+							anchr.click(v, function(e) {
+								dc.cms.edit.Loader.loadPane('/dcm/edit/show/Edit', { Path: entry.Store.Path, Alias: e.data.Alias });	
+								
+								e.preventDefault();
+								return false;
+							});
+							
+							litm.append(anchr);
+							slist.append(litm);
+						}
+					}
+					else {
+						slist.append('<li>[none]</li>');
+					}
+					
+				}
+				else {
+					list.append('<li>[none]</li>');
+					slist.append('<li>[none]</li>');
+				}
+				
+				list.listview('refresh');				
+				slist.listview('refresh');			
+			});	
+	]]></Function>
+	<Function Name="DoRefresh"><![CDATA[			
+			var entry = this;
+		
+			entry.callPageFunc('LoadList');
+	]]></Function>
+	<Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			if (entry.Store.Path == '/') {
+				dc.pui.Popup.alert('Cannot delete root folder.');
+				return;
+			}
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this folder (with all images)?', function() {
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'WebGallery',
+					Op: 'DeleteFolder',
+					Body: {
+						FolderPath: entry.Store.Path 
+					}
+				}, function(resp) {
+					if (resp.Result > 0) {
+						dc.pui.Popup.alert(resp.Message);
+						return;
+					}
+				
+					// go to parent
+					var path = entry.Store.Path.substr(0, entry.Store.Path.lastIndexOf('/'));
+						
+					if (!path)
+						path = "/";
+					
+					entry.Store.Path = path;
+					entry.callPageFunc('LoadList');
+				});
+			});
+	]]></Function>
+	<Function Name="DoAddFolder"><![CDATA[
+			var entry = this;
+		
+			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/AddFolder', { 
+				Path: entry.Store.Path,
+				Callback: function(path) {
+					entry.Store.Path = path;
+					
+					// load list will automatically happen as the page thaws
+				}
+			});	
+	]]></Function>
+	<Function Name="DoUpload"><![CDATA[			
+			var entry = this;
+		
+			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/QuickUpload', { 
+				Path: entry.Store.Path,
+				Callback: function(files) {
+					if (entry.Params.Callback) {
+						dc.cms.edit.Loader.closePane();
+						entry.Params.Callback(files);
+					}
+					
+					// load list will automatically happen as the page thaws
+				}
+			});
+	]]></Function>
+	<Function Name="DoAddVari"><![CDATA[
+			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/EditVariation', { Path: this.Store.Path });	
+	]]></Function>
+	<Function Name="DoAddShow"><![CDATA[
+			dc.cms.edit.Loader.loadPane('/dcm/edit/show/Add', { Path: this.Store.Path });	
+	]]></Function>
+	<Function Name="DoEditDataFile"><![CDATA[
+			dc.cms.edit.Loader.loadPane('/dcm/edit/files/EditFile', { Path: '/galleries' + this.Store.Path + '/data.json', Create: true });	
+	]]></Function>
+	<Function Name="DoEditMetaFile"><![CDATA[
+			dc.cms.edit.Loader.loadPane('/dcm/edit/files/EditFile', { Path: '/galleries' + this.Store.Path + '/meta.json', Create: true });	
+	]]></Function>
+</dcui>

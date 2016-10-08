@@ -14,7 +14,7 @@ import java.util.List;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.lang.CountDownCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
@@ -30,7 +30,7 @@ public class FeedIndexer {
 		if (StringUtil.isEmpty(site))
 			site = "root";
 			
-		DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+		TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 		
 		XElement feed = domain.getSettings().find("Feed");
 		
@@ -60,7 +60,7 @@ public class FeedIndexer {
 		if (StringUtil.isEmpty(site))
 			return list;
 		
-		DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+		TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 		
 		XElement feed = domain.getSettings().find("Feed");
 		
@@ -84,9 +84,9 @@ public class FeedIndexer {
 	protected Map<String, FeedInfo> feedpaths = new HashMap<>();
 
 	/*
-	 * run collectDomain first
+	 * run collectTenant first
 	 */
-	public void importDomain(OperationCallback op) {
+	public void importTenant(OperationCallback op) {
 		CountDownCallback cd = new CountDownCallback(this.feedpaths.size() + 1, new OperationCallback() {
 			@Override
 			public void callback() {
@@ -111,8 +111,8 @@ public class FeedIndexer {
 		cd.countDown();
 	}
 	
-	public void collectDomain(CollectContext cctx) {
-		XElement del = OperationContext.get().getDomain().getSettings();
+	public void collectTenant(CollectContext cctx) {
+		XElement del = OperationContext.get().getTenant().getSettings();
 		
 		if (del == null) {
 			Logger.error("Unable to import domain, settings not found");
@@ -150,7 +150,7 @@ public class FeedIndexer {
 	}
 	
 	public void collectSite(CollectContext cctx, String site) {
-		XElement del = OperationContext.get().getDomain().getSettings();
+		XElement del = OperationContext.get().getTenant().getSettings();
 		
 		if (del == null) {
 			Logger.error("Unable to import domain, settings not found");
@@ -194,7 +194,7 @@ public class FeedIndexer {
 	}
 	
 	public void collectArea(String site, String area, String channel, boolean preview) {
-		DomainInfo di = OperationContext.get().getDomain();
+		TenantInfo di = OperationContext.get().getTenant();
 		String wwwpathf1 = preview ? "/" + area +  "-preview/" + channel : "/" + area +  "/" + channel;
 		
 		if (!"root".equals(site)) 

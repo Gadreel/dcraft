@@ -29,7 +29,7 @@ import dcraft.bus.net.Session;
 import dcraft.bus.net.SocketInfo;
 import dcraft.bus.net.StreamMessage;
 import dcraft.bus.net.StreamSession;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.HubEvents;
 import dcraft.lang.op.FuncCallback;
@@ -238,7 +238,7 @@ public class HubRouter {
             if (Logger.isDebug())
             	or.debug("Message routed to local Hub for : " + srv);
 			
-			DomainInfo di = tc.getDomain();
+			TenantInfo di = tc.getTenant();
 			
 			IService cb = (di != null) ? di.getService(srv) : null;
 
@@ -255,7 +255,7 @@ public class HubRouter {
 			Task tb = Task.taskWithContext(tc)
 				.withTitle("Hub Router: " + srv)
 				.withParams(msg)
-				.withBucket("Bus")		// typically this will fall back into Default
+				.withTopic("Bus")		// typically this will fall back into Default
 				.withWork(task -> {			
 					FuncCallback<UserContext> fcb = new FuncCallback<UserContext>() {
 						@Override

@@ -20,7 +20,7 @@ public class DesktopService extends ExtensionBase implements IService {
 		//TaskContext tc = TaskContext.get();
 		//UserContext uc = tc.getUserContext();
 
-		//String did = uc.getDomainId();
+		//String did = uc.getTenantId();
 		
 		//LocalDataStore lds = Hub.instance.getLocalDataStore("default");
 		

@@ -61,7 +61,7 @@ import dcraft.db.update.InsertRecordRequest;
 import dcraft.filestore.CommonPath;
 import dcraft.filestore.IFileStoreFile;
 import dcraft.filestore.local.FileSystemDriver;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.FuncResult;
@@ -135,9 +135,9 @@ public class CmsService2 extends ExtensionBase implements IService {
 			if ("ImportSite".equals(op)) {
 				FeedIndexer iutil = new FeedIndexer();
 				
-				iutil.collectDomain(new CollectContext().forIndex());
+				iutil.collectTenant(new CollectContext().forIndex());
 				
-				iutil.importDomain(new OperationCallback() {
+				iutil.importTenant(new OperationCallback() {
 					@Override
 					public void callback() {
 						request.complete();
@@ -449,7 +449,7 @@ public class CmsService2 extends ExtensionBase implements IService {
 			}
 		}
 		
-		DomainInfo di = OperationContext.get().getDomain();
+		TenantInfo di = OperationContext.get().getTenant();
 		
 		Path tpath = di.resolvePath("/config/templates/" + tname + ".dcui.xml");
 		
@@ -505,7 +505,7 @@ public class CmsService2 extends ExtensionBase implements IService {
 	}
 	
 	public void handleLoadFeedsDefinitions(TaskRun request) {
-		DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+		TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 		
 		// TODO add site support
 		
@@ -538,13 +538,13 @@ public class CmsService2 extends ExtensionBase implements IService {
 		
 		// load Page definitions...
 		if ("Pages".equals(channel) || "Block".equals(channel)) {
-			DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+			TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 			
 			// TODO per site
-			Path srcpath = Hub.instance.getPublicFileStore().resolvePath("dcw/" + domain.getAlias() + "/www-preview/" + path + ".dcui.xml");
+			Path srcpath = Hub.instance.getTenantsFileStore().resolvePath("dcw/" + domain.getAlias() + "/www-preview/" + path + ".dcui.xml");
 			
 			if (Files.notExists(srcpath))
-				srcpath = Hub.instance.getPublicFileStore().resolvePath("dcw/" + domain.getAlias() + "/www/" + path + ".dcui.xml");
+				srcpath = Hub.instance.getTenantsFileStore().resolvePath("dcw/" + domain.getAlias() + "/www/" + path + ".dcui.xml");
 			
 			if (Files.notExists(srcpath)) {
 				request.error("Feed page " + path + " does not exist.");
@@ -927,7 +927,7 @@ public class CmsService2 extends ExtensionBase implements IService {
 	}	
 		
 	public void handleSiteBuildMap(TaskRun request) {
-		DomainInfo domain = OperationContext.get().getUserContext().getDomain();
+		TenantInfo domain = OperationContext.get().getUserContext().getTenant();
 		
 		XElement dsel = domain.getSettings();
 		
@@ -962,8 +962,8 @@ public class CmsService2 extends ExtensionBase implements IService {
 					altlocales.add(locel.getAttribute("Name"));
 
 				Path webdir = "root".equals(wsel.getAttribute("Name"))
-						? Hub.instance.getPublicFileStore().resolvePath("dcw/" + domain.getAlias() + "/www")
-						: Hub.instance.getPublicFileStore().resolvePath("dcw/" + domain.getAlias() + "/sites/" + wsel.getAttribute("Name") + "/www");
+						? Hub.instance.getTenantsFileStore().resolvePath("dcw/" + domain.getAlias() + "/www")
+						: Hub.instance.getTenantsFileStore().resolvePath("dcw/" + domain.getAlias() + "/sites/" + wsel.getAttribute("Name") + "/www");
 				
 				XElement smel = new XElement("urlset")
 					.withAttribute("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
@@ -1063,7 +1063,7 @@ public class CmsService2 extends ExtensionBase implements IService {
 	}
 		
 	/******************************************************************
-	 * Domain Files
+	 * Tenant Files
 	 ******************************************************************/
 
 	// TODO

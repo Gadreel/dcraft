@@ -1,0 +1,71 @@
+<dcui Title="CMS Feeds" AuthTags="Admin">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<div id="areaPages" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Feeds</h4>
+					
+					<ul id="lstPages" data-role="listview" data-inset="true" data-count-theme="a" />					
+				</div>			 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+				var list = $('#lstPages');		
+		
+				list.empty();
+				list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+					
+				list.listview('refresh');
+				
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'Feeds',
+					Op: 'LoadFeedsDefinition'
+				}, function(rmsg) {
+					if (rmsg.Result > 0) {
+						dc.pui.Popup.alert('Unable to list pages: ' + rmsg.Message);
+						return;
+					}
+
+					list.empty();
+					
+					var feeds = rmsg.Body.FeedsXml ? $($.parseXML(rmsg.Body.FeedsXml)) : null;
+
+					if (!feeds)
+						return;					
+					
+					// TODO sort by Title
+
+					$(feeds).find('Feed > Channel').each(function() {
+						var name = $(this).attr('Name');
+							
+						if (dc.util.Boolean.toBoolean($(this).attr('Hide')))
+							return;							
+						
+						var chan = $(this).attr('Alias');
+						
+						var litm = $('<li></li>');
+						
+						var anchr = $('<a href="#"><h2>' + String.escapeHtml(name) + '</h2></a>')
+						
+						anchr.click(chan ? chan : name, function(e) {
+							dc.pui.Loader.loadPage('/dcm/cms/feeds/ChannelList', { Channel: e.data });
+							
+							e.preventDefault();
+							return false;
+						});
+						
+						litm.append(anchr);
+						list.append(litm);
+					});
+					
+					list.listview('refresh');
+					
+				});				
+	]]></Function>
+</dcui>

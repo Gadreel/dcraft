@@ -51,6 +51,7 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 
+@SuppressWarnings("deprecation")
 public class ClientHandler extends SimpleChannelInboundHandler<Object> {
     //protected WebSocketClientHandshaker handshaker = null;
     protected ClientInfo info = null;

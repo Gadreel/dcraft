@@ -4,7 +4,7 @@ import org.scribe.model.OAuthRequest;
 import org.scribe.model.Response;
 import org.scribe.model.Verb;
 
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
@@ -17,7 +17,7 @@ public class GConnect {
 	// TODO error handling
 
 	static public String allocateToken() {
-		DomainInfo di = OperationContext.get().getDomain();
+		TenantInfo di = OperationContext.get().getTenant();
 		
 		XElement settings = di.getSettings();
 		

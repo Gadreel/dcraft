@@ -37,6 +37,7 @@ import static io.netty.handler.codec.http.HttpVersion.*;
 /**
  * Handles handshakes and messages
  */
+@SuppressWarnings("deprecation")
 public class ServerHandler extends CommonHandler {
     protected WebSocketServerHandshaker handshaker = null;
 

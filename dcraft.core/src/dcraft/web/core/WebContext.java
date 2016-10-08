@@ -40,7 +40,7 @@ import javax.security.cert.X509Certificate;
 
 import dcraft.bus.Message;
 import dcraft.cms.feed.tool.FeedAdapter;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.io.CacheFile;
@@ -63,6 +63,7 @@ import dcraft.web.mdx.plugin.PairedMediaSection;
 import dcraft.web.mdx.plugin.StandardSection;
 import dcraft.xml.XElement;
 
+@SuppressWarnings("deprecation")
 public class WebContext implements IInnerContext {
 	public static WebContext from(Channel channel) {
 		WebContext ctx = new WebContext();
@@ -110,9 +111,9 @@ public class WebContext implements IInnerContext {
 	}
 	
 	@Override
-	public DomainInfo getDomain() {
+	public TenantInfo getTenant() {
 		if (this.site != null)
-			return this.site.getDomain();
+			return this.site.getTenant();
 		
 		return null;
 	}
@@ -502,7 +503,7 @@ public class WebContext implements IInnerContext {
 			  if ((val == null) && (vname.equals("SignInPath") || vname.equals("HomePath") || vname.equals("PortalPath")
 					  || vname.equals("SiteTitle") || vname.equals("SiteAuthor") || vname.equals("SiteCopyright")))
 			  {
-				DomainInfo domain = this.getDomain();
+				TenantInfo domain = this.getTenant();
 				
 				XElement domconfig = domain.getSettings();
 				
@@ -569,15 +570,15 @@ public class WebContext implements IInnerContext {
 	
 	/*
 	public Path findPath(String path) {
-		return this.innerctx.getDomain().findFilePath(this.isPreview(), new CommonPath(path), null);
+		return this.innerctx.getTenant().findFilePath(this.isPreview(), new CommonPath(path), null);
 	}
 	
 	public Path findSectionPath(String section, String path) {
-		return this.innerctx.getDomain().findSectionFile(this.isPreview(), section, path);
+		return this.innerctx.getTenant().findSectionFile(this.isPreview(), section, path);
 	}
 	*/
 	
-	// string path is relative to dcw/[alias]/[path]
+	// string path is relative to tenants/[alias]/[path]
 	public XElement getXmlResource(String section, String path) {
 		CacheFile fpath = this.getSite().getWebsite().findSectionFile(section, path, this.isPreview());
 		
@@ -587,7 +588,7 @@ public class WebContext implements IInnerContext {
 		return fpath.asXml();
 	}
 	
-	// string path is relative to dcw/[alias]/[path]
+	// string path is relative to tenants/[alias]/[path]
 	public CompositeStruct getJsonResource(String section, String path) {
 		CacheFile fpath = this.getSite().getWebsite().findSectionFile(section, path, this.isPreview());
 		
@@ -597,7 +598,7 @@ public class WebContext implements IInnerContext {
 		return fpath.asJson();
 	}
 	
-	// string path is relative to dcw/[alias]/[path]
+	// string path is relative to tenants/[alias]/[path]
 	public String getTextResource(String section, String path) {
 		CacheFile fpath = this.getSite().getWebsite().findSectionFile(section, path, this.isPreview());
 		
@@ -608,7 +609,7 @@ public class WebContext implements IInnerContext {
 	}
 	
 	public FeedAdapter getFeedAdapter(String alias, String path) {
-		XElement feed = OperationContext.get().getDomain().getSettings().find("Feed");
+		XElement feed = OperationContext.get().getTenant().getSettings().find("Feed");
 		
 		if (feed == null) 
 			return null;

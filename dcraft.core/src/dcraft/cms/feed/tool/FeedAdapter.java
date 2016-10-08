@@ -628,13 +628,13 @@ public class FeedAdapter {
 			Path fpath = null;
 			
 			if (wctx.isPreview()) {
-				fpath = OperationContext.get().getDomain().resolvePath("/feed-preview" + spath);
+				fpath = OperationContext.get().getTenant().resolvePath("/feed-preview" + spath);
 				
 				if (Files.notExists(fpath))
-					fpath = OperationContext.get().getDomain().resolvePath("/feed" + spath);
+					fpath = OperationContext.get().getTenant().resolvePath("/feed" + spath);
 			}
 			else {
-				fpath = OperationContext.get().getDomain().resolvePath("/feed" + spath);
+				fpath = OperationContext.get().getTenant().resolvePath("/feed" + spath);
 			}
 
 			if (Files.exists(fpath)) {
@@ -666,13 +666,13 @@ public class FeedAdapter {
 			Path fpath = null;
 			
 			if (wctx.isPreview()) {
-				fpath = OperationContext.get().getDomain().resolvePath("/feed-preview" + spath);
+				fpath = OperationContext.get().getTenant().resolvePath("/feed-preview" + spath);
 				
 				if (Files.notExists(fpath))
-					fpath = OperationContext.get().getDomain().resolvePath("/feed" + spath);
+					fpath = OperationContext.get().getTenant().resolvePath("/feed" + spath);
 			}
 			else {
-				fpath = OperationContext.get().getDomain().resolvePath("/feed" + spath);
+				fpath = OperationContext.get().getTenant().resolvePath("/feed" + spath);
 			}
 
 			if (Files.exists(fpath)) {
@@ -712,13 +712,13 @@ public class FeedAdapter {
 			Path fpath = null;
 			
 			if (isPreview) {
-				fpath = OperationContext.get().getDomain().resolvePath("/feed-preview" + spath);
+				fpath = OperationContext.get().getTenant().resolvePath("/feed-preview" + spath);
 				
 				if (Files.notExists(fpath))
-					fpath = OperationContext.get().getDomain().resolvePath("/feed" + spath);
+					fpath = OperationContext.get().getTenant().resolvePath("/feed" + spath);
 			}
 			else {
-				fpath = OperationContext.get().getDomain().resolvePath("/feed" + spath);
+				fpath = OperationContext.get().getTenant().resolvePath("/feed" + spath);
 			}
 
 			if (Files.exists(fpath)) {

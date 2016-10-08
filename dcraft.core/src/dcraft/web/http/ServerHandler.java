@@ -60,6 +60,7 @@ import io.netty.handler.codec.http.LastHttpContent;
 /**
  * Handles handshakes and messages
  */
+@SuppressWarnings("deprecation")
 public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	static protected final String RPC_PATH = "/rpc";
 	static protected final String STATUS_PATH = "status";
@@ -140,7 +141,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		
 		if (site == null) {
 	    	if (Logger.isDebug())
-	    		Logger.debug("Domain not found for: " + req.getHeader("Host"));
+	    		Logger.debug("Tenant not found for: " + req.getHeader("Host"));
 	    	
         	this.context.sendForbidden();
             return;
@@ -192,7 +193,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			if (sess == null) {
 				Cookie catoken = req.getCookie("dcAuthToken");
 	
-				sess = Hub.instance.getSessions().create(origin, site.getDomain().getId(), site.getAlias(), (catoken != null) ? catoken.value() : null);
+				sess = Hub.instance.getSessions().create(origin, site.getTenant().getId(), site.getAlias(), (catoken != null) ? catoken.value() : null);
 				
 				Logger.info("Started new session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
 				

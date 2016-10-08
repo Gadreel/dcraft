@@ -50,7 +50,7 @@ public class FeedScan implements ICollector {
 		 * ^dcmFeedIndex(did, channel, publish datetime, id)=[content tags]
 		 */
 		
-		String did = task.getDomain();
+		String did = task.getTenant();
 		
 		try {
 			if (reverse) {

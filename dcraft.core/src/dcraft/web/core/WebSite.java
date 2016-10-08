@@ -20,6 +20,7 @@ import dcraft.lang.op.OperationContextBuilder;
 import dcraft.lang.op.UserContext;
 import dcraft.locale.LocaleDefinition;
 import dcraft.log.Logger;
+import dcraft.mod.IExtension;
 import dcraft.net.ssl.SslHandler;
 import dcraft.session.Session;
 import dcraft.struct.Struct;
@@ -102,8 +103,11 @@ public class WebSite {
 		this.webconfig = settings;
 		this.tagmap = UIUtil.allocateCoreMap();
 		
+		// collect a list of the packages names enabled for this domain
+		HashSet<String> packagenames = new HashSet<>();
+		
 		if (Logger.isDebug())
-			Logger.debug("Checking web domain settings from domain: " + this.site.get().getDomain().getAlias() + 
+			Logger.debug("Checking web domain settings from domain: " + this.site.get().getTenant().getAlias() + 
 				" : " + this.site.get().getAlias() + " - " + settings);
 		
 		if (settings != null) {
@@ -136,34 +140,37 @@ public class WebSite {
 			else if ((this.appFramework == Framework.custom) || (this.appFramework == Framework.dc))
 				this.homepath = new CommonPath("/Home");	
 				*/	
+			
+			// collect packages - if not in the domain, then go look in the packages 
+			for (XElement pel :  settings.selectAll("Package")) 
+				packagenames.add(pel.getAttribute("Name"));
 		}
 		
 		// build PACKAGES
 		
-		// collect a list of the packages names enabled for this domain
-		HashSet<String> packagenames = new HashSet<>();
-		
-		if (this.webconfig != null) {
-			// if not in the domain, then go look in the packages 
-			for (XElement pel :  this.webconfig.selectAll("Package")) 
-				packagenames.add(pel.getAttribute("Name"));
-		}
-		
 		// TODO may wish to support more than one web server someday...this only works with the default server
-		XElement webextconfig = ((WebModule) Hub.instance.getModule("Web")).getWebExtension().getLoader().getConfig();
+		WebModule mod = (WebModule) Hub.instance.getModule("Web");
 		
-		// collect a list of the packages names enabled for this domain
-		
-		// add to the package name list all the packages turned on for entire web service
-		if (webextconfig != null) {
-			for (XElement pel :  webextconfig.selectAll("Package"))
-				packagenames.add(pel.hasAttribute("Id") ? pel.getAttribute("Id") :pel.getAttribute("Name"));
+		if (mod != null) {
+			IExtension ext = mod.getWebExtension();
+			
+			if (ext != null) {
+				XElement webextconfig = ext.getLoader().getConfig();
+				
+				// collect a list of the packages names enabled for this domain
+				
+				// add to the package name list all the packages turned on for entire web service
+				if (webextconfig != null) {
+					for (XElement pel :  webextconfig.selectAll("Package"))
+						packagenames.add(pel.hasAttribute("Id") ? pel.getAttribute("Id") :pel.getAttribute("Name"));
+				}
+			}
 		}
 		
 		this.packagelist = Hub.instance.getResources().getPackages().buildLookupList(packagenames);
 		
 		if (Logger.isDebug())
-			Logger.debug("Package list: " + this.site.get().getDomain().getAlias() + " : " + this.site.get().getAlias() + " - " + this.packagelist.size());
+			Logger.debug("Package list: " + this.site.get().getTenant().getAlias() + " : " + this.site.get().getAlias() + " - " + this.packagelist.size());
 	}
 
 	public Cookie resolveLocale(WebContext context, UserContext usr, OperationContextBuilder ctxb) {
@@ -250,7 +257,7 @@ public class WebSite {
 	
 	public Session getSharedSession() {
 		if (this.sharedsess == null) {
-			this.sharedsess = Hub.instance.getSessions().create("http:", this.site.get().getDomain().getId(), this.site.get().getAlias(), null);
+			this.sharedsess = Hub.instance.getSessions().create("http:", this.site.get().getTenant().getId(), this.site.get().getAlias(), null);
 			this.sharedsess.setKeep(true);		// don't remove, stays until server shuts down
 			
 			Logger.info("Started new shared session: " + this.sharedsess.getId());
@@ -262,7 +269,12 @@ public class WebSite {
 	public IWebMacro getMacro(String name) {
 		// TODO site or domain level support for macros
 		
-		return ((WebModule) Hub.instance.getModule("Web")).getMacro(name);
+		WebModule mod = (WebModule) Hub.instance.getModule("Web");
+		
+		if (mod != null)
+			return mod.getMacro(name);
+		
+		return null;
 	}
 	
 	public String route(Request req, SslHandler ssl) {
@@ -377,29 +389,23 @@ public class WebSite {
 	/**
 	 * File paths come in as /dcf/index.html but really they are in -  
 	 * 
-	 * Domain Path Map:
+	 * Tenant Path Map:
 	 * 		"/dcf/index.html"
 	 * 
-	 * Domain Private Phantom Files:							(draft/preview mode files)
-	 * 		./private/dcw/[domain id]/www-preview/dcf/index.html
+	 * Tenant Phantom Files:                           			(draft/preview mode files)
+	 * 		./public/tenants/[domain id]/www-preview/dcf/index.html
 	 * 
-	 * Domain Private Override Files:
-	 * 		./private/dcw/[domain id]/www/dcf/index.html
-	 * 
-	 * Domain Phantom Files:                           			(draft/preview mode files)
-	 * 		./public/dcw/[domain id]/www-preview/dcf/index.html
-	 * 
-	 * Domain Override Files:
-	 * 		./public/dcw/[domain id]/www/dcf/index.html
+	 * Tenant Override Files:
+	 * 		./public/tenants/[domain id]/www/dcf/index.html
 	 * 
 	 * Package Files:
 	 * 		./packages/[package id]/www/dcf/index.html
 	 * 
 	 * Example:
-	 * - ./private/dcw/filetransferconsulting/www-preview/dcf/index.html
-	 * - ./private/dcw/filetransferconsulting/www/dcf/index.html
-	 * - ./public/dcw/filetransferconsulting/www-preview/dcf/index.html
-	 * - ./public/dcw/filetransferconsulting/www/dcf/index.html
+	 * - ./private/tenants/filetransferconsulting/www-preview/dcf/index.html
+	 * - ./private/tenants/filetransferconsulting/www/dcf/index.html
+	 * - ./public/tenants/filetransferconsulting/www-preview/dcf/index.html
+	 * - ./public/tenants/filetransferconsulting/www/dcf/index.html
 	 * - ./packages/zCustomPublic/www/dcf/index.html
 	 * - ./packages/dc/dcFilePublic/www/dcf/index.html
 	 * - ./packages/dcWeb/www/dcf/index.html
@@ -571,13 +577,13 @@ public class WebSite {
 				Logger.debug("find section file, check root: " + path + " in " + section);
 			
 			if (isPreview) {
-				cfile = this.site.get().getDomain().resolveCachePath("/" + section + "-preview" + path);
+				cfile = this.site.get().getTenant().resolveCachePath("/" + section + "-preview" + path);
 
 				if (cfile != null) 
 					return cfile;
 			}
 			
-			cfile = this.site.get().getDomain().resolveCachePath("/" + section + path);
+			cfile = this.site.get().getTenant().resolveCachePath("/" + section + path);
 			
 			if (cfile != null) 
 				return cfile;

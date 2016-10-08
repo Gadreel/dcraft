@@ -114,12 +114,12 @@ public class AuthService extends ExtensionBase implements IService {
 					@Override
 					public void process(CompositeStruct result) {
 						if (request.hasErrors() || (result == null)) {
-							tc.getDomain().authEvent(op, "Fail", uc);
+							tc.getTenant().authEvent(op, "Fail", uc);
 							AuthService.this.clearUserContext(request.getContext());
 							request.errorTr(442);
 						}
 						else {
-							tc.getDomain().authEvent(op, "Success", uc);
+							tc.getTenant().authEvent(op, "Success", uc);
 						}
 						
 						request.returnValue(result);
@@ -142,7 +142,7 @@ public class AuthService extends ExtensionBase implements IService {
 				RecordStruct fbinfo = AuthService.fbSignIn(fbtoken, null);		// TODO use FB secret key someday? for app proof...
 				
 				if (request.hasErrors() || (fbinfo == null)) {
-					tc.getDomain().authEvent("SignIn", "Fail", uc);
+					tc.getTenant().authEvent("SignIn", "Fail", uc);
 					AuthService.this.clearUserContext(OperationContext.get());
 					request.errorTr(442);
 					request.complete();
@@ -152,7 +152,7 @@ public class AuthService extends ExtensionBase implements IService {
 				// TODO allow only `verified` fb users?
 				if (fbinfo.isFieldEmpty("id") || fbinfo.isFieldEmpty("email")
 						 || fbinfo.isFieldEmpty("first_name") || fbinfo.isFieldEmpty("last_name")) {		
-					tc.getDomain().authEvent("SignIn", "Fail", uc);
+					tc.getTenant().authEvent("SignIn", "Fail", uc);
 					AuthService.this.clearUserContext(OperationContext.get());
 					request.errorTr(442);
 					request.complete();
@@ -177,7 +177,7 @@ public class AuthService extends ExtensionBase implements IService {
 								//System.out.println("auth 2: " + request.getContext().isElevated());
 								
 								if (request.hasErrors() || (sirec == null)) {
-									tc.getDomain().authEvent("SignIn", "Fail", uc);
+									tc.getTenant().authEvent("SignIn", "Fail", uc);
 									AuthService.this.clearUserContext(ctx);
 									request.errorTr(442);
 									request.complete();
@@ -214,7 +214,7 @@ public class AuthService extends ExtensionBase implements IService {
 								
 								Hub.instance.getSessions().findOrCreateTether(request.getContext());
 								
-								tc.getDomain().authEvent("SignIn", "Success", uc);
+								tc.getTenant().authEvent("SignIn", "Success", uc);
 								
 								request.returnValue(new RecordStruct(
 										new FieldStruct("Username", sirec.getFieldAsString("Username")),
@@ -248,7 +248,7 @@ public class AuthService extends ExtensionBase implements IService {
 							@Override
 							public void process(CompositeStruct uLookupResult) {
 								if (this.hasErrors() || (uLookupResult == null)) {
-									tc.getDomain().authEvent("SignIn", "Fail", uc);
+									tc.getTenant().authEvent("SignIn", "Fail", uc);
 									request.error("Error finding user record");
 									request.complete();
 									return;
@@ -275,7 +275,7 @@ public class AuthService extends ExtensionBase implements IService {
 										@Override
 										public void process(CompositeStruct result) {
 											if (this.hasErrors()) {
-												tc.getDomain().authEvent("SignIn", "Fail", uc);
+												tc.getTenant().authEvent("SignIn", "Fail", uc);
 												request.complete();
 											}
 											else
@@ -305,7 +305,7 @@ public class AuthService extends ExtensionBase implements IService {
 										@Override
 										public void process(CompositeStruct result) {
 											if (this.hasErrors()) {
-												tc.getDomain().authEvent("SignIn", "Fail", uc);
+												tc.getTenant().authEvent("SignIn", "Fail", uc);
 												request.complete();
 											}
 											else
@@ -334,7 +334,7 @@ public class AuthService extends ExtensionBase implements IService {
 							OperationContext ctx = request.getContext();
 							
 							if (request.hasErrors() || (urec == null)) {
-								tc.getDomain().authEvent(op, "Fail", uc);
+								tc.getTenant().authEvent(op, "Fail", uc);
 								AuthService.this.clearUserContext(ctx);
 								request.errorTr(442);
 							}
@@ -367,7 +367,7 @@ public class AuthService extends ExtensionBase implements IService {
 										.toUserContext()
 								);
 								
-								tc.getDomain().authEvent(op, "Success", uc);
+								tc.getTenant().authEvent(op, "Success", uc);
 							}
 							
 							request.complete();
@@ -381,7 +381,7 @@ public class AuthService extends ExtensionBase implements IService {
 				RecordStruct creds = uc.getCredentials();  // msg.getFieldAsRecord("Credentials");
 				
 				if (creds == null) {
-					tc.getDomain().authEvent(op, "Fail", uc);
+					tc.getTenant().authEvent(op, "Fail", uc);
 					request.errorTr(442);
 					request.complete();
 					return;
@@ -402,7 +402,7 @@ public class AuthService extends ExtensionBase implements IService {
 						//System.out.println("auth 2: " + request.getContext().isElevated());
 						
 						if (request.hasErrors() || (sirec == null)) {
-							tc.getDomain().authEvent(op, "Fail", uc);
+							tc.getTenant().authEvent(op, "Fail", uc);
 							AuthService.this.clearUserContext(ctx);
 							request.errorTr(442);
 						}
@@ -438,7 +438,7 @@ public class AuthService extends ExtensionBase implements IService {
 							
 							Hub.instance.getSessions().findOrCreateTether(request.getContext());
 							
-							tc.getDomain().authEvent(op, "Success", uc);
+							tc.getTenant().authEvent(op, "Success", uc);
 						}
 						
 						request.complete();
@@ -507,7 +507,7 @@ public class AuthService extends ExtensionBase implements IService {
 		
 		OperationContext.switchUser(ctx, new OperationContextBuilder()
 			.withGuestUserTemplate()
-			.withDomainId(uc.getDomainId())
+			.withTenantId(uc.getTenantId())
 			.toUserContext());
 	}
 	

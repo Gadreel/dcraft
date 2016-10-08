@@ -1,0 +1,300 @@
+<html Title="Forms &ndash; PUI">
+	<body class="general" style="padding: 16px;">
+		<dc.Panel Title="Short Form inst and message">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Username" 
+					Invalid="true"
+					Instructions="Short instructions"
+					Message="Error Message"
+					placeholder="Username" 
+				/>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Long Form">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Username" 
+					Invalid="true"
+					placeholder="Username" 
+				>
+					<Instructions>
+						Html <b>instructions</b> formatted!
+					</Instructions>
+					
+					<Message Code="nnn">
+						Error Message for error nnn
+					</Message>
+					<Message Code="zzz">
+						Error Message for error zzz
+					</Message>
+					<Message>
+						Default Error Message 
+					</Message>
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Short Form message">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Username" 
+					Invalid="true"
+					Message="Error Message"
+					placeholder="Username" 
+				/>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Long Form message">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Username" 
+					Invalid="true"
+					placeholder="Username" 
+				>
+					<Message Code="nnn">
+						Error Message for error nnn
+					</Message>
+					<Message Code="zzz">
+						Error Message for error zzz
+					</Message>
+					<Message>
+						Default Error Message 
+					</Message>
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With password Input">
+			<dcf.Form>
+				<dcf.Password Label="Username" placeholder="Username" />
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With ro Text Input">
+			<dcf.Form>
+				<dcf.Text Label="Phone" readonly="readonly" value="608" />
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With label Input">
+			<dcf.Form>
+				<dcf.Label Label="Phone" value="608">
+					<Input />
+				</dcf.Label>
+			</dcf.Form>
+		</dc.Panel>
+	
+		<dc.Panel Title="Form With disabled Input">
+			<dcf.Form>
+				<dcf.Text Label="Phone" disabled="disabled" value="608" />
+			</dcf.Form>
+		</dc.Panel>
+	
+		<dc.Panel Title="Form With Text Input">
+			<dcf.Form
+				Name="nnn"
+				RecordOrder="a,b,c"
+				RecordType="aaa,bbb,ccc - mapping in order of RecordOrder"
+				Focus="input name to focus on"
+				AlwaysNew="true|false"
+			>
+				<dcf.Text 
+					id="nnn"
+					Label="Phone" 
+					Name="Phone" 
+					Record="b"
+					Required="true|false"
+					DataType="nnn"
+					Pattern="xxxx if not DataType"
+					Instructions="Short instructions"
+					Message="Error Message"
+				/>
+			</dcf.Form>
+		</dc.Panel>
+
+		<dc.Panel Title="Add-ons with Invalid icon - invalid">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+					Message="Email instruction"
+					Message="Email validation"
+					Invalid="true"
+				>
+					<Glyph Label="$" Flag="true" />
+					<Input />
+					<Button Icon="fa-info-circle" InvalidIcon="fa-warning" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+	
+		<dc.Panel Title="Add-ons with Invalid icon - valid">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+					Message="Email instruction"
+					Message="Email validation"
+				>
+					<Glyph Label="$" Flag="true" />
+					<Input />
+					<Button Icon="fa-info-circle" InvalidIcon="fa-warning" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+	
+		<dc.Panel Title="Input with ValidateButton - invalid">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+					Message="Email instruction"
+					Message="Email validation"
+					Invalid="true"
+					ValidateButton="true"
+				>
+					<Glyph Label="$" Flag="true" />
+					<Input />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+	
+		<dc.Panel Title="Input with ValidateButton - valid">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+					Message="Email instruction"
+					Message="Email validation"
+					ValidateButton="true"
+				>
+					<Glyph Label="$" Flag="true" />
+					<Input />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Text  - Add-ons 3, fancy - Short Form">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+				>
+					<Info Icon="fa-square" />
+					<Glyph Icon="fa-circle" Flag="true" />
+					<Input />
+					<Glyph Icon="fa-star" />
+					<Info Label="@designcraft.io" />
+					<Button Icon="fa-bell" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Text  -  Instructions, Add-ons - Short Form">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					Instructions="Short instructions"
+					placeholder="Email" 
+				>
+					<Info Icon="fa-square" />
+					<Glyph Icon="fa-circle" Flag="true" />
+					<Input />
+					<Glyph Icon="fa-star" />
+					<Info Label="@designcraft.io" />
+					<Button Icon="fa-bell" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Text  -  Instructions, Add-ons - Long Form">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+				>
+					<Instructions>
+						Html instructions
+					</Instructions>
+					
+					<Info Icon="fa-square" />
+					<Glyph Icon="fa-circle" Flag="true" />
+					<Input />
+					<Glyph Icon="fa-star" />
+					<Info Label="@designcraft.io" />
+					<Button Icon="fa-bell" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>	
+			
+		<dc.Panel Title="Text  - Invalid, Instructions, Add-ons - Short Form">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					Invalid="true"
+					Instructions="Short instructions"
+					Message="Error Message"
+					placeholder="Email" 
+				>
+					<Info Icon="fa-square" />
+					<Glyph Icon="fa-circle" Flag="true" />
+					<Input />
+					<Glyph Icon="fa-star" />
+					<Info Label="@designcraft.io" />
+					<Button Icon="fa-bell" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Text  - Invalid, Instructions, Add-ons - Long Form">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					Invalid="true"
+					placeholder="Email" 
+				>
+					<Instructions>
+						Html instructions
+					</Instructions>
+					
+					<Info Icon="fa-square" />
+					<Glyph Icon="fa-circle" Flag="true" />
+					<Input />
+					<Glyph Icon="fa-star" />
+					<Info Label="@designcraft.io" />
+					<Button Icon="fa-bell" Flag="true" />
+					
+					<Message Code="nnn">
+						Error Message for error nnn
+					</Message>
+					<Message Code="zzz">
+						Error Message for error zzz
+					</Message>
+					<Message>
+						Default Error Message 
+					</Message>
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Text  -  Stacked, Add-ons">
+			<dcf.Form>
+				<dcf.Text 
+					Label="Email" 
+					placeholder="Email" 
+					Stacked="true"
+				>
+					<Info Icon="fa-square" />
+					<Glyph Icon="fa-circle" Flag="true" />
+					<Input />
+					<Glyph Icon="fa-star" />
+					<Info Label="@designcraft.io" />
+					<Button Icon="fa-bell" Flag="true" />
+				</dcf.Text>
+			</dcf.Form>
+		</dc.Panel>
+	</body>
+</html>

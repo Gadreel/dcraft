@@ -55,6 +55,7 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.util.concurrent.Future;
 
+@SuppressWarnings("deprecation")
 public class DownloadHandler extends SimpleChannelInboundHandler<HttpObject> {
     protected Channel src = null;
     protected WritableByteChannel dest = null;

@@ -6,6 +6,8 @@ import java.nio.file.Path;
 
 import org.joda.time.DateTime;
 
+import static dcraft.db.Constants.DB_GLOBAL_TENANT_DB;
+
 import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.db.DataRequest;
@@ -189,12 +191,12 @@ public class CoreDataServices extends ExtensionBase implements IService {
 							@Override
 							public void process(CompositeStruct result) {
 								if ("RetireSelf".equals(op)) {
-									// be sure we keep the domain id
+									// be sure we keep the Tenant id
 									UserContext uc = request.getContext().getUserContext();
 									
 									OperationContext.switchUser(request.getContext(), new OperationContextBuilder()
 										.withGuestUserTemplate()
-										.withDomainId(uc.getDomainId())
+										.withTenantId(uc.getTenantId())
 										.toUserContext());
 								}
 								
@@ -262,14 +264,14 @@ public class CoreDataServices extends ExtensionBase implements IService {
 		}
 		
 		// =========================================================
-		//  domains
+		//  Tenants
 		// =========================================================
 		
-		if ("Domains".equals(feature)) {
-			if ("LoadDomain".equals(op) || "MyLoadDomain".equals(op)) {
+		if ("Tenants".equals(feature)) {
+			if ("LoadTenant".equals(op) || "MyLoadTenant".equals(op)) {
 				LoadRecordRequest req = new LoadRecordRequest()
-					.withTable("dcDomain")
-					.withId("MyLoadDomain".equals(op) ? uc.getDomainId() : rec.getFieldAsString("Id"))
+					.withTable(DB_GLOBAL_TENANT_DB)
+					.withId("MyLoadTenant".equals(op) ? uc.getTenantId() : rec.getFieldAsString("Id"))
 					.withNow()
 					.withSelect(new SelectFields()
 						.withField("Id")
@@ -280,26 +282,26 @@ public class CoreDataServices extends ExtensionBase implements IService {
 						.withField("dcName", "Names")
 					);
 				
-				req.withDomain("MyLoadDomain".equals(op) ? uc.getDomainId() : rec.getFieldAsString("Id"));
+				req.withTenant("MyLoadTenant".equals(op) ? uc.getTenantId() : rec.getFieldAsString("Id"));
 				
 				db.submit(req, new ObjectFinalResult(request));
 				
 				return;
 			}
 						
-			if ("UpdateDomain".equals(op) || "MyUpdateDomain".equals(op)) {
+			if ("UpdateTenant".equals(op) || "MyUpdateTenant".equals(op)) {
 				ReplicatedDataRequest req = new UpdateRecordRequest()
-					.withTable("dcDomain")
-					.withId("MyUpdateDomain".equals(op) ? uc.getDomainId() : rec.getFieldAsString("Id"))
+					.withTable(DB_GLOBAL_TENANT_DB)
+					.withId("MyUpdateTenant".equals(op) ? uc.getTenantId() : rec.getFieldAsString("Id"))
 					.withConditionallySetFields(rec, "Title", "dcTitle", "Alias", "dcAlias", "Description", "dcDescription", "ObscureClass", "dcObscureClass")
 					.withConditionallySetList(rec, "Names", "dcName");
 				
-				req.withDomain("MyUpdateDomain".equals(op) ? uc.getDomainId() : rec.getFieldAsString("Id"));
+				req.withTenant("MyUpdateTenant".equals(op) ? uc.getTenantId() : rec.getFieldAsString("Id"));
 				
 				db.submit(req, new ObjectResult() {
 					@Override
 					public void process(CompositeStruct result) {
-						Hub.instance.fireEvent(HubEvents.DomainUpdated, rec.getFieldAsString("Id"));					
+						Hub.instance.fireEvent(HubEvents.TenantUpdated, rec.getFieldAsString("Id"));					
 						request.returnValue(result);
 					}
 				});
@@ -307,17 +309,18 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				return ;
 			}
 			
-			if ("AddDomain".equals(op)) {
+			if ("AddTenant".equals(op)) {
 				ReplicatedDataRequest req = new InsertRecordRequest()
-					.withTable("dcDomain")
+					.withTable(DB_GLOBAL_TENANT_DB)
 					.withConditionallySetFields(rec, "Title", "dcTitle", "Alias", "dcAlias", "Description", "dcDescription", "ObscureClass", "dcObscureClass")
 					.withSetList("dcName", rec.getFieldAsList("Names"));
 				
 				db.submit(req, new ObjectResult() {
 					@Override
 					public void process(CompositeStruct result) {
-						LocalFileStore fs = Hub.instance.getPublicFileStore();
+						LocalFileStore fs = Hub.instance.getTenantsFileStore();
 						
+						// TODO make it so we use the configured web folder - not just dcw
 						if (fs != null)  {
 							Path dspath = fs.getFilePath().resolve("dcw/" + rec.getFieldAsString("Alias") + "/");
 							
@@ -327,14 +330,14 @@ public class CoreDataServices extends ExtensionBase implements IService {
 								Files.createDirectories(dspath.resolve("www"));
 							} 
 							catch (IOException x) {
-								request.error("Unable to create directories for new domain: " + x);
+								request.error("Unable to create directories for new Tenant: " + x);
 								request.returnEmpty();
 								return;
 							}
 							
 							Path cpath = dspath.resolve("config/settings.xml");
 
-							XElement domainsettings = new XElement("Settings",
+							XElement tenantsettings = new XElement("Settings",
 									new XElement("Web", 
 											new XAttribute("UI", "Custom"),
 											new XAttribute("SiteTitle", rec.getFieldAsString("Title")),
@@ -349,10 +352,10 @@ public class CoreDataServices extends ExtensionBase implements IService {
 									)
 							);
 
-							IOUtil.saveEntireFile(cpath, domainsettings.toString(true));							
+							IOUtil.saveEntireFile(cpath, tenantsettings.toString(true));							
 						}
 						
-						Hub.instance.fireEvent(HubEvents.DomainAdded, ((RecordStruct)result).getFieldAsString("Id"));
+						Hub.instance.fireEvent(HubEvents.TenantAdded, ((RecordStruct)result).getFieldAsString("Id"));
 						
 						request.returnValue(result);
 					}
@@ -361,10 +364,10 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				return;
 			}
 						
-			if ("ImportDomain".equals(op)) {
+			if ("ImportTenant".equals(op)) {
 				String alias = rec.getFieldAsString("Alias");
 				
-				LocalFileStore fs = Hub.instance.getPublicFileStore();
+				LocalFileStore fs = Hub.instance.getTenantsFileStore();
 				
 				if (fs == null)  {
 					request.error("Public file store not enabled.");
@@ -413,10 +416,10 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				
 				ListStruct dnames = new ListStruct();
 				
-				for (XElement del2 : domainsettings.selectAll("Domain"))
+				for (XElement del2 : domainsettings.selectAll("Tenant"))
 					dnames.addItem(del2.getAttribute("Name"));
 				
-				DataRequest req = new DataRequest("dcLoadDomains");		// must be in root .withRootDomain();	// use root for this request
+				DataRequest req = new DataRequest("dcLoadTenants");		// must be in root .withRootTenant();	// use root for this request
 				
 				db.submit(req, new ObjectResult() {
 					@Override
@@ -439,7 +442,7 @@ public class CoreDataServices extends ExtensionBase implements IService {
 								continue;
 							
 							ReplicatedDataRequest req = new UpdateRecordRequest()
-								.withTable("dcDomain")
+								.withTable(DB_GLOBAL_TENANT_DB)
 								.withId(did)
 								.withUpdateField("dcTitle", title)
 								.withUpdateField("dcAlias", alias)
@@ -448,12 +451,12 @@ public class CoreDataServices extends ExtensionBase implements IService {
 								.withSetList("dcName", dnames);
 							
 							// updates execute on the domain directly
-							req.withDomain(did);
+							req.withTenant(did);
 							
 							db.submit(req, new ObjectResult() {
 								@Override
 								public void process(CompositeStruct result) {
-									Hub.instance.fireEvent(HubEvents.DomainUpdated, did);
+									Hub.instance.fireEvent(HubEvents.TenantUpdated, did);
 									
 									request.returnValue(new RecordStruct().withField("Id", did));
 								}
@@ -463,7 +466,7 @@ public class CoreDataServices extends ExtensionBase implements IService {
 						}
 						
 						ReplicatedDataRequest req = new InsertRecordRequest()
-							.withTable("dcDomain")
+							.withTable(DB_GLOBAL_TENANT_DB)
 							.withUpdateField("dcTitle", title)
 							.withUpdateField("dcAlias", alias)
 							.withUpdateField("dcDescription", fdesc)
@@ -473,7 +476,7 @@ public class CoreDataServices extends ExtensionBase implements IService {
 						db.submit(req, new ObjectResult() {
 							@Override
 							public void process(CompositeStruct result) {
-								Hub.instance.fireEvent(HubEvents.DomainAdded, ((RecordStruct)result).getFieldAsString("Id"));
+								Hub.instance.fireEvent(HubEvents.TenantAdded, ((RecordStruct)result).getFieldAsString("Id"));
 								
 								request.returnValue(result);
 							}
@@ -484,14 +487,14 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				return;
 			}
 			
-			if ("RetireDomain".equals(op)) {
-				db.submit(new RetireRecordRequest("dcDomain", rec.getFieldAsString("Id")).withDomain(rec.getFieldAsString("Id")), new ObjectFinalResult(request));
+			if ("RetireTenant".equals(op)) {
+				db.submit(new RetireRecordRequest(DB_GLOBAL_TENANT_DB, rec.getFieldAsString("Id")).withTenant(rec.getFieldAsString("Id")), new ObjectFinalResult(request));
 				
 				return ;
 			}
 			
-			if ("ReviveDomain".equals(op)) {
-				db.submit(new ReviveRecordRequest("dcDomain", rec.getFieldAsString("Id")).withDomain(rec.getFieldAsString("Id")), new ObjectFinalResult(request));
+			if ("ReviveTenant".equals(op)) {
+				db.submit(new ReviveRecordRequest(DB_GLOBAL_TENANT_DB, rec.getFieldAsString("Id")).withTenant(rec.getFieldAsString("Id")), new ObjectFinalResult(request));
 				
 				return ;
 			}			

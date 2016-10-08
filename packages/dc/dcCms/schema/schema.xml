@@ -1,0 +1,1254 @@
+<Schema>
+	<!--
+		user auth tags:
+
+		Admin - administer all aspects of CMS
+		Editor (PowerUser) - author: pages/blogs in CMS
+		User - subscriber: post comments, forum topics, etc.  but no admin at all
+	-->
+	
+	<Database>
+		<Table Id="dcUser">
+			<Field Name="dcmDescription" Type="dcLargeString" />
+			<Field Name="dcmAddress" Type="dcSmallString" />
+			<Field Name="dcmCity" Type="dcSmallString" />
+			<Field Name="dcmState" Type="dcTinyString" />
+			<Field Name="dcmZip" Type="dcTinyString" />
+			<Field Name="dcmPhone" Type="dcSmallString" />
+			<Field Name="dcmFacebookId" Type="dcString" Unique="True" />
+		</Table>
+		
+		<!--
+			much of domain level info is copied to ./public and cached, such that web sites shouldn't need the database
+			at all - except for things like the store or blog where data is stored in the database.
+			
+			./dcw/[domain alias]/config     
+				- settings.xml are the general domain settings 
+				  (includes code tags that map to classes instead of to groovy)
+				- dictionary.xml is the domain level dictionary - direct edit by web dev
+				- vars.json is the domain level variable store - direct edit by web dev
+				- cms-dictionary.xml is the domain level dictionary - editable in CMS
+				- cms-vars.json is the domain level variable store - editable in CMS
+				
+			./dcw/[domain alias]/tags     holds code tags for domain
+				- [tag-name].groovy		file to process the tag
+				
+			values saved into database get compiled right into the appropriate file, values not in database get
+			loaded right from the file  Route
+			
+			<Record Id="dcmRoutingRules">
+				<Field Name="HomeRules">
+					<List>
+						<Record>
+							<Field Name="DomainName" Type="dcTenant:dcName" />
+							<Field Name="NewPath" Type="dcString" />
+						</Record>
+					</List>
+				</Field>
+				<Field Name="RewriteRules">
+					<List>
+						<Record>
+							<Field Name="Kind" Type="dcSmallString" />
+							<Field Name="MatchPath" Type="dcString" />
+							<Field Name="NewPath" Type="dcString" />
+						</Record>
+					</List>
+				</Field>
+			</Record>
+			
+			<List Id="dcmCodingTags">
+				<Record>
+					<Field Name="TagName" Type="dcSmallString" />
+					<Field Name="ClassName" Type="dcSmallString" />
+					<Field Name="Source" Type="String" />
+				</Record>
+			</List>
+		 -->
+	</Database>
+	
+	<Shared />
+	
+	<Services>
+		<Service Name="dcAuth">
+			<Secure Tags="Guest,User">
+				<Feature Name="Authentication">
+					<Op Name="SignInFacebook">
+						<Description>
+							Verify FaceBook token/id, start a session (AuthToken) indirectly as Verify is called implicitly.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<!-- 
+									<Field Name="UserId" Type="dcString" Required="True"  />
+ 									-->
+ 									<Field Name="AccessToken" Type="dcString" Required="True"  />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Username" Type="dcUser:dcUsername" />
+									<Field Name="FirstName" Type="dcUser:dcFirstName" />
+									<Field Name="LastName" Type="dcUser:dcLastName" />
+									<Field Name="Email" Type="dcUser:dcEmail" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
+			</Secure>
+			<Secure Tags="User">
+				<Feature Name="Facebook">
+					<Op Name="LinkAccount">
+						<Description>
+							Verify FaceBook token/id, link current login with that fb id.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<!-- 
+									<Field Name="UserId" Type="dcString" Required="True"  />
+									 -->
+									<Field Name="AccessToken" Type="dcString" Required="True"  />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>	
+	
+		<Service Name="dcmCms">
+			<Secure Tags="Guest,User">		
+				<Feature Name="WebGallery">
+					<Op Name="LoadSlideShow">
+						<Description>
+							Get the slide show details
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="GalleryPath" Type="dcString" Required="True" />
+									<Field Name="Alias" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Title" Type="dcSmallString" />
+									<Field Name="Variation" Type="dcTinyString" />
+									<Field Name="VariationSettings" Type="AnyRecord" />
+									<Field Name="Order" Type="dcTinyString" />
+									<Field Name="Images">
+										<List Type="AnyRecord" />
+									</Field>
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
+				<!--
+					Custom File Store is a generalizable interface for File Stores
+					that uses a combination of a Bucket and a Path (or a Token)
+					to be used by a programming point to allocate an appropriate
+					file handle. 
+				-->
+				<Feature Name="Buckets">
+					<Op Name="ListFiles">
+						<Description>
+							Loads a file listing for a given folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="FileName" Type="dcSmallString" />
+										<Field Name="Size" Type="Integer" />
+										<Field Name="IsFolder" Type="Boolean" />
+										<Field Name="LastModified" Type="dcTinyString" />
+										<Field Name="Extra" Type="AnyRecord" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FileDetail">
+						<Description>
+							Get the file details, optionally including a file checksums if a method is provided.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Method" Type="dciHashMethod" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FileName" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="IsFolder" Type="Boolean" />
+									<Field Name="LastModified" Type="dcTinyString" />
+									<Field Name="Hash" Type="dcString" />
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="DeleteFile">
+						<Description>
+							Removes a file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AddFolder">
+						<Description>
+							Adds a new folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="DeleteFolder">
+						<Description>
+							Removes a folder and all files under it.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="Custom">
+						<Description>
+							Execute a custom command.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AllocateUploadToken">
+						<Description>
+							Get an upload token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="StartUpload">
+						<Description>
+							Sets up a file uploader channel (on a session) and initiates a data stream to the requesting server.
+							Size is required to determine available space/quota and track progress.  Params is optional.
+							ForceOverwrite - set to true if you do not want to do a resume.
+							
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+
+									<Field Name="FileSize" Type="Integer" Required="True" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="ForceOverwrite" Type="Boolean" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcSmallString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+									
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="StartDownload">
+						<Description>
+							Sets up a file downloader channel (on a session) and initiates a data stream to the requesting server.
+							Params is optional.
+							Channel is added by Session, only add bucket, path, offset, params and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+
+									<Field Name="Offset" Type="Integer" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+									
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FinishUpload">
+						<Description>
+							Give evidence for the upload success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FinishDownload">
+						<Description>
+							Give evidence for the download success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Bucket" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" />
+									<Field Name="Path" Type="dcString" />
+									<Field Name="Params" Type="AnyRecord" />
+
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Extra" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
+			</Secure>
+		
+			<Secure Tags="Author,Editor,Admin">		
+				<Feature Name="WebFileStore">
+					<Op Name="ListFiles">
+						<Description>
+							Loads a file listing for a given folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="FileName" Type="dcSmallString" />
+										<Field Name="Size" Type="Integer" />
+										<Field Name="IsFolder" Type="Boolean" />
+										<Field Name="LastModified" Type="dcTinyString" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FileDetail">
+						<Description>
+							Get the file details, optionally including a file checksums if a method is provided.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Method" Type="dciHashMethod" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FileName" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="IsFolder" Type="Boolean" />
+									<Field Name="LastModified" Type="dcTinyString" />
+									<Field Name="Hash" Type="dcString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="DeleteFile">
+						<Description>
+							Removes a file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="AddFolder">
+						<Description>
+							Adds a new folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="DeleteFolder">
+						<Description>
+							Removes a folder and all files under it.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="StartUpload">
+						<Description>
+							Sets up a file uploader channel (on a session) and initiates a data stream to the requesting server.
+							Size is required to determine available space/quota and track progress.  Params is optional.
+							ForceOverwrite - set to true if you do not want to do a resume.
+							
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="FileSize" Type="Integer" Required="True" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="ForceOverwrite" Type="Boolean" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcSmallString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="StartDownload">
+						<Description>
+							Sets up a file downloader channel (on a session) and initiates a data stream to the requesting server.
+							Params is optional.
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Offset" Type="Integer" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FinishUpload">
+						<Description>
+							Give evidence for the upload success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="FinishDownload">
+						<Description>
+							Give evidence for the download success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+				<Feature Name="WebGallery">
+					<Op Name="ListFiles">
+						<Description>
+							Loads a file listing for a given folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Settings" Type="AnyRecord" />
+									<Field Name="Help" Type="String" />
+									<Field Name="Files">
+										<List>
+											<Record>
+												<Field Name="FileName" Type="dcSmallString" />
+												<Field Name="Size" Type="Integer" />
+												<Field Name="IsFolder" Type="Boolean" />
+												<Field Name="LastModified" Type="dcTinyString" />
+											</Record>
+										</List>
+									</Field>
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="ListVariations">
+						<Description>
+							Loads a Variants listing for a given image.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Path" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Settings" Type="AnyRecord" />
+									<Field Name="Help" Type="String" />
+									<Field Name="Variants">
+										<List>
+											<Record>
+												<Field Name="Name" Type="dcSmallString" />
+												<Field Name="Size" Type="Integer" />
+												<Field Name="LastModified" Type="dcTinyString" />
+											</Record>
+										</List>
+									</Field>
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="LoadGallery">
+						<Description>
+							Loads a file listing for a given folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Settings" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="UpdateGallery">
+						<Description>
+							Get the file details, optionally including a file checksums if a method is provided.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Settings" Type="AnyRecord" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="FileDetail">
+						<Description>
+							Get the file details, optionally including a file checksums if a method is provided.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Method" Type="dciHashMethod" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FileName" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="IsFolder" Type="Boolean" />
+									<Field Name="LastModified" Type="dcTinyString" />
+									<Field Name="Hash" Type="String" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="ImageDetail">
+						<Description>
+							Get the image details, optionally including the settings for the
+							gallery (for the Variations).  Example ImagePath is:
+							'/store/test/test-a'. For reference, the original path would then 
+							be '/store/test/test-a.v/original.jpg'. The returned GalleryPath would 
+							be '/store/test'. The returned FileName would be 'test-a'.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="ImagePath" Type="String" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FileName" Type="dcSmallString" />
+									<Field Name="GalleryPath" Type="String" />
+									<Field Name="GallerySettings" Type="AnyRecord" />
+									<Field Name="Variations">
+										<List>
+											<Record>
+												<Field Name="Alias" Type="dcSmallString" />
+												<Field Name="Extension" Type="dcTinyString" />
+												<Field Name="Size" Type="Integer" />
+												<Field Name="LastModified" Type="dcTinyString" />
+											</Record>
+										</List>
+									</Field>
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="DeleteFile">
+						<Description>
+							Rmoves a file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="AddFolder">
+						<Description>
+							Adds a new folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="DeleteFolder">
+						<Description>
+							Rmoves a folder and all files under it.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="AddImage">
+						<Description>
+							Adds a new image.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="ImagePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="StartUpload">
+						<Description>
+							Sets up a file uploader channel (on a session) and initiates a data stream to the requesting server.
+							Size is required to determine available space/quota and track progress.  Params is optional.
+							ForceOverwrite - set to true if you do not want to do a resume.
+							
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="FileSize" Type="Integer" Required="True" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="ForceOverwrite" Type="Boolean" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="StartDownload">
+						<Description>
+							Sets up a file downloader channel (on a session) and initiates a data stream to the requesting server.
+							Params is optional.
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Offset" Type="Integer" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FinishUpload">
+						<Description>
+							Give evidence for the upload success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="FinishDownload">
+						<Description>
+							Give evidence for the download success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+			</Secure>
+			<Secure Tags="Admin">		
+				<Feature Name="DomainFileStore">
+					<Op Name="ListFiles">
+						<Description>
+							Loads a file listing for a given folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="FileName" Type="dcSmallString" />
+										<Field Name="Size" Type="Integer" />
+										<Field Name="IsFolder" Type="Boolean" />
+										<Field Name="LastModified" Type="dcTinyString" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FileDetail">
+						<Description>
+							Get the file details, optionally including a file checksums if a method is provided.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Method" Type="dciHashMethod" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FileName" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="IsFolder" Type="Boolean" />
+									<Field Name="LastModified" Type="dcTinyString" />
+									<Field Name="Hash" Type="String" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="LoadFile">
+						<Description>
+							Load a file for editing, no larger than 16MB.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Content" Type="String" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="SaveFile">
+						<Description>
+							Save a file from editing, no larger than 16MB.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Content" Type="String" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="DeleteFile">
+						<Description>
+							Removes a file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="ImportUIFile">
+						<Description>
+							Import a dcUI file from public ww folder to become a page or block or template in the database.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Id" Type="Id" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AddFolder">
+						<Description>
+							Adds a new folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="DeleteFolder">
+						<Description>
+							Rmoves a folder and all files under it.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FolderPath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="StartUpload">
+						<Description>
+							Sets up a file uploader channel (on a session) and initiates a data stream to the requesting server.
+							Size is required to determine available space/quota and track progress.  Params is optional.
+							ForceOverwrite - set to true if you do not want to do a resume.
+							
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="FileSize" Type="Integer" Required="True" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="ForceOverwrite" Type="Boolean" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="StartDownload">
+						<Description>
+							Sets up a file downloader channel (on a session) and initiates a data stream to the requesting server.
+							Params is optional.
+							Channel is added by Session, only add path, size and token.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Offset" Type="Integer" />
+									<Field Name="Channel" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Hub" Type="dcHubId" />
+									<Field Name="Session" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" />
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Mime" Type="dcSmallString" />
+									<Field Name="Size" Type="Integer" />
+									<Field Name="BestEvidence" Type="dcTinyString" />
+									<Field Name="MinimumEvidence" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="FinishUpload">
+						<Description>
+							Give evidence for the upload success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="FinishDownload">
+						<Description>
+							Give evidence for the download success.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FilePath" Type="dcString" />
+									<Field Name="Params" Type="Any" />
+									<Field Name="Evidence" Type="AnyRecord" />
+									<Field Name="Status" Type="dciTransferStatus" Required="True" />
+									<Field Name="Note" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+				<Feature Name="Site">
+					<Op Name="BuildMap">
+						<Description>
+							Create the sitemap for the entire site.  
+						</Description>
+						<Request Inherits="RequestMessage" />
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="ImportSite">
+						<Description>
+							Import feeds and pages for the entire site.  
+						</Description>
+						<Request Inherits="RequestMessage" />
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+	
+		<Service Name="dcmEmailBuilder">
+			<Secure Tags="Admin">		
+				<Feature Name="Message">
+					<Op Name="Build">
+						<Description>
+							Build an email from a template dciEmail
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="Params" Type="AnyRecord" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body" Type="dciEmailCore" />
+						</Response>
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+	</Services>
+</Schema>

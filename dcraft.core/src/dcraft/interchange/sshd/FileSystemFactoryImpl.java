@@ -17,6 +17,7 @@
 
 package dcraft.interchange.sshd;
 
+/*
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,8 +25,9 @@ import org.apache.sshd.common.Session;
 import org.apache.sshd.common.file.FileSystemFactory;
 import org.apache.sshd.common.file.FileSystemView;
 import org.apache.sshd.common.file.nativefs.NativeFileSystemView;
+*/
 
-public class FileSystemFactoryImpl implements FileSystemFactory {
+public class FileSystemFactoryImpl { /* implements FileSystemFactory {
 	protected SshdModule severinfo = null;
 	
     public FileSystemFactoryImpl(SshdModule server) {
@@ -42,5 +44,5 @@ public class FileSystemFactoryImpl implements FileSystemFactory {
 		//ApiSession api = this.severinfo.getApiSession(session);
 		
         //return new FileSystemViewImpl(api);
-    }
+    } */
 }

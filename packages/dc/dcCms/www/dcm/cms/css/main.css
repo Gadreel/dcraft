@@ -1,0 +1,78 @@
+/******************************
+  for /dcm/cms/file/EditImage
+*******************************/
+
+#editImageControls {
+	display: -webkit-box;
+	display: -moz-box;
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;  
+}
+
+#editImageControls .ui-slider {
+	-webkit-box-flex: 1;
+	-moz-box-flex: 1;
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+}
+
+#editImageCanvasPresenter {
+	position: relative;
+	border-top: 1px solid black;
+	background-color: white;
+}
+
+#imageDetailGrid {
+	display: -webkit-box;
+	display: -moz-box;
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;  
+}
+
+#imageDetailSettings {
+	width: 340px;
+	margin-right: 16px;
+}
+
+#imageDetailViewer {
+	-webkit-box-flex: 1;
+	-moz-box-flex: 1;
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+	
+	display: -webkit-box;
+	display: -moz-box;
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;  
+		
+	-webkit-box-direction: normal;
+	-moz-box-direction: normal;
+	-webkit-box-orient: vertical;
+	-moz-box-orient: vertical;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+#imageDetailImg {
+	-webkit-box-flex: 1;
+	-moz-box-flex: 1;
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+	
+	text-align: center;
+}
+
+#imageDetailImg img {
+	border: 1px solid black;
+}
+
+.dcappFullMain {
+	height: 100%;
+}

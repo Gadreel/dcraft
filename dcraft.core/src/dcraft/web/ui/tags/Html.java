@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import dcraft.filestore.CommonPath;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.OperationContext;
 import dcraft.util.StringUtil;
@@ -120,7 +120,7 @@ public class Html extends MixIn {
 				.with(new UIElement("title").withText("@val|PageTitle@ - @ctx|SiteTitle@"))   
 	   		;
 	    	
-	    	DomainInfo domain = work.get().getContext().getDomain();
+	    	TenantInfo domain = work.get().getContext().getTenant();
 			
 			XElement domainconfig = domain.getSettings();
 			XElement domainwebconfig =  (domainconfig != null) ? domainconfig.selectFirst("Web") : null;

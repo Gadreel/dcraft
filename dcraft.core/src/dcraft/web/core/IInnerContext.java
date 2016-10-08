@@ -1,6 +1,6 @@
 package dcraft.web.core;
 
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.SiteInfo;
 import dcraft.struct.RecordStruct;
 import io.netty.buffer.ByteBuf;
@@ -10,7 +10,7 @@ import io.netty.handler.stream.ChunkedInput;
 public interface IInnerContext {
     Request getRequest();
     Response getResponse();
-    DomainInfo getDomain();
+    TenantInfo getTenant();
     SiteInfo getSite();
     IWebMacro getMacro(String name);
     void setAltParams(RecordStruct v);

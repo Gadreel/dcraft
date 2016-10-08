@@ -1,0 +1,437 @@
+<dcui Title="Edit Show" AuthTags="Admin">
+	<RequireLib Path="/dcw/js/jquery-ui.min.js" />
+
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<div class="ui-corner-all custom-corners genericFlexOne genericFlexColumn">
+					<div class="ui-bar ui-bar-a">
+						<h4>Edit Show</h4>
+					</div>
+					
+					<div class="ui-body ui-body-a genericFlexColumn genericFlexOne">
+						<Form Name="EditShow">
+							<FieldContainer Label="Title:">
+								<TextInput Name="Title" Required="true" />
+							</FieldContainer>
+							<FieldContainer Label="Alias:">
+								<TextInput Name="Alias" Required="true" Pattern="[\w-]+" />
+							</FieldContainer>
+							<FieldContainer Label="Variation:">
+								<Select Name="Variation" Required="true">
+									<option data-placeholder="true" value="NULL">Select Variation</option>
+								</Select>
+							</FieldContainer>
+							
+							<br /> 
+							
+							<div id="sectImages">
+								<h3>Images</h3>
+								
+								<ul id="imageVList" data-role="listview" data-inset="true" data-count-theme="a" data-split-icon="delete" />					
+								
+								<br /> 
+								<br /> 
+								
+								<!-- 
+								<label>
+					                <input id="chkSort" type="checkbox" /> Enable Image Reorder
+					            </label>							
+					            
+								<br /> 
+								<br /> 
+								-->
+								
+								<div class="formbuttons">
+									<Button Click="DoShowImageGallery" Label="Add Image" />
+									<Button Click="DoDelete" Label="Delete Show" />
+									<SubmitButton Label="Save" /> 
+								</div>
+							</div>
+						</Form>
+					</div>
+				</div>
+						
+				<br />
+				
+				<div id="sectEditImage" class="ui-corner-all custom-corners genericFlexOne genericFlexColumn">
+					<div class="ui-bar ui-bar-a">
+						<h4>Edit Image</h4>
+					</div>
+					
+					<div class="ui-body ui-body-a genericFlexColumn genericFlexOne">
+						<Form Name="EditImage" Prefix="img">
+							<div class="formbuttons">
+								<Button Click="ShowImages" Label="Cancel" />
+								<SubmitButton Label="Save" /> 
+							</div>
+							
+							<FieldContainer Label="Description:">
+								<TextArea Name="Description" Required="true" style="min-height: 240px;" />
+							</FieldContainer>
+						</Form>
+					</div>
+				</div>					
+			</article>
+		</div>
+		
+		<IncludePart Path="/dcw/app/Footer" />
+		
+		<IncludePart Path="/dcm/cms/files/GalleryChooser" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+		
+			entry.Store.Settings = {
+				Variations: [ ],
+				Shows: [ ] 
+			};
+
+			entry.Store.Changed = false;
+			entry.Store.Images = [];
+			entry.Store.CurrImage = null;
+			
+			entry.Store.__GalleryPath = entry.Params.Path;
+			
+			entry.form('EditShow').query('Title').focus();				
+			
+			var list = $('#imageVList');		
+
+			// TODO for touch sorting see how dc.ui.js has touch punch in it and review if it makes sense
+		    list.sortable();
+		    list.disableSelection();
+	        
+	        //list.sortable('disable');		// start out clickable
+		    
+		    list.bind("sortstop", function(event, ui) {
+				list.listview('refresh');
+				
+				entry.Store.Changed = true;
+		    });					
+			  
+			  /*
+			$("#chkSort").on("change", function() {
+			    if ($(this).prop("checked"))
+			        list.sortable('enable');
+			    else 
+			        list.sortable('disable');
+			});		    
+			*/
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			list.listview('refresh');
+			
+			entry.callPageFunc('ShowImages');
+	]]></Function>
+	<Function Name="DoSelectGallery" Params="path,data"><![CDATA[
+			var entry = this;
+
+			var img = data; 
+			
+			entry.Store.Images.push({
+				Alias: img.FileName,
+				Description: ''
+			});
+		
+			var list = $('#imageVList');		
+			var litm = $('<li></li>');
+			
+			litm.attr('data-img-alias', img.FileName);
+			
+			var anchr = $('<a href="#"><h2>' + String.escapeHtml(img.FileName) + '</h2>'
+					+ '<p>' + String.escapeHtml(img.Description) + '</p>'
+					+ '</a>')
+			
+			anchr.click(img, function(e) {
+				entry.callPageFunc('ShowEditor', e.data.FileName);
+				
+				e.preventDefault();
+				return false;
+			});
+			
+			litm.append(anchr);
+			
+			var anchr2 = $('<a href="#">Delete</a>')
+			
+			anchr2.click(img, function(e) {
+				dc.pui.Popup.confirm('Are you sure you want to remove ' + String.escapeHtml(e.data.FileName) + '?', function() {
+					entry.Store.Changed = true;
+					
+					$('#imageVList li[data-img-alias="' + e.data.FileName + '"]').remove();
+					$('#imageVList').listview('refresh');									
+				});
+				
+				e.preventDefault();
+				return false;
+			});
+			
+			litm.append(anchr2);
+			
+			list.append(litm);
+					
+			list.listview('refresh');					
+	]]></Function>
+	<Function Name="ShowEditor" Params="alias"><![CDATA[			
+			var entry = this;
+			
+			entry.Store.CurrImage = alias;
+			
+			for (var i = 0; i < entry.Store.Images.length; i++) {
+				var img = entry.Store.Images[i];
+				
+				if (img.Alias == alias) {
+					//entry.callPageFunc(, 'Default', img, true);
+					entry.Forms['EditImage']['load'](function() {  });					
+					break;
+				}
+			}
+		
+			$('#sectImages').hide();
+			$('#sectEditImage').show();
+			
+			entry.form('EditImage').query('Alias').focus();				
+	]]></Function>
+	<Function Name="ShowImages"><![CDATA[			
+			var entry = this;
+		
+			$('#sectImages').show();
+			$('#sectEditImage').hide();
+			//entry.formQuery('EditImage').hide();
+			
+			entry.form('EditShow').query('Title').focus();				
+	]]></Function>
+	<Function Name="DoShowImageGallery"><![CDATA[			
+			var entry = this;
+		
+			entry.callPageFunc('DoShowGallery', 'Image', entry.Store.__GalleryPath);
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+		
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'ListFiles',
+				Body: { 
+					FolderPath: entry.Params.Path
+				}
+			};
+	]]></Function>
+	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+		
+			if (e.Data.Settings)
+				entry.Store.Settings = e.Data.Settings;
+				
+			e.Data = {};			// we are adding a new show
+			e.AsNew = true;
+			
+			if (entry.Store.Settings.Variations && entry.Store.Settings.Variations.length) {
+				var ulist = [];
+				
+				for (var i1 = 0; i1 < entry.Store.Settings.Variations.length; i1++) {
+					var v = entry.Store.Settings.Variations[i1]; 
+					ulist.push({ Value: v.Alias, Label: v.Name });
+				}
+
+				entry.form('EditShow').input('Variation').add(ulist);
+			}
+			 
+			var list = $('#imageVList');
+			list.empty();
+			
+			if (entry.Params.Alias && entry.Store.Settings.Shows && entry.Store.Settings.Shows.length) {
+				for (var i1 = 0; i1 < entry.Store.Settings.Shows.length; i1++) {
+					var v = entry.Store.Settings.Shows[i1]; 
+				
+					if (v.Alias == entry.Params.Alias) {
+						e.Data = v;
+						
+						if (v.CustomFields)
+							entry.addFormLayout('EditImage', v.CustomFields);
+						
+						if (v.Images && v.Images.length) {
+							entry.Store.Images = v.Images;
+							
+							for (var i2 = 0; i2 < v.Images.length; i2++) {
+								var img = v.Images[i2]; 
+							
+								var litm = $('<li></li>');
+								
+								litm.attr('data-img-alias', img.Alias);
+								
+								var anchr = $('<a href="#"><h2>' + String.escapeHtml(img.Alias) + '</h2>'
+										+ '<p>' + String.escapeHtml(img.Description) + '</p>'
+										+ '</a>');
+								
+								anchr.click(img, function(e) {
+									entry.callPageFunc('ShowEditor', e.data.Alias);
+				
+									e.preventDefault();
+									return false;
+								});
+								
+								litm.append(anchr);
+								
+								var anchr2 = $('<a href="#">Delete</a>')
+								
+								anchr2.click(img, function(e) {
+									dc.pui.Popup.confirm('Are you sure you want to remove ' + String.escapeHtml(e.data.Alias) + '?', function() {
+										entry.Store.Changed = true;
+										
+										$('#imageVList li[data-img-alias="' + e.data.Alias + '"]').remove();
+										$('#imageVList').listview('refresh');									
+									});
+									
+									e.preventDefault();
+									return false;
+								});
+								
+								litm.append(anchr2);
+								
+								list.append(litm);
+							}
+						}
+					
+						list.listview('refresh');									
+						
+						break;
+					}
+				}
+			}
+	]]></Function>
+	<Function Name="imgLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			e.Data = { };
+				
+			for (var i = 0; i < entry.Store.Images.length; i++) {
+				var img = entry.Store.Images[i];
+				
+				if (img.Alias == entry.Store.CurrImage) {
+					// copy properties into form
+					Object.getOwnPropertyNames(img).forEach(function(name) {
+						e.Data[name] = img[name];
+					});
+
+					break;
+				}
+			}
+	]]></Function>
+	<Function Name="imgSaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			for (var i = 0; i < entry.Store.Images.length; i++) {
+				var img = entry.Store.Images[i];
+				
+				if (img.Alias == entry.Store.CurrImage) {
+					// copy properties into image
+					Object.getOwnPropertyNames(e.Data).forEach(function(name) {
+						img[name] = e.Data[name];
+					});
+										
+					$('#imageVList li[data-img-alias="' + img.Alias + '"] p').text(String.escapeHtml(img.Description));
+					break;
+				}
+			}
+	]]></Function>
+	<Function Name="imgAfterSave"><![CDATA[
+			this.callPageFunc('ShowImages');
+	]]></Function>
+	
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			// TODO keep custom fields
+			
+			e.Data.Images = [];
+			
+			$('#imageVList li').each(function(i) {
+				var calias = $(this).attr('data-img-alias');
+				
+				for (var i = 0; i < entry.Store.Images.length; i++) {
+					var img = entry.Store.Images[i];
+					
+					if (img.Alias == calias) {
+						e.Data.Images.push(img);
+						break;
+					}
+				}
+			});			
+			
+			if (entry.Params.Alias && entry.Store.Settings.Shows && entry.Store.Settings.Shows.length) {
+				for (var i1 = 0; i1 < entry.Store.Settings.Shows.length; i1++) {
+					var v = entry.Store.Settings.Shows[i1]; 
+				
+					if (v.Alias == entry.Params.Alias) {
+						Object.getOwnPropertyNames(e.Data).forEach(function(name) {
+							entry.Store.Settings.Shows[i1][name] = e.Data[name];
+						});
+					
+						break;
+					}
+				}
+			}
+			else {
+				if (!entry.Store.Settings.Shows)
+					entry.Store.Settings.Shows = [];
+					
+				entry.Store.Settings.Shows.push(e.Data); 
+			}
+		
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'UpdateGallery',
+				Body: {
+					FolderPath: entry.Params.Path,
+					Settings: entry.Store.Settings
+				}
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			window.history.back();
+	]]></Function>
+	<Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Params.Alias) {
+				window.history.back();
+				return;
+			}
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this Show?', function() {
+				if (entry.Params.Alias && entry.Store.Settings.Shows && entry.Store.Settings.Shows.length) {
+					for (var i1 = 0; i1 < entry.Store.Settings.Shows.length; i1++) {
+						var v = entry.Store.Settings.Shows[i1]; 
+					
+						if (v.Alias == entry.Params.Alias) {
+							entry.Store.Settings.Shows.splice(i1, 1);
+							break;
+						}
+					}
+				}
+
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'WebGallery',
+					Op: 'UpdateGallery',
+					Body: {
+						FolderPath: entry.Params.Path,
+						Settings: entry.Store.Settings
+					}
+				}, function(resp) {
+					if (resp.Result > 0) {
+						dc.pui.Popup.alert(resp.Message);
+						return;
+					}
+				
+					window.history.back();
+				});
+			});
+	]]></Function>
+</dcui>

@@ -63,7 +63,7 @@ import dcraft.scheduler.Scheduler;
 import dcraft.schema.SchemaManager;
 import dcraft.script.ActivityManager;
 import dcraft.service.simple.AuthService;
-import dcraft.service.simple.DomainsService;
+import dcraft.service.simple.TenantsService;
 import dcraft.session.Sessions;
 import dcraft.sql.SqlManager;
 import dcraft.sql.SqlManager.SqlDatabase;
@@ -115,14 +115,13 @@ public class Hub {
 	protected WorkQueue workqueue = new WorkQueue(); 
 	protected Scheduler scheduler = new Scheduler();
 	protected SqlManager sqldbman = new SqlManager();
-	protected LocalFileStore publicfilestore = null;
-	protected LocalFileStore privatefilestore = null;
+	protected LocalFileStore tenantsfilestore = null;
 	protected Sessions sessions = new Sessions();
 	protected HubResources resources = null;
 	protected SecurityPolicy policy = new SecurityPolicy();
 	protected IDatabaseManager db = null;
 	
-	protected DomainsManager domainman = new DomainsManager();
+	protected TenantManager tenantman = new TenantManager();
 	
 	// api session managers
 	protected ConcurrentHashMap<String, IApiSessionFactory> apimans = new ConcurrentHashMap<>();
@@ -291,13 +290,13 @@ public class Hub {
 		// TODO check for repo updates if connected via db and if in Production mode (not dev mode)
 		// if true then restart with resume code
 		
-		// gateways always use Auth and Domain service from internal server
+		// gateways always use Auth and Tenant service from internal server
 		if (!this.resources.isGateway()) {
 			// these two services are required, if service not available and we are not on Gateway then load them
 			
-			// load default dcDomains
-			if (!this.bus.isServiceAvailable("dcDomains")) {
-				DomainsService s = new DomainsService();
+			// load default dcTenants
+			if (!this.bus.isServiceAvailable("dcTenants")) {
+				TenantsService s = new TenantsService();
 				s.init(null);
 				this.bus.getLocalHub().registerService(s);
 			}
@@ -310,7 +309,7 @@ public class Hub {
 			}
 		}
 
-		this.domainman.init();
+		this.tenantman.init();
 		
 		this.dependencyChanged();
 	}
@@ -398,12 +397,8 @@ public class Hub {
 		return this.ctp;
 	}
 	
-	public LocalFileStore getPublicFileStore() {
-		return this.publicfilestore;
-	}
-	
-	public LocalFileStore getPrivateFileStore() {
-		return this.privatefilestore;
+	public LocalFileStore getTenantsFileStore() {
+		return this.tenantsfilestore;
 	}
 	
 	public ActivityManager getActivityManager() {
@@ -540,12 +535,12 @@ public class Hub {
 		return this.resources;
 	}
 	
-	public DomainsManager getDomains() {
-		return this.domainman;
+	public TenantManager getTenants() {
+		return this.tenantman;
 	}
 	
-	public DomainInfo getDomainInfo(String id) {
-		return this.domainman.getDomainInfo(id);
+	public TenantInfo getTenantInfo(String id) {
+		return this.tenantman.getTenantInfo(id);
 	}
 	
 	/**
@@ -720,21 +715,16 @@ public class Hub {
 		this.resources.getPackages().init(or, config.find("PackageFileStore"));
 		
 		
-		XElement fstore = config.find("PublicFileStore");
+		XElement fstore = config.find("TenantsFileStore");
 		
-		if (fstore != null) {
-			this.publicfilestore = new LocalFileStore();
-			or.debug(0, "Initializing public file store");		
-			this.publicfilestore.start(or, fstore);		
+		if (fstore == null) {
+			fstore = new XElement("TenantsFileStore");
+			config.with(fstore);
 		}
 		
-		XElement pvfstore = config.find("PrivateFileStore");
-		
-		if (pvfstore != null) {
-			this.privatefilestore = new LocalFileStore();
-			or.debug(0, "Initializing private file store");		
-			this.privatefilestore.start(or, pvfstore);		
-		}
+		this.tenantsfilestore = new LocalFileStore();
+		or.debug(0, "Initializing tenants file store");		
+		this.tenantsfilestore.start(or, fstore);		
 		
 		if (or.hasErrors()) {
 			or.exitCodeTr(141);
@@ -769,8 +759,7 @@ public class Hub {
 		for (XElement el : config.selectAll("Module")) {
 			or.info(0, "Loading module: " + el.getAttribute("Name"));
 			
-			ModuleLoader loader = new ModuleLoader(Hub.class.getClassLoader());
-			loader.init(el);		
+			ModuleLoader loader = ModuleLoader.from(el);
 			this.modules.put(loader.getName(), loader);
 			this.orderedModules.add(loader);
 			loader.start();
@@ -997,14 +986,9 @@ public class Hub {
 		or.debug(0, "Stopping package file store");		
 		this.resources.getPackages().stop(or);
 		
-		if (this.publicfilestore != null) {
+		if (this.tenantsfilestore != null) {
 			or.debug(0, "Stopping public file store");		
-			this.publicfilestore.stop(or);		
-		}
-		
-		if (this.privatefilestore != null) {
-			or.debug(0, "Stopping private file store");		
-			this.privatefilestore.stop(or);		
+			this.tenantsfilestore.stop(or);		
 		}
 		
 		or.debug(0, "Stopping work pool");

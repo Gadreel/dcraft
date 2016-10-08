@@ -257,7 +257,7 @@ Context: {
 	}
 	
 	public Session(String origin, String domainid, String site, String token) {
-		this(new OperationContextBuilder().withGuestUserTemplate().withDomainId(domainid).withSite(site).withAuthToken(token).withVerified(StringUtil.isEmpty(token)));
+		this(new OperationContextBuilder().withGuestUserTemplate().withTenantId(domainid).withSite(site).withAuthToken(token).withVerified(StringUtil.isEmpty(token)));
 		
 		this.originalOrigin = origin;
 	}
@@ -1069,7 +1069,7 @@ Context: {
 	public void clearToGuest() {
 		this.setUser(new OperationContextBuilder()
 			.withGuestUserTemplate()
-			.withDomainId(this.user.getDomainId())
+			.withTenantId(this.user.getTenantId())
 			.toUserContext());
 	}
 

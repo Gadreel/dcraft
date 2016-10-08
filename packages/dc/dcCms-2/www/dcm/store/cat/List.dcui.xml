@@ -1,0 +1,105 @@
+<dcui Title="Store Categories" AuthTags="Admin">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Store Categories</h1>
+			
+				<WideButton Label="Add Category" Icon="plus" Page="/dcm/store/cat/AddTop" /> 
+				
+				<div id="areaCats" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Categories</h4>
+					
+					<ul id="lstCats" data-role="listview" data-inset="true" data-count-theme="a" />					
+				</div>			 
+			
+				<WideButton Label="Add Category" Icon="plus" Page="/dcm/store/cat/AddTop" /> 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+				var entry = this;
+				
+				var list = $('#lstCats');		
+		
+				list.empty();
+				list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+					
+				list.listview('refresh');
+				
+				dc.comm.sendMessage({ 
+					Service: 'dcmCms',
+					Feature: 'Category',
+					Op: 'List'
+				}, function(rmsg) {
+					if (rmsg.Result > 0) {
+						dc.pui.Popup.alert('Unable to list categories: ' + rmsg.Message);
+						return;
+					}
+
+					var cats = rmsg.Body;			
+					list.empty();
+					
+					// sort
+					var sfield = entry.Store.SortField ? entry.Store.SortField : 'Title';					
+					cats.sort(dc.util.List.sortObjects(sfield));
+
+					// output
+					for (var i = 0; i < cats.length; i++) {
+						var item = cats[i];
+						
+						if (item.Mode == 'Sub')
+							continue;
+						
+						var litm = $('<li></li>');
+						
+						var anchr = $('<a href="#"><h2>' + String.escapeHtml(item.Title) + '</h2>'
+								+ '<p class="ui-li-aside"><strong>' + String.escapeHtml(item.Alias) + '</strong></p></a>');
+						
+						anchr.click(item, function(e) {
+							if (e.data.Mode == 'TopWithSub') 
+								dc.pui.Loader.loadPage('/dcm/store/cat/EditTop', { Id: e.data.Id });
+							else							
+								dc.pui.Loader.loadPage('/dcm/store/cat/Edit', { Id: e.data.Id });
+							
+							e.preventDefault();
+							return false;
+						});
+						
+						litm.append(anchr);
+						list.append(litm);
+						
+						for (var i2 = 0; i2 < cats.length; i2++) {
+							var item2 = cats[i2];
+							
+							if (item2.Parent != item.Id)
+								continue;
+							
+							var litm = $('<li style="margin-left: 24px"></li>');
+							
+							var anchr = $('<a href="#"><h2>' + String.escapeHtml(item2.Title) + '</h2>'
+									+ '<p class="ui-li-aside"><strong>' + String.escapeHtml(item2.Alias) + '</strong></p></a>');
+							
+							anchr.click(item2, function(e) {
+								if (e.data.Mode == 'TopWithSub') 
+									dc.pui.Loader.loadPage('/dcm/store/cat/EditTop', { Id: e.data.Id });
+								else							
+									dc.pui.Loader.loadPage('/dcm/store/cat/Edit', { Id: e.data.Id });
+								
+								e.preventDefault();
+								return false;
+							});
+						
+							litm.append(anchr);
+							list.append(litm);
+						}
+					}
+					
+					list.listview('refresh');
+					
+				});				
+	]]></Function>
+</dcui>

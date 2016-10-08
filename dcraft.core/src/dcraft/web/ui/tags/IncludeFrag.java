@@ -55,7 +55,7 @@ public class IncludeFrag extends UIElement {
 					.taskWithSubContext()
 					.withLogging(DebugLevel.Warn)
 					.withTitle("Working on web fragment: " + pp)
-					.withBucket("www")
+					.withTopic("Web")
 					.withObserver(new OperationObserver() {
 						@Override
 						public void completed(OperationContext ctx) {

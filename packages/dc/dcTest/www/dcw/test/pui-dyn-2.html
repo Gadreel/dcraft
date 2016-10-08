@@ -1,0 +1,179 @@
+<html Title="Forms &ndash; PUI">
+	<body class="general" style="padding: 16px;">
+		<dc.Panel Title="Multi ">
+			<dcf.Form>
+				<dcf.MultiText 
+					Label="Name" 
+					Message="name validation"
+				>
+					<Input Size="40" placeholder="First" />
+					<Input Size="10" placeholder="M" />
+					<Input Size="40" placeholder="Last" />
+				</dcf.MultiText>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Multi  Stacked">
+			<dcf.Form>
+				<dcf.MultiText 
+					Label="Name" 
+					Message="name validation"
+					Stacked="true"
+				>
+					<Input Size="40" placeholder="First" />
+					<Input Size="10" placeholder="M" />
+					<Input Size="40" placeholder="Last" />
+				</dcf.MultiText>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Stretched Buttons">
+			<dcf.Form>
+				<dcf.ButtonGroup 
+					Label="Example" 
+				>
+					<Button Icon="fa-square" />
+					<Button Icon="fa-circle" />
+					<Button Icon="fa-star" />
+					<Button Icon="fa-bell" />
+				</dcf.ButtonGroup>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Compact Buttons">
+			<dcf.Form>
+				<dcf.ButtonGroup 
+					Label="Example" 
+					Compact="true"
+				>
+					<Button Icon="fa-square" />
+					<Button Icon="fa-circle" />
+					<Button Icon="fa-star" />
+					<Button Icon="fa-bell" />
+				</dcf.ButtonGroup>
+			</dcf.Form>
+		</dc.Panel>
+
+		<dc.Panel Title="Wide Instructions">
+			<dcf.Form>
+				<dcf.Instructions>
+					Instructions mixed in.
+				</dcf.Instructions>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Aligned Instructions">
+			<dcf.Form>
+				<dcf.AlignedInstructions>
+					<p>Instructions mixed in, aligned.</p>
+					<p>Advanced <b>features</b> like <i>html</i>.</p>
+					<p>End here.</p>
+				</dcf.AlignedInstructions>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Select Input">
+			<dcf.Form>
+				<dcf.Select Label="State:">
+					<option value="abc">A.B.C.</option>
+					<option>AL</option>
+					<option>CA</option>
+					<option>IL</option>
+				</dcf.Select>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With TextArea Input">
+			<dcf.Form>
+				<dcf.TextArea Label="Comment" />
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Radio Input">
+			<dcf.Form>
+				<dcf.RadioGroup Label="Radio" Name="Internship">
+				   <RadioButton Value="Internship" Label="Yes, a pre-Apprenticeship Internship only right now" />
+				   <RadioButton Value="Either" Label="Yes, either a pre-Apprenticeship Internship or an Apprenticeship" />
+				   <RadioButton Value="Apprenticeship" Label="No thanks, an Apprenticeship only please" />
+				</dcf.RadioGroup>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Horz Radio Input">
+			<dcf.Form>
+				<dcf.HorizRadioGroup Label="Years Experience" Name="GrazingYears" Required="true">
+				   <RadioButton Value="LessThanFive" Label="0 - 5" />
+				   <RadioButton Value="FiveToTen" Label="5 - 10" />
+				   <RadioButton Value="TenToFifteen" Label="10 - 15" />
+				   <RadioButton Value="FifteenToTwenty" Label="15 - 20" />
+				   <RadioButton Value="TwentyOrMore" Label="20+" />
+				</dcf.HorizRadioGroup>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Y/N Input">
+			<dcf.Form>
+				<dcf.YesNo Label="Access to Fast Internet" Name="FastInternet" />
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Checkbox Input">
+			<dcf.Form>
+				<dcf.Checkbox Label="Confirm 1" LongLabel="I meet the requirements" Value="confirmed" />
+				<dcf.Checkbox Label="Confirm 2" Value="confirmed" />
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Checkboxes Input">
+			<dcf.Form>
+				<dcf.CheckGroup Label="Badges" Name="Badges">
+					<Checkbox Label="Apprentice Candidate" Value="ApprenticeCandidate" />
+					<Checkbox Label="Apprentice" Value="Apprentice" />
+					<Checkbox Label="Master" Value="Master" />
+					<Checkbox Label="Staff" Value="Staff" />
+					<Checkbox Label="Admin" Value="Admin" />
+				</dcf.CheckGroup>
+			</dcf.Form>
+		</dc.Panel>
+
+		<dc.Panel Title="Form With Horz Checkboxes Input">
+			<dcf.Form>
+				<dcf.HorizCheckGroup Label="Badges" Name="Badges">
+					<Checkbox Label="Apprentice" Value="Apprentice" />
+					<Checkbox Label="Master" Value="Master" />
+					<Checkbox Label="Staff" Value="Staff" />
+				</dcf.HorizCheckGroup>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Form With Hidden Input">
+			<dcf.Form>
+				<dcf.Hidden Name="abc" Value="xyz" Label="Hidden" />
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Submit Button">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Panel Title="Many Buttons">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Label="Button 1" />
+					<dc.Button Label="Button 2" />
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+			</dcf.Form>
+		</dc.Panel>
+		
+		<dc.Button Label="Button 1" />
+		<dc.Button Label="Button 2" />
+		<dc.Button Label="Button 1" />
+		<dc.Button Label="Button 2" />
+		
+	</body>
+</html>

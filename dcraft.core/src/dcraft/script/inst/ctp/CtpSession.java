@@ -19,7 +19,7 @@ package dcraft.script.inst.ctp;
 import dcraft.api.ApiSession;
 import dcraft.api.LocalSession;
 import dcraft.api.HyperSession;
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationObserver;
@@ -51,7 +51,7 @@ public class CtpSession extends With {
 			return;
         }
         
-        DomainInfo di = Hub.instance.getDomains().resolveDomainInfo(host);
+        TenantInfo di = Hub.instance.getTenants().resolveTenantInfo(host);
         
         ApiSession sess = null;
         

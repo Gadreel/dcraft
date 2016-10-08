@@ -16,16 +16,24 @@
 ************************************************************************ */
 package dcraft.mod;
 
+import java.lang.ref.WeakReference;
+
+import dcraft.hub.Hub;
 import dcraft.util.StringUtil;
 import dcraft.xml.XElement;
 
-public class ExtensionLoader extends Bundle {
-	// TODO add module
+public class ExtensionLoader {
+	public static ExtensionLoader from(IModule module) {
+		ExtensionLoader ext = new ExtensionLoader();
+		ext.module = new WeakReference<IModule>(module);
+		return ext;
+	}
+	
 	protected IExtension extension = null;
 	protected String name = null;
 	protected XElement config = null;		// extension tag
 	protected XElement setting = null;		// extension.settings tag
-	protected IModule module = null;
+	protected WeakReference<IModule> module = null;
 
 	public String getName() {
 		return this.name;
@@ -44,16 +52,13 @@ public class ExtensionLoader extends Bundle {
 	}
 
 	public IModule getModule() {
-		return this.module;
+		if (this.module != null)
+			return this.module.get();
+		
+		return null;
 	}
 
-	public void setModule(IModule mod) {
-		this.module = mod;
-	}
-
-	public ExtensionLoader(IModule module, ClassLoader cloader) {
-		super(cloader);
-		this.module = module;
+	protected ExtensionLoader() {
 	}
 	
 	public void init(XElement config) {
@@ -62,16 +67,13 @@ public class ExtensionLoader extends Bundle {
 			this.name = config.getAttribute("Name");
 			
 			if (config != null) {
-				for (XElement bel : config.selectAll("Library")) 
-					this.addLibrary(bel.getAttribute("Package"), bel.getAttribute("Name"), bel.getAttribute("Alias"));
-				
 				this.setting = config.find("Settings");
 
 				// after all bundles are loaded, instantiate the RunClass
 				String runclass = config.getAttribute("RunClass");
 	
 				if (StringUtil.isNotEmpty(runclass)) {
-					this.extension = (IExtension) this.getInstance(runclass);
+					this.extension = (IExtension) Hub.instance.getInstance(runclass);
 					
 					// TODO if (this.extension == null) 
 					

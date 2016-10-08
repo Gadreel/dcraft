@@ -16,7 +16,6 @@
 ************************************************************************ */
 package dcraft.xml;
 
-import java.io.IOException;
 import java.io.Reader;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -485,7 +484,7 @@ public class XmlParser {
 			
 			return or;
 		}
-		catch (IOException x) {
+		catch (Exception x) {
 			or.error("Erroring reading XML: " + x);
 		}
 		finally {

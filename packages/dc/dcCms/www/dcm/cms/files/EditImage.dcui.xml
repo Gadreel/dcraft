@@ -1,0 +1,745 @@
+<dcui Title="Edit Image" AuthTags="User">
+	<RequireStyle Path="/dcm/cms/css/main.css" />
+	
+	<RequireLib Path="/dcw/js/jquery.mousewheel.js" />
+	<RequireLib Path="/dcm/js/canvas-to-blob.js" />
+	<RequireLib Path="/dcm/cms/js/main.js" />
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+
+	<Skeleton>
+		<article id="dcappMain" class="dcFlexColumn" style="height: 100%; padding: 0;">
+			<div id="editImageControls" data-role="header" style="display: flex; justify-content: flex-end;">
+			    <!--  h1>Edit Image</h1 -->
+				
+				<div>
+					<Button Label="Zoom:" />
+				</div>
+				
+				<input type="range" id="editImageZoomRg" value="100" max="800" min="1" data-popup-enabled="true" />
+			
+				<div>
+					<Button Label="-" Click="DoZoomOut" />
+					<Button Label="+" Click="DoZoomIn" />
+					
+					<Button Label="Skip" Click="DoSkip" />
+					<Button Label="Help" Click="DoHelp" />
+					<Button Label="Save" Click="DoSave" />
+				</div>
+			</div>
+		
+			<div id="sectEdit" style="display: flex; flex: 1; overflow: auto; flex-direction: column;">
+				<h3 id="lblVariation">Variation: <i class="fa fa-spinner fa-spin" /></h3>
+				
+				<canvas id="editImageCanvasPresenter" height="600" width="800" style="display: flex; flex: 1; overflow: auto;" />
+			</div>
+		</article>
+	
+		<!--  
+			<div id="editImageControls" data-role="content">
+			</div>
+			
+			<div>
+				<h3 id="lblVariation">Variation: <i class="fa fa-spinner fa-spin" /></h3>
+			</div>
+		
+			<div id="editImageCanvasContent" data-role="content">
+				<canvas id="editImageCanvasPresenter" height="600" width="800"></canvas>
+			</div>
+
+			<div id="editImageLoader" />
+				
+			<div id="areaInstructions" data-role="collapsible" data-inset="true" data-collapsed="false">
+				<h4>Instructions</h4>
+				<p>
+					Arrange the image so that the part of the image you wish to display is aligned in the red
+					square above.  Your image may already be aligned as you desire, if so just click Save.
+					To arrange the image click and drag the image in the editor to the left.  You may zoom in or out
+					using the mouse wheel, the + and - below for finer increments and the slider below for larger
+					increments.  When done arranging the image click Save.
+				</p>
+			</div>
+		</article>			
+
+		<IncludePart Path="/dcw/app/Footer" />
+			-->
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			// TODO
+			/*
+			entry.Params = { 
+				Path: '/Case-Studies/Brandon/Cover',
+				Alias: 'aside',
+				SourceAlias: 'cover'
+			};
+			*/			
+			
+			entry.Store.Calc = {
+				VarPos: 0,
+				ExactWidth: null,
+				ExactHeight: null,
+				MaxWidth: null,
+				MaxHeight: null,
+				MinWidth: null,
+				MinHeight: null,
+				Hoffset: 0,
+				Voffset: 0,
+				Zoom: 1.00,
+			};
+			
+			entry.Store.SelBox = {
+				X: 50, 
+				Y: 50, 
+				Width: 100,
+				Height: 100
+			};
+			
+			entry.Store.Path = entry.Params.Path;
+			
+			if (entry.Params.SourceAlias)
+				entry.Store.SourceAlias = entry.Params.SourceAlias;
+			else
+				entry.Store.SourceAlias = 'original';
+				
+			entry.Store.First = false;		// true after first image has been edited
+			
+			if (!entry.Params.Details) {
+				var tmsg = { 
+					Service: 'dcmCms',
+					Feature: 'WebGallery',
+					Op: 'ImageDetail',
+					Body: {
+						ImagePath: entry.Store.Path
+					}
+				};
+				
+				dc.comm.sendMessage(tmsg, function(rmsg) {
+					if (rmsg.Result == 0) { 
+						entry.Store.Details = rmsg.Body;
+						entry.callPageFunc('LoadImage');
+					}
+					else {			
+						dc.pui.Popup.alert('Error loading image details.');
+					}
+				});
+			}
+			else {
+				entry.Store.Details = entry.Params.Details;
+				entry.callPageFunc('LoadImage');
+			}
+						
+			$('#editImageCanvasPresenter').mouseup(function(e) {
+				entry.Store.Calc.MouseIsDown = false;
+				e.preventDefault();
+				return false;
+			});
+			
+			$('#editImageCanvasPresenter').mouseout(function(e) {
+				entry.Store.Calc.MouseIsDown = false;
+				e.preventDefault();
+				return false;
+			});
+			
+			$('#editImageCanvasPresenter').mousedown(function(e) {
+				var rect = $('#editImageCanvasPresenter').get(0).getBoundingClientRect();
+				
+				entry.Store.Calc.StartX = entry.Store.Calc.LastX = e.pageX - rect.left;
+				entry.Store.Calc.StartY = entry.Store.Calc.LastY = e.pageY - rect.top;
+				
+				if (e.which < 2)
+					entry.Store.Calc.MouseIsDown = true;
+					
+				e.preventDefault();
+				return false;
+			});
+			
+			$('#editImageCanvasPresenter').mousemove(function(e) {
+				if (entry.Store.Calc.Pinching)
+					return;
+				
+				if (!entry.Store.Calc.MouseIsDown || (e.which > 1))
+					return;
+					
+				var rect = $('#editImageCanvasPresenter').get(0).getBoundingClientRect();			
+				var mouseX = e.pageX - rect.left;
+				var mouseY = e.pageY - rect.top;
+				
+				entry.Store.Calc.Voffset += mouseY - entry.Store.Calc.LastY;
+				entry.Store.Calc.Hoffset += mouseX - entry.Store.Calc.LastX;
+				
+				entry.Store.Calc.LastX = mouseX;
+				entry.Store.Calc.LastY = mouseY;
+			
+				entry.callPageFunc('DoCalcSelection');
+				
+				dc.pui.Loader.requestFrame();
+				
+				e.preventDefault();
+				return false;
+			});
+			
+			$('#editImageCanvasPresenter').mousewheel(function(e, delta) {
+				if (e.deltaY > 0) {
+					entry.Store.Calc.Zoom += 0.05;
+					
+					if (entry.Store.Calc.Zoom > 8)
+						entry.Store.Calc.Zoom = 8;
+				}
+				else {
+					entry.Store.Calc.Zoom -= 0.05;
+					
+					if (entry.Store.Calc.Zoom < 0.01)
+						entry.Store.Calc.Zoom = 0.01;
+				}
+				
+				entry.callPageFunc('UpdateZoom');
+				dc.pui.Loader.requestFrame();
+				
+				e.preventDefault();
+				return false;
+			});			
+					
+			$('#editImageZoomRg').change(function(e) {
+				entry.Store.Calc.Zoom = this.value / 100;
+				
+				entry.callPageFunc('UpdateZoom');
+				dc.pui.Loader.requestFrame();
+				
+				e.preventDefault();
+				return false;
+			});
+	
+			this.callPageFunc('SetSizes');
+	]]></Function>
+	<Function Name="SetSizes"><![CDATA[
+			var entry = this;
+			
+			var w = $(document).width()
+			var h = $(document).height() - $('#editImageControls').height() + $('#lblVariation').height() + 2;
+	
+			var can = $("#editImageCanvasPresenter").get(0);
+			
+			w = entry.Store.Calc.ExactWidth ? Math.max(w, entry.Store.Calc.ExactWidth) : w;
+			h = entry.Store.Calc.ExactHeight ? Math.max(h, entry.Store.Calc.ExactHeight) : h;
+			
+			can.width = w;
+			can.height = h;
+			
+			$(can).css( { height: h + 'px', width: w + 'px' });
+			
+			dc.pui.Loader.requestFrame();
+			
+			entry.callPageFunc('DoCalcSelection');
+	]]></Function>
+	<Function Name="DoZoomIn"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Calc.Zoom += 0.01;
+			
+			if (entry.Store.Calc.Zoom > 8)
+				entry.Store.Calc.Zoom = 8;
+			
+			entry.callPageFunc('UpdateZoom');
+			dc.pui.Loader.requestFrame();
+	]]></Function>
+	<Function Name="DoZoomOut"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Calc.Zoom -= 0.01;
+			
+			if (entry.Store.Calc.Zoom < 0.01)
+				entry.Store.Calc.Zoom = 0.01;
+			
+			entry.callPageFunc('UpdateZoom');
+			dc.pui.Loader.requestFrame();
+	]]></Function>
+	<Function Name="UpdateZoom"><![CDATA[
+			var entry = this;
+			
+			if (entry.Store.Calc.Zoom) {
+				var z = Math.round(entry.Store.Calc.Zoom * 100);
+				
+				var cz = $('#editImageZoomRg').val();
+				
+				// prevent infinite calls, only change once per zoom change
+				if (cz != z)
+					$('#editImageZoomRg').val(z).slider("refresh");
+			}
+			
+			entry.callPageFunc('DoCalcSelection');
+	]]></Function>
+	<Function Name="LoadImage"><![CDATA[
+			var entry = this;
+			
+			var img = new Image(); //new image in memory
+	
+			img.onload = function(e) {
+				dc.pui.Loader.__cache.SelImg = this;
+				entry.callPageFunc('PrepImage');
+			};			
+			
+			for (var i = 0; i < entry.Store.Details.Variations.length; i++) {
+				var v = entry.Store.Details.Variations[i];
+				
+				if (v.Alias == entry.Store.SourceAlias) {
+					img.src = entry.Store.Details.GalleryPath + '/' + entry.Store.Details.FileName
+						+ '/' + v.Alias + '.' + v.Extension + '?nocache=' + dc.util.Crypto.makeSimpleKey();
+						
+					break;
+				}
+			}
+	]]></Function>
+	<Function Name="PrepImage"><![CDATA[
+			var entry = this;
+			
+			var selimg = dc.pui.Loader.__cache.SelImg;
+			
+			entry.Store.Calc.imgWidth = selimg.width;
+			entry.Store.Calc.imgHeight = selimg.height;
+			
+			// create a buffered 50% and 25% version of the image
+			// this is good for really zoomed out images, as stepping the 
+			// image allows it to keep higher quality for the final zoom
+		    // Draw it at 1/2 size 2 times (step down two times)
+			
+		    dc.pui.Loader.__cache.SelImg50 = document.createElement('canvas');
+		    dc.pui.Loader.__cache.SelImg50.width = entry.Store.Calc.imgWidth / 2;
+		    dc.pui.Loader.__cache.SelImg50.height = entry.Store.Calc.imgHeight / 2;
+			
+		    dc.pui.Loader.__cache.SelImg25 = document.createElement('canvas');
+		    dc.pui.Loader.__cache.SelImg25.width = entry.Store.Calc.imgWidth / 4;
+		    dc.pui.Loader.__cache.SelImg25.height = entry.Store.Calc.imgHeight / 4;
+			
+			try {
+				var ctx50 = dc.pui.Loader.__cache.SelImg50.getContext('2d');
+				ctx50.drawImage(selimg, 0, 0, entry.Store.Calc.imgWidth / 2, entry.Store.Calc.imgHeight / 2);    
+			
+				try {
+					var ctx25 = dc.pui.Loader.__cache.SelImg25.getContext('2d');
+					ctx25.drawImage(dc.pui.Loader.__cache.SelImg50, 0, 0, entry.Store.Calc.imgWidth / 2, entry.Store.Calc.imgHeight / 2, 0, 0, entry.Store.Calc.imgWidth / 4, entry.Store.Calc.imgHeight / 4);
+				}
+				catch(x) {
+					// if IE barfs then just don't get higher render quality
+					dc.pui.Loader.__cache.SelImg25 = null;
+				}
+			}
+			catch(x) {
+				// if IE barfs then just don't get higher render quality
+				dc.pui.Loader.__cache.SelImg50 = null;
+			}
+			
+			entry.callPageFunc('PrepSettings');
+	]]></Function>
+	<Function Name="PrepSettings"><![CDATA[
+			var entry = this;
+
+			//console.log(JSON.stringify(entry.Store.Details));
+
+			if (entry.Store.First) {
+				//$('#lblVariation').text('Editing Completed!');
+				//dc.pui.Loader.loadPage('/dcm/cms/files/ImageDetail', { Path: entry.Store.Path });	
+				dc.pui.Loader.closePage(entry.Params.ReturnTo);
+				return;
+			} 
+
+			if (entry.Store.Calc.VarPos >= entry.Store.Details.GallerySettings.Variations.length) {
+				//$('#lblVariation').text('Editing Completed!');
+				
+				//var path = entry.Store.Path;
+				
+				//if (path.length > 1)
+				//	path = path.substr(0, path.lastIndexOf('/'));
+				
+				//dc.pui.Loader.loadPage('/dcm/cms/files/Gallery', { Path: path });	
+				dc.pui.Loader.closePage(entry.Params.ReturnTo);
+				
+				return;
+			} 
+			
+			if (entry.Params.Alias) {
+				for (var i = 0; i < entry.Store.Details.GallerySettings.Variations.length; i++) {
+					var v = entry.Store.Details.GallerySettings.Variations[i];
+					
+					if (v.Alias == entry.Params.Alias) {
+						entry.Store.Calc.VarPos = i;
+						break;
+					}
+				}
+			
+				entry.Store.First = true;
+			}
+			
+			var v = entry.Store.Details.GallerySettings.Variations[entry.Store.Calc.VarPos];
+			
+			if (v.Alias == 'original') {
+				entry.Store.Calc.VarPos++;
+				entry.callPageFunc('PrepSettings');
+				return;
+			}
+			
+			$('#lblVariation').text('Variation: ' + v.Name + ' (' + v.Alias + ') at ' + dc.cms.vary.formatDims(v));
+			
+			entry.Store.Calc.ExactWidth = dc.util.Number.toNumber(v.ExactWidth);
+			entry.Store.Calc.ExactHeight = dc.util.Number.toNumber(v.ExactHeight);
+			entry.Store.Calc.MinWidth = dc.util.Number.toNumber(v.MinWidth);
+			entry.Store.Calc.MinHeight = dc.util.Number.toNumber(v.MinHeight);
+			entry.Store.Calc.MaxWidth = dc.util.Number.toNumber(v.MaxWidth);
+			entry.Store.Calc.MaxHeight = dc.util.Number.toNumber(v.MaxHeight);
+			entry.Store.Calc.Hoffset = 0;
+			entry.Store.Calc.Voffset = 0;
+			entry.Store.Calc.Zoom = 1.00;
+
+			// TODO get smarter about whether to use width or height for Zoom calc
+			if (entry.Store.Calc.imgWidth >= entry.Store.Calc.imgHeight) {
+				if (entry.Store.Calc.ExactWidth)
+					entry.Store.Calc.Zoom = entry.Store.Calc.ExactWidth / entry.Store.Calc.imgWidth;
+				else if (entry.Store.Calc.MaxWidth && (entry.Store.Calc.imgWidth > entry.Store.Calc.MaxWidth))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MaxWidth / entry.Store.Calc.imgWidth;
+				else if (entry.Store.Calc.MinWidth && (entry.Store.Calc.imgWidth < entry.Store.Calc.MinWidth))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MinWidth / entry.Store.Calc.imgWidth;
+				else if (entry.Store.Calc.ExactHeight)
+					entry.Store.Calc.Zoom = entry.Store.Calc.ExactHeight / entry.Store.Calc.imgHeight;
+				else if (entry.Store.Calc.MaxHeight && (entry.Store.Calc.imgHeight > entry.Store.Calc.MaxHeight))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MaxHeight / entry.Store.Calc.imgHeight;
+				else if (entry.Store.Calc.MinHeight && (entry.Store.Calc.imgHeight < entry.Store.Calc.MinHeight))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MinHeight / entry.Store.Calc.imgHeight;
+			}
+			else { 
+				if (entry.Store.Calc.ExactHeight)
+					entry.Store.Calc.Zoom = entry.Store.Calc.ExactHeight / entry.Store.Calc.imgHeight;
+				else if (entry.Store.Calc.MaxHeight && (entry.Store.Calc.imgHeight > entry.Store.Calc.MaxHeight))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MaxHeight / entry.Store.Calc.imgHeight;
+				else if (entry.Store.Calc.MinHeight && (entry.Store.Calc.imgHeight < entry.Store.Calc.MinHeight))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MinHeight / entry.Store.Calc.imgHeight;
+				else if (entry.Store.Calc.ExactWidth)
+					entry.Store.Calc.Zoom = entry.Store.Calc.ExactWidth / entry.Store.Calc.imgWidth;
+				else if (entry.Store.Calc.MaxWidth && (entry.Store.Calc.imgWidth > entry.Store.Calc.MaxWidth))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MaxWidth / entry.Store.Calc.imgWidth;
+				else if (entry.Store.Calc.MinWidth && (entry.Store.Calc.imgWidth < entry.Store.Calc.MinWidth))
+					entry.Store.Calc.Zoom = entry.Store.Calc.MinWidth / entry.Store.Calc.imgWidth;
+			}
+
+			var initwidth = entry.Store.Calc.imgWidth * entry.Store.Calc.Zoom;
+			var initheight = entry.Store.Calc.imgHeight * entry.Store.Calc.Zoom;
+			
+			var tcan = $("#editImageCanvasPresenter").get(0);
+
+			entry.Store.Calc.imgX = (tcan.width - initwidth) / 2;
+			entry.Store.Calc.imgY = (tcan.height - initheight) / 2;
+			
+			entry.callPageFunc('UpdateZoom');
+			entry.callPageFunc('SetSizes');
+	]]></Function>
+	<Function Name="DoCalcSelection"><![CDATA[
+			var entry = this;
+			
+			var tcan = $("#editImageCanvasPresenter").get(0);			
+
+			// try to use zoomed image size - unless guides override it
+			var ew = Math.round(entry.Store.Calc.imgWidth * entry.Store.Calc.Zoom);
+			var eh = Math.round(entry.Store.Calc.imgHeight * entry.Store.Calc.Zoom);
+			
+			// starting in upper left corner - unless there are guides in center
+			var outlinex = 0;
+			var outliney = 0;
+
+			if (entry.Store.Calc.ExactWidth) 
+				ew = entry.Store.Calc.ExactWidth;
+			else if (entry.Store.Calc.MaxWidth && (entry.Store.Calc.MaxWidth < ew)) 
+				ew = entry.Store.Calc.MaxWidth;
+			else if (entry.Store.Calc.MinWidth && (entry.Store.Calc.MinWidth > ew)) 
+				ew = entry.Store.Calc.MinWidth;
+				
+			entry.Store.SelBox.Width = ew + 2;
+				
+			if (entry.Store.Calc.ExactWidth || entry.Store.Calc.MaxWidth || entry.Store.Calc.MinWidth) {
+				entry.Store.SelBox.X = ((tcan.width - ew) / 2) - 1;
+				entry.Store.SelBox.ProX = true;
+			}
+			else {
+				entry.Store.SelBox.X = entry.Store.Calc.Hoffset + entry.Store.Calc.imgX - 1;
+				entry.Store.SelBox.ProX = false;
+			}
+
+			if (entry.Store.Calc.ExactHeight) 
+				eh = entry.Store.Calc.ExactHeight;
+			else if (entry.Store.Calc.MaxHeight && (entry.Store.Calc.MaxHeight < eh)) 
+				eh = entry.Store.Calc.MaxHeight;
+			else if (entry.Store.Calc.MinHeight && (entry.Store.Calc.MinHeight > eh)) 
+				eh = entry.Store.Calc.MinHeight;
+				
+			entry.Store.SelBox.Height = eh + 2;
+			
+			//console.log('eh: ' + eh);
+			
+			if (entry.Store.Calc.ExactHeight || entry.Store.Calc.MaxHeight || entry.Store.Calc.MinHeight) { 
+				entry.Store.SelBox.Y = ((tcan.height - eh) / 2);
+				entry.Store.SelBox.ProY = true;
+			}
+			else {
+				entry.Store.SelBox.Y = entry.Store.Calc.Voffset + entry.Store.Calc.imgY - 1;
+				entry.Store.SelBox.ProY = false;
+			}
+	]]></Function>
+	<Function Name="DoSave"><![CDATA[
+			var entry = this;
+			
+			try {
+			    var pcan = document.createElement('canvas');
+			    pcan.width = entry.Store.SelBox.Width - 2;
+			    pcan.height = entry.Store.SelBox.Height - 2;
+				
+				var pctx = pcan.getContext('2d');
+				
+				pctx.fillStyle = '#FFFFFF';  
+				pctx.fillRect(0, 0, pcan.width, pcan.height);
+				
+				var z = Math.round(entry.Store.Calc.Zoom * 100);
+				var src = dc.pui.Loader.__cache.SelImg;
+				var zm = 1;
+				
+				if (dc.pui.Loader.__cache.SelImg25 && (z < 25)) {
+					src = dc.pui.Loader.__cache.SelImg25;
+					zm = 4;
+				}
+				else if (dc.pui.Loader.__cache.SelImg50 && (z < 50)) {
+					src = dc.pui.Loader.__cache.SelImg50;
+					zm = 2;
+				}
+					
+				if (src) {
+					console.log('size: ' + pcan.width + ',' + pcan.height);
+				
+					var sx = entry.Store.SelBox.ProX 
+						? entry.Store.SelBox.X - entry.Store.Calc.imgX - (entry.Store.Calc.Hoffset / entry.Store.Calc.Zoom / zm) + 1
+						: entry.Store.SelBox.X - entry.Store.Calc.imgX - entry.Store.Calc.Hoffset + 1;
+
+					var sy = entry.Store.SelBox.ProY
+						? (entry.Store.SelBox.Y - entry.Store.Calc.imgY - entry.Store.Calc.Voffset) / entry.Store.Calc.Zoom / zm 
+						: entry.Store.SelBox.Y - entry.Store.Calc.imgY - entry.Store.Calc.Voffset + 1;
+				
+					pctx.drawImage(
+						src,
+						sx,
+						sy,
+						Math.round(pcan.width / entry.Store.Calc.Zoom / zm),
+						Math.round(pcan.height / entry.Store.Calc.Zoom / zm),
+						0,
+						0,
+						pcan.width,
+						pcan.height
+					);
+				}
+			
+				//entry.Store.pcan = pcan;
+
+				//dc.pui.Loader.requestFrame();
+				
+				pcan.toBlob(
+					function (blob) {
+						console.log('saving blob: ' + blob.size);
+						
+						blob.name = entry.Store.Details.GallerySettings.Variations[entry.Store.Calc.VarPos].Alias + '.jpg';
+						
+						dcm.upload.file = blob;
+						
+						var fullpath = entry.Store.Path + '.v/' + blob.name;
+			
+						console.log(new Date() + ': Uploading: ' + fullpath);
+						
+						// otherwise start/resume upload
+						dcm.upload.requestUpload(null, 'WebGallery', fullpath, function() {
+							console.log(new Date() + ': Uploaded: ' + fullpath);
+							
+							entry.Store.Calc.VarPos++;
+							
+							entry.callPageFunc('PrepSettings');
+						}, true);
+					},
+					'image/jpeg'
+				);		
+			}
+			catch(x) {
+				// if IE barfs then just don't get higher render quality
+				dc.pui.Popup.alert('Error saving image: ' + x);				
+			}
+	]]></Function>
+	<Function Name="DoSkip"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Calc.VarPos++;
+			entry.callPageFunc('PrepSettings');
+	]]></Function>
+	<Function Name="DoHelp"><![CDATA[
+			dc.pui.Popup.alert('Arrange the image so that the part of the image you wish to save is aligned in the gray\
+					dashed square.  Your image may already be aligned as you desire, if so just click Save.\
+					To arrange the image click and drag the image in the editor.  You may zoom in or out\
+					using the mouse wheel, the + and - below for finer increments and the slider below for larger\
+					increments.  When done arranging the image click Save.');
+	]]></Function>
+	<Function Name="onResize"><![CDATA[
+			this.callPageFunc('SetSizes');
+	]]></Function>
+	<Function Name="onFrame"><![CDATA[
+			var entry = this;
+			
+			var tcan = $("#editImageCanvasPresenter").get(0);
+			var ctx = tcan.getContext('2d');
+			
+			ctx.clearRect(0, 0, tcan.width, tcan.height);
+			
+			var z = Math.round(entry.Store.Calc.Zoom * 100);
+			var src = dc.pui.Loader.__cache.SelImg;
+			
+			if (dc.pui.Loader.__cache.SelImg25 && (z < 25))
+				src = dc.pui.Loader.__cache.SelImg25;
+			else if (dc.pui.Loader.__cache.SelImg50 && (z < 50))
+				src = dc.pui.Loader.__cache.SelImg50;
+		
+			if (src) {
+				ctx.drawImage(
+					src,
+					entry.Store.Calc.Hoffset + entry.Store.Calc.imgX,
+					entry.Store.Calc.Voffset + entry.Store.Calc.imgY,
+					entry.Store.Calc.imgWidth * entry.Store.Calc.Zoom,
+					entry.Store.Calc.imgHeight * entry.Store.Calc.Zoom
+				);
+			}
+			
+			// ------------------------
+			// min rect
+			if (entry.Store.Calc.MinWidth || entry.Store.Calc.MinHeight) {
+				var mw = entry.Store.Calc.ExactWidth;
+				
+				if (!mw)
+					mw = entry.Store.Calc.MinWidth;
+					
+				if (!mw)
+					mw = entry.Store.Calc.MaxWidth;
+					
+				if (!mw)
+					mw = tcan.width;
+					
+				var mh = entry.Store.Calc.ExactHeight;
+				
+				if (!mh)
+					mh = entry.Store.Calc.MinHeight;
+				
+				if (!mh)
+					mh = entry.Store.Calc.MaxHeight;
+					
+				if (!mh)
+					mh = tcan.height;
+				 
+				var outlinex = (tcan.width - mw) / 2;
+				var outliney = (tcan.height - mh) / 2;
+				
+				ctx.beginPath();
+				ctx.lineWidth = 2;
+				ctx.strokeStyle = 'rgba(0,255,0,0.2)';  
+				
+				// around the outline/target section - not covering it
+				ctx.rect(outlinex - 1, outliney - 1, mw + 2, mh + 2);
+				ctx.stroke();
+			}
+			
+			// ------------------------
+			// max rect
+			if (entry.Store.Calc.MaxWidth || entry.Store.Calc.MaxHeight) {
+				var 
+					mw = entry.Store.Calc.ExactWidth;
+				
+				if (!mw)
+					mw = entry.Store.Calc.MaxWidth;
+					
+				if (!mw)
+					mw = tcan.width;
+					
+				var mh = entry.Store.Calc.ExactHeight;
+				
+				if (!mh)
+					mh = entry.Store.Calc.MaxHeight;
+					
+				if (!mh)
+					mh = tcan.height;
+				 
+				var outlinex = (tcan.width - mw) / 2;
+				var outliney = (tcan.height - mh) / 2;
+				
+				ctx.beginPath();
+				ctx.lineWidth = 2;
+				ctx.strokeStyle = 'rgba(255,0,0,0.2)';  
+				
+				// around the outline/target section - not covering it
+				ctx.rect(outlinex - 1, outliney - 1, mw + 2, mh + 2);
+				ctx.stroke();
+			}
+			
+			// ------------------------
+			// exact rect
+			if (entry.Store.Calc.ExactWidth || entry.Store.Calc.ExactHeight) {
+				var 
+					mw = entry.Store.Calc.ExactWidth;
+				
+				if (!mw)
+					mw = entry.Store.Calc.MaxWidth;
+					
+				if (!mw)
+					mw = tcan.width;
+					
+				var mh = entry.Store.Calc.ExactHeight;
+				
+				if (!mh)
+					mh = entry.Store.Calc.MaxHeight;
+					
+				if (!mh)
+					mh = tcan.height;
+				 
+				var outlinex = (tcan.width - mw) / 2;
+				var outliney = (tcan.height - mh) / 2;
+				
+				ctx.beginPath();
+				ctx.lineWidth = 2;
+				ctx.strokeStyle = 'rgba(0,0,255,0.2)';  
+				
+				// around the outline/target section - not covering it
+				ctx.rect(outlinex - 1, outliney - 1, mw + 2, mh + 2);
+				ctx.stroke();
+			}
+		
+			// ------------------------
+			// select rect
+			if (ctx.setLineDash)
+				ctx.setLineDash([2, 3]);
+				
+			ctx.beginPath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#000';
+			
+			// around the outline/target section - not covering it
+			ctx.rect(entry.Store.SelBox.X, entry.Store.SelBox.Y, entry.Store.SelBox.Width, entry.Store.SelBox.Height);
+			ctx.stroke();
+				
+			if (ctx.setLineDash)
+				ctx.setLineDash([]);
+				
+			if (entry.Store.pcan) {
+				ctx.drawImage(
+					entry.Store.pcan,
+					tcan.width - entry.Store.pcan.width - 3,
+					3
+				);
+			}
+				
+			if (entry.Store.pcan2) {
+				ctx.drawImage(
+					entry.Store.pcan2,
+					tcan.width - entry.Store.pcan2.width - 3,
+					tcan.height - entry.Store.pcan2.height - 3
+				);
+			}
+				
+			//dc.pui.Loader.requestFrame();
+	]]></Function>
+</dcui>

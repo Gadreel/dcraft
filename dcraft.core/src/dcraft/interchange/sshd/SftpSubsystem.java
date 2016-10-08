@@ -18,6 +18,7 @@
  */
 package dcraft.interchange.sshd;
 
+/*
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -52,13 +53,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dcraft.hub.Hub;
+*/
 
 /**
  * SFTP subsystem
  *
  * @author <a href="mailto:dev@mina.apache.org">Apache MINA SSHD Project</a>
  */
-public class SftpSubsystem implements Command, Runnable, SessionAware, FileSystemAware {
+public class SftpSubsystem { /*
+	implements Command, Runnable, SessionAware, FileSystemAware {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -78,7 +81,7 @@ public class SftpSubsystem implements Command, Runnable, SessionAware, FileSyste
 
     /**
      * Properties key for the maximum of available open handles per session.
-     */
+     * /
     public static final String MAX_OPEN_HANDLES_PER_SESSION = "max-open-handles-per-session";
 
     // supporting SFTP v3 only
@@ -1335,7 +1338,7 @@ public class SftpSubsystem implements Command, Runnable, SessionAware, FileSyste
             buffer.putInt(((Long) attributes.get(SshFile.Attribute.LastAccessTime)) / 1000);
             buffer.putInt(((Long) attributes.get(SshFile.Attribute.LastModifiedTime)) / 1000);
         }
-        */
+        * /
     }
 
     protected boolean getBool(Boolean bool) {
@@ -1397,7 +1400,7 @@ public class SftpSubsystem implements Command, Runnable, SessionAware, FileSyste
 
     /**
      * Get unix style date string.
-     */
+     * /
     private final static String getUnixDate(long millis) {
         if (millis < 0) {
             return "------------";
@@ -1446,5 +1449,5 @@ public class SftpSubsystem implements Command, Runnable, SessionAware, FileSyste
         }
         return sb.toString();
     }
-
+    */
 }

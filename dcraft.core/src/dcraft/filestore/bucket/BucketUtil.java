@@ -44,9 +44,9 @@ public class BucketUtil {
 			return b;
 		}
 		
-		if ("DomainFileStore".equals(name)) {
+		if ("TenantFileStore".equals(name)) {
 			XElement bucket = new XElement("Bucket")
-				.withAttribute("Name", "DomainFileStore")
+				.withAttribute("Name", "TenantFileStore")
 				.withAttribute("ReadAuthTags", "Developer")
 				.withAttribute("WriteAuthTags", "Developer")
 				.withAttribute("RootFolder", "/");
@@ -58,7 +58,7 @@ public class BucketUtil {
 
 		// sub sites may access root Gallery and root Files if integrated mode
 		if (site.isSharedSection("files")) 		// tests both files and galleries
-			return site.getDomain().getRootSite().getBucket(name);
+			return site.getTenant().getRootSite().getBucket(name);
 		
 		return null;
 	}

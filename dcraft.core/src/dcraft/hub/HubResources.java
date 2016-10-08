@@ -330,12 +330,12 @@ public class HubResources implements ILocaleResource {
 
 		or.trace(0, "Loading shared config");
 		
-		File fshared = new File("./config/" + this.deployment + "/_shared.xml");
+		File fshared = new File("./config/" + this.deployment + "/shared.xml");
 		
 		FuncResult<XElement> xres = XmlReader.loadFile(fshared, false); 
 		
 		if (xres.hasErrors()) {
-			or.error(100, "Unable to load _shared.xml file, expected: " + fshared.getAbsolutePath());
+			or.error(100, "Unable to load shared.xml file, expected: " + fshared.getAbsolutePath());
 			return or;
 		}
 		
@@ -357,7 +357,7 @@ public class HubResources implements ILocaleResource {
 			f = new File("./config/" + this.deployment + "/" + this.squad + ".xml");
 	
 		if (!f.exists())
-			f = new File("./config/" + this.deployment + "/_config.xml");
+			f = new File("./config/" + this.deployment + "/config.xml");
 		
 		if (!f.exists()) {
 			or.error(101, "Unable to find config.xml file, expected: " + f.getAbsolutePath());

@@ -1,0 +1,134 @@
+<html Title="Forms &ndash; PUI">
+	<body class="general" style="padding: 16px;">
+		<h2>Panel Types</h2>
+
+		<h3>Source</h3>
+		
+		<dc.Callout><pre class="code" data-language="html">
+&lt;dc.Panel Title=&quot;Panel with primary scope&quot; Scope=&quot;Primary&quot;&gt;
+	Panel Content
+&lt;/dc.Panel&gt;</pre></dc.Callout>
+		
+		<h3>Output</h3>
+		
+		<dc.Callout><pre class="code" data-language="html">
+&lt;div class=&quot;dc-pui-panel dc-pui-panel-primary&quot;&gt;
+	&lt;div class=&quot;dc-pui-panel-heading&quot;&gt;Panel with primary scope&lt;/div&gt;
+	&lt;div class=&quot;dc-pui-panel-body&quot;&gt;Panel Content&lt;/div&gt;
+&lt;/div&gt;</pre></dc.Callout>
+				
+		<h3>Examples</h3>
+	
+		<dc.Panel Title="Panel with Primary scope">
+			Panel Content - Scope missing or ="Primary"
+		</dc.Panel>
+	
+		<dc.Panel Title="Panel with Default scope" Scope="Default">
+			Panel Content - Scope="Default"
+		</dc.Panel>
+	
+		<dc.Panel Title="Panel with Success scope" Scope="Success">
+			Panel Content - Scope="Success"
+		</dc.Panel>
+	
+		<dc.Panel Title="Panel with Info scope" Scope="Info">
+			Panel Content - Scope="Info"
+		</dc.Panel>
+	
+		<dc.Panel Title="Panel with Warning scope" Scope="Warning">
+			Panel Content - Scope="Warning"
+		</dc.Panel>
+	
+		<dc.Panel Title="Panel with Danger scope" Scope="Danger">
+			Panel Content - Scope="Danger"
+		</dc.Panel>
+	
+		<h2>Callouts</h2>
+
+		<h3>Source</h3>
+		
+		<dc.Callout><pre class="code" data-language="html">
+&lt;dc.Callout Title=&quot;Changing the icon font location&quot;&gt;
+	&lt;p&gt;Bootstrap assumes icon font files will be located in the &lt;code&gt;../fonts/&lt;/code&gt; directory, relative to the compiled CSS files. Moving or renaming those font files means updating the CSS in one of three ways:&lt;/p&gt; 
+	
+	&lt;ul&gt; 
+		&lt;li&gt;Change the &lt;code&gt;@icon-font-path&lt;/code&gt; and/or &lt;code&gt;@icon-font-name&lt;/code&gt; variables in the source Less files.&lt;/li&gt; 
+		&lt;li&gt;Utilize the &lt;a href=&quot;http://lesscss.org/usage/#command-line-usage-relative-urls&quot;&gt;relative URLs option&lt;/a&gt; provided by the Less compiler.&lt;/li&gt; 
+		&lt;li&gt;Change the &lt;code&gt;url()&lt;/code&gt; paths in the compiled CSS.&lt;/li&gt; 
+	&lt;/ul&gt; 
+	
+	&lt;p&gt;Use whatever option best suits your specific development setup.&lt;/p&gt; 
+&lt;/dc.Callout&gt;
+	
+&lt;dc.Callout Title=&quot;Accessible icons&quot; Scope=&quot;Warning&quot;&gt;
+	&lt;p&gt;Modern versions of assistive technologies will announce CSS generated content, as well as specific Unicode characters. To avoid unintended and confusing output in screen readers (particularly when icons are used purely for decoration), we hide them with the &lt;code&gt;aria-hidden=&quot;true&quot;&lt;/code&gt; attribute.&lt;/p&gt; 
+	
+	&lt;p&gt;If you're using an icon to convey meaning (rather than only as a decorative element), ensure that this meaning is also conveyed to assistive technologies &ndash; for instance, include additional content, visually hidden with the &lt;code&gt;.sr-only&lt;/code&gt; class.&lt;/p&gt; 
+	
+	&lt;p&gt;If you're creating controls with no other text (such as a &lt;code&gt;&amp;lt;button&amp;gt;&lt;/code&gt; that only contains an icon), you should always provide alternative content to identify the purpose of the control, so that it will make sense to users of assistive technologies. In this case, you could add an &lt;code&gt;aria-label&lt;/code&gt; attribute on the control itself.&lt;/p&gt; 
+&lt;/dc.Callout&gt;
+	
+&lt;dc.Callout Title=&quot;Don't mix with other components&quot; Scope=&quot;Danger&quot;&gt;
+	&lt;p&gt;Icon classes cannot be directly combined with other components. They should not be used along with other classes on the same element. Instead, add a nested &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt; and apply the icon classes to the &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt;.&lt;/p&gt; 
+&lt;/dc.Callout&gt;</pre></dc.Callout>
+
+		<h3>Output</h3>
+		
+		<dc.Callout><pre class="code" data-language="html">
+&lt;div class=&quot;dc-pui-callout dc-pui-callout-info&quot;&gt; 
+	&lt;h4&gt;Changing the icon font location&lt;/h4&gt; 
+	
+	&lt;p&gt;Bootstrap assumes icon font files will be located in the &lt;code&gt;../fonts/&lt;/code&gt; directory, relative to the compiled CSS files. Moving or renaming those font files means updating the CSS in one of three ways:&lt;/p&gt; 
+	
+	&lt;ul&gt; 
+		&lt;li&gt;Change the &lt;code&gt;@icon-font-path&lt;/code&gt; and/or &lt;code&gt;@icon-font-name&lt;/code&gt; variables in the source Less files.&lt;/li&gt; 
+		&lt;li&gt;Utilize the &lt;a href=&quot;http://lesscss.org/usage/#command-line-usage-relative-urls&quot;&gt;relative URLs option&lt;/a&gt; provided by the Less compiler.&lt;/li&gt; 
+		&lt;li&gt;Change the &lt;code&gt;url()&lt;/code&gt; paths in the compiled CSS.&lt;/li&gt; 
+	&lt;/ul&gt; 
+		
+	&lt;p&gt;Use whatever option best suits your specific development setup.&lt;/p&gt; 
+&lt;/div&gt;
+
+&lt;div class=&quot;dc-pui-callout dc-pui-callout-warning&quot;&gt; 
+	&lt;h4&gt;Accessible icons&lt;/h4&gt; 
+	
+	&lt;p&gt;Modern versions of assistive technologies will announce CSS generated content, as well as specific Unicode characters. To avoid unintended and confusing output in screen readers (particularly when icons are used purely for decoration), we hide them with the &lt;code&gt;aria-hidden=&quot;true&quot;&lt;/code&gt; attribute.&lt;/p&gt; 
+	
+	&lt;p&gt;If you're using an icon to convey meaning (rather than only as a decorative element), ensure that this meaning is also conveyed to assistive technologies &ndash; for instance, include additional content, visually hidden with the &lt;code&gt;.sr-only&lt;/code&gt; class.&lt;/p&gt; 
+	
+	&lt;p&gt;If you're creating controls with no other text (such as a &lt;code&gt;&amp;lt;button&amp;gt;&lt;/code&gt; that only contains an icon), you should always provide alternative content to identify the purpose of the control, so that it will make sense to users of assistive technologies. In this case, you could add an &lt;code&gt;aria-label&lt;/code&gt; attribute on the control itself.&lt;/p&gt; 
+&lt;/div&gt;
+		
+&lt;div class=&quot;dc-pui-callout dc-pui-callout-danger&quot;&gt; 
+	&lt;h4&gt;Don't mix with other components&lt;/h4&gt; 
+	
+	&lt;p&gt;Icon classes cannot be directly combined with other components. They should not be used along with other classes on the same element. Instead, add a nested &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt; and apply the icon classes to the &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt;.&lt;/p&gt; 
+&lt;/div&gt;</pre></dc.Callout>
+		
+		<h3>Examples</h3>
+	
+		<dc.Callout Title="Changing the icon font location">
+			<p>Bootstrap assumes icon font files will be located in the <code>../fonts/</code> directory, relative to the compiled CSS files. Moving or renaming those font files means updating the CSS in one of three ways:</p> 
+			
+			<ul> 
+				<li>Change the <code>@icon-font-path</code> and/or <code>@icon-font-name</code> variables in the source Less files.</li> 
+				<li>Utilize the <a href="http://lesscss.org/usage/#command-line-usage-relative-urls">relative URLs option</a> provided by the Less compiler.</li> 
+				<li>Change the <code>url()</code> paths in the compiled CSS.</li> 
+			</ul> 
+			
+			<p>Use whatever option best suits your specific development setup.</p> 
+		</dc.Callout>
+	
+		<dc.Callout Title="Accessible icons" Scope="Warning">
+			<p>Modern versions of assistive technologies will announce CSS generated content, as well as specific Unicode characters. To avoid unintended and confusing output in screen readers (particularly when icons are used purely for decoration), we hide them with the <code>aria-hidden="true"</code> attribute.</p> 
+			
+			<p>If you're using an icon to convey meaning (rather than only as a decorative element), ensure that this meaning is also conveyed to assistive technologies – for instance, include additional content, visually hidden with the <code>.sr-only</code> class.</p> 
+			
+			<p>If you're creating controls with no other text (such as a <code>&lt;button&gt;</code> that only contains an icon), you should always provide alternative content to identify the purpose of the control, so that it will make sense to users of assistive technologies. In this case, you could add an <code>aria-label</code> attribute on the control itself.</p> 
+		</dc.Callout>
+	
+		<dc.Callout Title="Don't mix with other components" Scope="Danger">
+			<p>Icon classes cannot be directly combined with other components. They should not be used along with other classes on the same element. Instead, add a nested <code>&lt;span&gt;</code> and apply the icon classes to the <code>&lt;span&gt;</code>.</p> 
+		</dc.Callout>
+	</body>
+</html>

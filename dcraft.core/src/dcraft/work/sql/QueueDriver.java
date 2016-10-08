@@ -81,7 +81,7 @@ public class QueueDriver implements IQueueDriver {
 		if (db.getEngine() == SqlEngine.MariaDb || db.getEngine() == SqlEngine.MySQL)
 			where = "(dcClaimedStamp < DATE_SUB(" + db.nowFunc() + ", INTERVAL dcClaimTimeout minute)) ";
 		
-		where += "AND (dcDestBucket = ?) "
+		where += "AND (dcDestTopic = ?) "
 				+ "AND ((dcDestSquad = ?) OR (dcDestSquad IS NULL)) AND ((dcDestHubId = ?) OR (dcDestHubId IS NULL))";
 		
 		FuncResult<ListStruct> rsres = db.executeQueryLimit(
@@ -317,7 +317,7 @@ public class QueueDriver implements IQueueDriver {
 	public FuncResult<String> submit(Task info) {
 		FuncResult<String> res = new FuncResult<>();
     	
-		String forbucket = info.getBucket();
+		String forbucket = info.getTopic();
 		String taskidentity = info.getId();
 		
 		ListStruct tags = info.getTags();
@@ -333,7 +333,7 @@ public class QueueDriver implements IQueueDriver {
 		
 		SqlDatabase db = Hub.instance.getSQLDatabase();
         
-        String sql = "INSERT INTO dcWork (dcTaskIdentity, dcAddStamp, dcTitle, dcTask, dcDestBucket, dcDestSquad, dcDestHubId, dcTag1, dcTag2, dcTag3, dcMaxTries) "
+        String sql = "INSERT INTO dcWork (dcTaskIdentity, dcAddStamp, dcTitle, dcTask, dcDestTopic, dcDestSquad, dcDestHubId, dcTag1, dcTag2, dcTag3, dcMaxTries) "
         		+ " VALUES (?," + db.nowFunc() + ",?,?,?,?,?,?,?,?,?)";
         
 		FuncResult<Long> ires = db.executeInsertReturnId(sql,
@@ -359,7 +359,7 @@ public class QueueDriver implements IQueueDriver {
 		int cnt = 0;
 		
 		if (reservedclaim == null) {
-	        sql = "INSERT INTO dcWorkQueue(dcTaskIdentity, dcWorkId, dcDestBucket, dcDestSquad, dcDestHubId, dcClaimTimeout, dcAddedStamp) "
+	        sql = "INSERT INTO dcWorkQueue(dcTaskIdentity, dcWorkId, dcDestTopic, dcDestSquad, dcDestHubId, dcClaimTimeout, dcAddedStamp) "
 	        		+ " VALUES (?,?,?,?,?,?," + db.nowFunc() + ")";
 	        
 			FuncResult<Integer> ires2 = db.executeUpdate(sql, 
@@ -375,7 +375,7 @@ public class QueueDriver implements IQueueDriver {
 		}
 		else {
 			// if already reserved, then just make it available to the queue by switching back to 1970
-			sql = "UPDATE dcWorkQueue SET dcClaimedStamp = ?, dcWorkId = ?, dcDestBucket = ?, dcDestSquad = ?, dcDestHubId = ?, dcClaimTimeout = ? WHERE dcTaskIdentity = ? AND dcClaimedStamp = ?";
+			sql = "UPDATE dcWorkQueue SET dcClaimedStamp = ?, dcWorkId = ?, dcDestTopic = ?, dcDestSquad = ?, dcDestHubId = ?, dcClaimTimeout = ? WHERE dcTaskIdentity = ? AND dcClaimedStamp = ?";
 	        
 			FuncResult<Integer> ires2 = db.executeUpdate(sql, 
 					"1970-01-01 00:00:00.000", 		// set claim stamp back to 1970 - means we are open to be claimed

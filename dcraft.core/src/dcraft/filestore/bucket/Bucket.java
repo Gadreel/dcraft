@@ -114,7 +114,7 @@ public class Bucket {
 		
 		this.channels = Hub.instance.getSessions().createForService();
 		
-		LocalFileStore pubfs = Hub.instance.getPublicFileStore();
+		LocalFileStore pubfs = Hub.instance.getTenantsFileStore();
 		
 		if (pubfs != null) 
 			root = di.resolvePath(bel.getAttribute("RootFolder", root)).toAbsolutePath().normalize().toString();

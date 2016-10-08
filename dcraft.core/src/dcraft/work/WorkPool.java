@@ -42,7 +42,7 @@ import dcraft.xml.XElement;
 public class WorkPool implements ExecutorService {
 	protected LinkedBlockingQueue<TaskRun> queue = new LinkedBlockingQueue<>();
 	protected Worker[] slots = null;
-	protected ConcurrentHashMap<String, WorkBucket> buckets = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, WorkTopic> topics = new ConcurrentHashMap<>();
 	
 	// when set, the pool will work only on N number of tasks until one of those tasks completes
 	// where upon a new task from the general queue "queue" can be accepted
@@ -67,38 +67,38 @@ public class WorkPool implements ExecutorService {
 		
 		this.slots = new Worker[size];
 		
-		// place the default bucket in - it might be overridden in config
-		WorkBucket defbucket = new WorkBucket();
-		defbucket.init(or, new XElement("Bucket", new XAttribute("Name", "Default")), size);
+		// place the default topic in - it might be overridden in config
+		WorkTopic deftopic = new WorkTopic();
+		deftopic.init(or, new XElement("Topic", new XAttribute("Name", "Default")), size);
 		
 		if (or.hasErrors())
 			return;
 		
-		this.buckets.put(defbucket.getName(), defbucket);
+		this.topics.put(deftopic.getName(), deftopic);
 		
 		if (config != null) {
- 			for (XElement bucketel : config.selectAll("Bucket")) {
- 				WorkBucket bucket = new WorkBucket();
- 				bucket.init(or, bucketel, size);
+ 			for (XElement topicel : config.selectAll("Topic")) {
+ 				WorkTopic topic = new WorkTopic();
+ 				topic.init(or, topicel, size);
  				
  				if (or.hasErrors())
  					return;
  				
- 				this.buckets.put(bucket.getName(), bucket);
+ 				this.topics.put(topic.getName(), topic);
  			}
 		}
 		
-		Hub.instance.getCountManager().allocateSetNumberCounter("dcWorkPool_Buckets", this.buckets.size());
+		Hub.instance.getCountManager().allocateSetNumberCounter("dcWorkPool_Topics", this.topics.size());
 		
 		Hub.instance.getCountManager().allocateSetNumberCounter("dcWorkPool_Threads", size);
 	}
 
-	public void addBucket(WorkBucket bucket) {
-		this.buckets.put(bucket.getName(), bucket);
+	public void addTopic(WorkTopic topic) {
+		this.topics.put(topic.getName(), topic);
 	}
 
-	public void removeBucket(String name) {
-		this.buckets.remove(name);
+	public void removeTopic(String name) {
+		this.topics.remove(name);
 	}
 	
 	public int threadCount() {
@@ -125,8 +125,8 @@ public class WorkPool implements ExecutorService {
 		Hub.instance.getCountManager().allocateSetNumberCounter("dcWorkPool_ThreadsHung", n);
 	}
 	
-	public Collection<WorkBucket> getBuckets() {
-		return this.buckets.values();
+	public Collection<WorkTopic> getTopics() {
+		return this.topics.values();
 	}
 	
 	// to work as an Executor
@@ -215,57 +215,57 @@ public class WorkPool implements ExecutorService {
 				return;
 		}
 		
-		// find the work bucket
-		WorkBucket bucket = this.getBucketOrDefault(run);
+		// find the work topic
+		WorkTopic topic = this.getTopicOrDefault(run);
 		
-		// see if the bucket advises a submit, if not the bucket will hold onto the run
+		// see if the topic advises a submit, if not the topic will hold onto the run
 		// in a wait queue.  if true then we put right on the active work queue
-		if (bucket.canSubmit(run)) 
+		if (topic.canSubmit(run)) 
 			this.queue.add(run);
 	}
 	
 	public TaskRun take() throws InterruptedException {
 		TaskRun run = this.queue.take();
 		
-		// find the work bucket
-		WorkBucket bucket = this.getBucketOrDefault(run);
+		// find the work topic
+		WorkTopic topic = this.getTopicOrDefault(run);
 		
-		// let the bucket know this run is in progress
-		bucket.took(run);
+		// let the topic know this run is in progress
+		topic.took(run);
 		
 		return run;
 	}
 
 	public void complete(TaskRun run) {
-		// find the work bucket
-		WorkBucket bucket = this.getBucketOrDefault(run);
+		// find the work topic
+		WorkTopic topic = this.getTopicOrDefault(run);
 		
-		// tell the bucket to complete run
-		TaskRun newrun = bucket.complete(run);
+		// tell the topic to complete run
+		TaskRun newrun = topic.complete(run);
 		
-		// see if the bucket advises a submit
+		// see if the topic advises a submit
 		if (newrun != null) {
 			Logger.traceTr(199, newrun);
 			this.queue.add(newrun);
 		}
 	}
 	
-	public WorkBucket getBucketOrDefault(String name) {
-		WorkBucket bucket = this.buckets.get(name);
+	public WorkTopic getTopicOrDefault(String name) {
+		WorkTopic topic = this.topics.get(name);
 		
-		if (bucket != null)
-			return bucket;
+		if (topic != null)
+			return topic;
 		
-		return this.buckets.get("Default");
+		return this.topics.get("Default");
 	}
 	
-	public WorkBucket getBucketOrDefault(TaskRun run) {
-		WorkBucket bucket = this.buckets.get(run.getTask().getBucket());
+	public WorkTopic getTopicOrDefault(TaskRun run) {
+		WorkTopic topic = this.topics.get(run.getTask().getTopic());
 		
-		if (bucket != null)
-			return bucket;
+		if (topic != null)
+			return topic;
 		
-		return this.buckets.get("Default");
+		return this.topics.get("Default");
 	}
 	
 	public void start(OperationResult or) {
@@ -278,7 +278,7 @@ public class WorkPool implements ExecutorService {
 		Hub.instance.getClock().addSlowSystemWorker(new ISystemWork() {
 			@Override
 			public void run(SysReporter reporter) {
-				reporter.setStatus("Reviewing hung buckets");
+				reporter.setStatus("Reviewing hung topics");
 				
 				// even when stopping we still want to clear hung tasks
 				for (int i = 0; i < WorkPool.this.slots.length; i++) {
@@ -288,10 +288,10 @@ public class WorkPool implements ExecutorService {
 						w.checkIfHung();
 				}
 				
-				for (WorkBucket b : WorkPool.this.buckets.values()) 
+				for (WorkTopic b : WorkPool.this.topics.values()) 
 					b.checkIfHung();
 				
-				reporter.setStatus("After reviewing hung buckets");
+				reporter.setStatus("After reviewing hung topics");
 			}
 			
 			@Override
@@ -364,10 +364,10 @@ public class WorkPool implements ExecutorService {
 				w.stop();
 		}
 		
-		or.trace(0, "Work Pool Cleaning Buckets");
+		or.trace(0, "Work Pool Cleaning Topics");
 		
-		for (WorkBucket bucket : this.buckets.values()) 
-			bucket.stop();
+		for (WorkTopic topic : this.topics.values()) 
+			topic.stop();
 		
 		or.trace(0, "Work Pool Stopped");
 	}
@@ -384,12 +384,12 @@ public class WorkPool implements ExecutorService {
 		rec.setField("ThreadsCreated", this.threadsCreated());
 		rec.setField("ThreadsHung", this.threadsHung());
 		
-		ListStruct buckets = new ListStruct();
+		ListStruct topics = new ListStruct();
 		
-		for (WorkBucket bucket : this.buckets.values()) 
-			buckets.addItem(bucket.toStatusReport());
+		for (WorkTopic topic : this.topics.values()) 
+			topics.addItem(topic.toStatusReport());
 
-		rec.setField("Buckets", buckets);
+		rec.setField("Topics", topics);
 		
 		return rec;
 	}
@@ -403,8 +403,8 @@ public class WorkPool implements ExecutorService {
 	
 	// for a task by identity plus workid (slightly more secure)
 	public RecordStruct status(String taskid, String workid) {
-		for (WorkBucket bucket : this.buckets.values()) {
-			TaskRun run = bucket.findTask(taskid);
+		for (WorkTopic topic : this.topics.values()) {
+			TaskRun run = topic.findTask(taskid);
 			
 			if (run != null) 
 				return run.status();
@@ -496,8 +496,8 @@ public class WorkPool implements ExecutorService {
 	public int inprogress() {
 		int cnt = 0;
 		
-		for (WorkBucket bucket : this.buckets.values()) 
-			cnt += bucket.inprogress();
+		for (WorkTopic topic : this.topics.values()) 
+			cnt += topic.inprogress();
 		
 		return cnt;
 	}

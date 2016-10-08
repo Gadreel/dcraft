@@ -16,7 +16,7 @@ public class VerifySession extends LoadRecord {
 	public void execute(DatabaseInterface conn, DatabaseTask task, OperationResult log) {
 		ICompositeBuilder out = task.getBuilder();
 		TablesAdapter db = new TablesAdapter(conn, task); 
-		String did = task.getDomain();
+		String did = task.getTenant();
 		BigDateTime when = BigDateTime.nowDateTime();
 		
 		RecordStruct params = task.getParamsAsRecord();
@@ -26,7 +26,7 @@ public class VerifySession extends LoadRecord {
 			if (StringUtil.isEmpty(token)) 
 				log.errorTr(117);
 			else {
-				String dd = (String) conn.get("dcSession", token, "Domain");
+				String dd = (String) conn.get("dcSession", token, "Tenant");
 				String uu = (String) conn.get("dcSession", token, "User");
 				
 				if (!did.equals(dd)) {

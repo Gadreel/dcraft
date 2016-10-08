@@ -16,7 +16,7 @@ public class Encrypt implements IStoredProc {
 		
 		try {
 			resp.startRecord();
-			resp.field("Value", OperationContext.get().getUserContext().getDomain().getObfuscator().encryptStringToHex(params.getFieldAsString("Value")));
+			resp.field("Value", OperationContext.get().getUserContext().getTenant().getObfuscator().encryptStringToHex(params.getFieldAsString("Value")));
 			resp.endRecord();
 		}
 		catch (Exception x) {

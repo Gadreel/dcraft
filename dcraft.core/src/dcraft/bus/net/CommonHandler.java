@@ -39,6 +39,7 @@ import dcraft.struct.RecordStruct;
 /**
  * Handles handshakes and messages
  */
+@SuppressWarnings("deprecation")
 abstract public class CommonHandler extends SimpleChannelInboundHandler<Object> {
 	static protected final String BUS_PATH = "/dcBus";
 

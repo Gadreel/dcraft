@@ -99,7 +99,7 @@ public class TaskRun extends FuncResult<Struct> implements Runnable {
 		return this.completed;
 	}
 
-	// must report if timed out, even if completed - otherwise Worker thread might lock forever if WorkBucket kills us first
+	// must report if timed out, even if completed - otherwise Worker thread might lock forever if WorkTopic kills us first
 	public boolean isHung() {
 		return this.isInactive() || this.isOverdue();
 	}
@@ -186,7 +186,7 @@ public class TaskRun extends FuncResult<Struct> implements Runnable {
 				else
 					this.traceTr(153, this.task.getId());
 					
-				this.traceTr(144, Hub.instance.getWorkPool().getBucketOrDefault(this));
+				this.traceTr(144, Hub.instance.getWorkPool().getTopicOrDefault(this));
 				
 				// if this is a queue task then mark it started
 				if (this.task.isFromWorkQueue()) {

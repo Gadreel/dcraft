@@ -1,0 +1,50 @@
+<dcui Title="Add Folder" AuthTags="User">
+	<Skeleton>
+		<TitledSection Title="Add Folder">
+			<Form Name="AddFolder">
+				<FieldContainer Label="Path:">
+					<TextInput Name="Path" Required="true" Pattern="[\w-\/]+" placeholder="folder name, no spaces - use dash instead of space" />
+				</FieldContainer>
+				
+				<div class="formbuttons">
+					<SubmitButton Label="Add" /> 
+				</div> 
+			</Form>
+		</TitledSection>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Path').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e">
+			e.AsNew = true;
+			e.Data = {
+				Path: ''
+			};
+	</Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			if (e.Data.Path.indexOf('/') != 0)
+				e.Data.Path = '/' + e.Data.Path;
+	
+			if (entry.Params.Path && (entry.Params.Path != '/'))
+				e.Data.Path = entry.Params.Path + e.Data.Path;
+	
+			entry.Params.Path = e.Data.Path;
+			
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'WebFileStore',
+				Op: 'AddFolder',
+				Body: {
+					FolderPath: e.Data.Path
+				}
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			entry.Params.Callback( entry.Params.Path );
+			dc.cms.edit.Loader.closePane();
+	]]></Function>
+</dcui>

@@ -1,0 +1,72 @@
+<dcui Title="Add Entry" AuthTags="Admin">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<TitledSection Title="Add Entry">
+					<Form Name="AddFolder">
+						<FieldContainer Label="Title:">
+							<TextInput Name="Title" Required="true" />
+						</FieldContainer>
+						<FieldContainer Label="Path:">
+							<TextInput Name="Path" Required="true" Pattern="[\w-\/]+" />
+						</FieldContainer>
+						
+						<div class="formbuttons">
+							<SubmitButton Label="Add" Icon="check" /> 
+						</div> 
+					</Form>
+				</TitledSection>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			//this.form().query('Path').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e">
+			e.AsNew = true;
+			e.Data = {
+				Path: this.Params.Path
+			};
+	</Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var pos = e.Data.Path.indexOf('/');
+			
+			if (pos != 0)
+				e.Data.Path = '/' + e.Data.Path;
+
+			e.Data.Path = '/' + this.Params.Channel + e.Data.Path;
+	
+			this.Store.Path = e.Data.Path;
+			
+			e.Message = { 
+				Service: 'dcmCms',
+				Feature: 'Feeds',
+				Op: 'AddFeedFiles',
+				Body: {
+					Title: e.Data.Title,
+					Channel: this.Params.Channel, 
+					Path: e.Data.Path
+				}
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Loader.loadPage('/dcm/cms/feeds/Edit', { 
+				Path: entry.Store.Path, 
+				Channel: entry.Params.Channel, 
+				ReturnTo: {
+					Path: '/dcm/cms/feeds/ChannelList',
+					Params: {
+						Channel: entry.Params.Channel
+					}
+				} 
+			});
+			
+			//window.history.back();
+	]]></Function>
+</dcui>

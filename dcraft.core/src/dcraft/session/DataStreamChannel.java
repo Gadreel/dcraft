@@ -226,7 +226,7 @@ public class DataStreamChannel extends OperationResult {
 		return this.closed;
 	}
 
-	// must report if timed out, even if completed - otherwise Worker thread might lock forever if WorkBucket kills us first
+	// must report if timed out, even if completed - otherwise Worker thread might lock forever if WorkTopic kills us first
 	public boolean isHung() {
 		return this.isInactive() || this.isOverdue();
 	}

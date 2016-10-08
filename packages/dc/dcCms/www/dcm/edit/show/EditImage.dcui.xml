@@ -1,0 +1,48 @@
+<dcui Title="Edit Image" AuthTags="Admin,Editor">
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+	
+	<Skeleton>
+		<TitledSection Title="Edit Image" class="titledform">
+			<Form Name="DesEiImage">
+				<div class="formbuttons">
+					<SubmitButton Label="Save" /> 
+				</div>
+			
+				<FieldContainer Label="Description:">
+					<TextArea Name="Description" Required="true" style="min-height: 240px;" />
+				</FieldContainer>
+				
+				<!-- we can add more properties to entries  -->
+			</Form>
+		</TitledSection>
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (entry.Params.Show.CustomFields)
+				entry.addFormLayout('DesEiImage', entry.Params.Show.CustomFields);
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			e.Data = { };
+		
+			// copy properties into form
+			Object.getOwnPropertyNames(entry.Params.Image).forEach(function(name) {
+				e.Data[name] = entry.Params.Image[name];
+			});
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			// copy properties into image
+			Object.getOwnPropertyNames(e.Data).forEach(function(name) {
+				entry.Params.Image[name] = e.Data[name];
+			});
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			dc.cms.edit.Loader.closePane();
+	]]></Function>
+</dcui>

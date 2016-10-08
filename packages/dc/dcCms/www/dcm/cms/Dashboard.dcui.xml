@@ -1,0 +1,68 @@
+<dcui Title="CMS Menu" AuthTags="Admin,Editor">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<div id="areaEditor" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Editor Menu</h4>
+					
+					<div id="customBtns" />
+					
+					<WideButton Label="Pages" Page="/dcm/cms/feeds/PageList" /> 
+					<WideButton Label="Feeds" Page="/dcm/cms/feeds/FeedList" /> 
+					<WideButton Label="Gallery" Page="/dcm/cms/files/Gallery" /> 
+					<WideButton Label="Web Files" Page="/dcm/cms/files/WebFiles" /> 
+					<WideButton Label="My Account" Page="/dcm/cms/EditSelf" /> 
+					<WideButton Label="Sign Out" Click="DoSignOut" />
+				</div>			 
+			
+				<div id="areaDeveloper" data-role="collapsible" data-inset="true" data-collapsed="false">
+					<h4>Developer Menu</h4>
+				
+					<WideButton Label="Domain Files" Page="/dcm/cms/files/DomainFiles" /> 
+					<WideButton Label="Users" Page="/dcm/cms/Users" /> 
+					<WideButton Label="This Domain" Page="/dcm/cms/EditDomain" /> 
+				</div>			 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+				var entry = this;
+				var page = dc.pui.Loader.__pages[this.Name];
+				
+				if (!dc.user.isAuthorized(['Admin','Developer']))
+					$('#areaDeveloper').hide(); 
+				
+				this.callPageFunc('hdrLoadReal');
+				
+				if (dc.handler.dashboardMenu) {
+					var xtralayout = [];
+			
+					for (var i = 0; i < dc.handler.dashboardMenu.length; i++) {
+						var item = dc.handler.dashboardMenu[i];
+						
+						xtralayout.push({
+							Element: 'WideButton',
+							Page: item.Page,
+							Attributes: {
+								'class': 'ui-button ui-theme-a ui-link ui-btn ui-btn-a ui-shadow ui-corner-all ui-button-wide '
+							},
+							Children: [
+									item.Title
+							]
+						});
+					}
+						
+					entry.layout(xtralayout, new dc.pui.LayoutEntry({
+						Element: $('#customBtns'),
+						PageEntry: entry
+					}));
+				}
+	]]></Function>
+	<Function Name="DoSignOut"><![CDATA[
+				dc.pui.Loader.signout();
+	]]></Function>
+</dcui>

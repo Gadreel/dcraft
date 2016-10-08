@@ -38,6 +38,7 @@ public class LocalFileStore {
 	// absolute, normalized paths in Path and String forms
 	protected Path path = null;
 	protected String spath = null;
+	protected XElement config = null;
 	
 	protected Map<String, CacheFile> cache = new HashMap<>();
 	
@@ -49,6 +50,10 @@ public class LocalFileStore {
 
 	public Path getFilePath() {
 		return this.path;
+	}
+	
+	public XElement getConfig() {
+		return this.config;
 	}
 
 	public Path resolvePath(String path) {
@@ -234,13 +239,13 @@ public class LocalFileStore {
 	}
 
 	public void start(OperationResult or, XElement fstore) {
+		this.config = fstore;
+		
 		String fpath = fstore.hasAttribute("FolderPath") 
 				? fstore.getAttribute("FolderPath")
-				: fstore.getName().equals("PrivateFileStore") 
-					? "./private" 
 					: fstore.getName().equals("PackageFileStore")
 						? "./packages"
-						: "./public";
+						: "./tenants";
 		
 		this.path = Paths.get(fpath).normalize().toAbsolutePath();
 			

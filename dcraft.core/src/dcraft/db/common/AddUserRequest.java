@@ -172,7 +172,7 @@ public class AddUserRequest extends InsertRecordRequest {
 		
 		// password crypto 
 		if (this.password.isSet())
-			this.withSetField("dcPassword", OperationContext.get().getUserContext().getDomain().getObfuscator().hashPassword(pword));
+			this.withSetField("dcPassword", OperationContext.get().getUserContext().getTenant().getObfuscator().hashPassword(pword));
 		
 		return super.buildParams();	
 	}

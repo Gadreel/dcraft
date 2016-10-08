@@ -1,0 +1,91 @@
+<dcui Title="Edit User">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Edit User</h1>
+				
+				<Form Name="EditDomain">
+					<FieldContainer Label="Username">
+						<TextInput Name="Username" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="First Name:">
+						<TextInput Name="FirstName" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Last Name:">
+						<TextInput Name="LastName" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Email:">
+						<TextInput Name="Email" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Backup Email:">
+						<TextInput Name="BackupEmail" />
+					</FieldContainer>
+					<FieldContainer Label="New Password:">
+						<PasswordInput Name="Password" placeholder="Enter only to change password" />
+					</FieldContainer>
+					<FieldContainer Label="Confirm Password:">
+						<PasswordInput Name="ConfirmPassword" />
+					</FieldContainer>
+					
+					<div class="formbuttons">
+						<Button Click="DoDelete" Label="Delete" />
+						<SubmitButton Label="Save" /> 
+					</div> 
+				</Form>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Username').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			e.Message = { 
+				Service: 'dcCoreDataServices',
+				Feature: 'Users',
+				Op: 'LoadSelf'
+			};
+	]]></Function>
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			// if password changed
+			if (e.Data.Password && (e.Data.Password != e.Data.ConfirmPassword)) {
+				e.Alert = "New passwords don't match";
+				return;
+			}
+			else if (e.Data.Password) {
+				delete e.Data.ConfirmPassword;
+			}
+			
+			e.Message = { 
+				Service: 'dcCoreDataServices',
+				Feature: 'Users',
+				Op: 'UpdateSelf',
+				Body: e.Data
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			window.history.back();
+	]]></Function>
+	<Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete your Account?', function() {
+				//console.log('delete');
+				dc.comm.sendMessage({ 
+					Service: 'dcCoreDataServices',
+					Feature: 'Users',
+					Op: 'RetireSelf'
+				}, function(resp) {
+					if (resp.Result > 0) {
+						dc.pui.Popup.alert(resp.Message);
+						return;
+					}
+				
+					window.history.back();
+				});
+			});
+	]]></Function>
+</dcui>

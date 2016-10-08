@@ -55,6 +55,7 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestEncoder.ErrorDataEnc
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.concurrent.Future;
 
+@SuppressWarnings("deprecation")
 public class UploadPostHandler extends SimpleChannelInboundHandler<HttpObject> { 
     protected Channel dest = null;
     protected ReadableByteChannel src = null;

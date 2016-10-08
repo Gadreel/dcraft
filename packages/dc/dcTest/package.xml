@@ -1,0 +1,12 @@
+<Package 
+	ClassRoot="dcraft" 
+	Abbrv="dct" 
+	Version="0.9.5"
+	MessageCodes="40000-49999"
+>
+	<DependsOn>
+		<Package Name="dc/dcCore" MinVersion="0.9" />
+	</DependsOn>
+	
+	<!-- may also list CompatibleWith for tested co-existance -->
+</Package>

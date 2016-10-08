@@ -1,0 +1,11 @@
+<Package 
+	ClassRoot="dcraft" 
+	Abbrv="dc" 
+	Version="0.9.5"
+	MessageCodes="1-99999"
+>
+	<!-- MessageCodes="90000-99999" for zCustom -->
+	<DependsOn>
+		<Package Name="dc/dcCore" MinVersion="0.9" />
+	</DependsOn>
+</Package>

@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
-import dcraft.hub.DomainInfo;
+import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.HubEvents;
 import dcraft.hub.SiteInfo;
@@ -85,18 +85,18 @@ public class WebModule extends ModuleBase {
 		return dname;
 	}
 	
-	static public DomainInfo resolveDomainInfo(Request req) {
-		return Hub.instance.getDomains().resolveDomainInfo(WebModule.resolveHost(req));
+	static public TenantInfo resolveTenantInfo(Request req) {
+		return Hub.instance.getTenants().resolveTenantInfo(WebModule.resolveHost(req));
 	}
 	
-	static public DomainInfo resolveDomainInfo(String dname) {
-		return Hub.instance.getDomains().resolveDomainInfo(WebModule.resolveHost(dname));
+	static public TenantInfo resolveTenantInfo(String dname) {
+		return Hub.instance.getTenants().resolveTenantInfo(WebModule.resolveHost(dname));
 	}
 
 	static public SiteInfo resolveSiteInfo(Request req) {
 		String host = WebModule.resolveHost(req);
 		
-		DomainInfo domain = WebModule.resolveDomainInfo(host);
+		TenantInfo domain = WebModule.resolveTenantInfo(host);
 		
 		if (domain != null)
 			return domain.resolveSiteInfo(host);
@@ -105,7 +105,7 @@ public class WebModule extends ModuleBase {
 	}
 
 	static public SiteInfo resolveSiteInfo(String host) {
-		DomainInfo domain = WebModule.resolveDomainInfo(host);
+		TenantInfo domain = WebModule.resolveTenantInfo(host);
 		
 		if (domain != null)
 			return domain.resolveSiteInfo(host);
@@ -207,10 +207,10 @@ public class WebModule extends ModuleBase {
 		// ========================================================================
 		
 		/**
-		 * - ./private/dcw/filetransferconsulting/www-preview/dcf/index.html
-		 * - ./private/dcw/filetransferconsulting/www/dcf/index.html
-		 * - ./public/dcw/filetransferconsulting/www-preview/dcf/index.html
-		 * - ./public/dcw/filetransferconsulting/www/dcf/index.html
+		 * - ./private/tenants/filetransferconsulting/www-preview/dcf/index.html
+		 * - ./private/tenants/filetransferconsulting/www/dcf/index.html
+		 * - ./public/tenants/filetransferconsulting/www-preview/dcf/index.html
+		 * - ./public/tenants/filetransferconsulting/www/dcf/index.html
 		 */			
 
 		FuncCallback<FileStoreEvent> localfilestorecallback = new FuncCallback<FileStoreEvent>() {
@@ -218,7 +218,7 @@ public class WebModule extends ModuleBase {
 			public void callback() {
 				this.resetCalledFlag();
 				
-				/* TODO rework so it works for Sites and Domains - perhaps setup in the domain itself?
+				/* TODO rework so it works for Sites and Tenants - perhaps setup in the domain itself?
 				 * 
 				CommonPath p = this.getResult().getPath();
 				
@@ -236,11 +236,11 @@ public class WebModule extends ModuleBase {
 				if (!"dcw".equals(mod) || (!"www".equals(section) && !"www-preview".equals(section) && !"feed".equals(section) && !"feed-preview".equals(section)))
 					return;
 				
-				for (DomainSettings wdomain : WebSiteManager.this.dsitemap.values()) {
+				for (TenantSettings wdomain : WebSiteManager.this.dsitemap.values()) {
 					if (domain.equals(wdomain.getAlias())) {
 						wdomain.dynNotify();
 						
-						// TODO after we merge DomainInfo and WebDomain features this will work better,
+						// TODO after we merge TenantInfo and WebDomain features this will work better,
 						// right now feed only gets imported if the domain has been loaded via HTTP(S) request
 						/*
 						if ("feed".equals(section) || "feed-preview".equals(section)) {
@@ -261,10 +261,10 @@ public class WebModule extends ModuleBase {
 									}
 								})
 								.withTitle("Importing feed " + p)
-								.withBucket("ServicePool")		// only one at a time
+								.withTopic("ServicePool")		// only one at a time
 								.withContext(new OperationContextBuilder()
 									.withRootTaskTemplate()
-									.withDomainId(wdomain.getId())
+									.withTenantId(wdomain.getId())
 									.toOperationContext()
 								);
 							
@@ -280,7 +280,7 @@ public class WebModule extends ModuleBase {
 		};
 		
 		// register for file store events
-		LocalFileStore pubfs = Hub.instance.getPublicFileStore();
+		LocalFileStore pubfs = Hub.instance.getTenantsFileStore();
 		
 		if (pubfs != null) 
 			pubfs.register(localfilestorecallback);
@@ -295,7 +295,7 @@ public class WebModule extends ModuleBase {
 			@Override
 			public void callback() {
 				// TODO restore this
-				//for (DomainSettings domain : WebSiteManager.this.dsitemap.values())
+				//for (TenantSettings domain : WebSiteManager.this.dsitemap.values())
 				//	domain.dynNotify();
 				
 				this.resetCalledFlag();
@@ -431,7 +431,7 @@ public class WebModule extends ModuleBase {
 
 	// only call this with normalized hostnames 
 	public SslContextFactory findSslContextFactory(String hostname) {
-		DomainInfo di = WebModule.resolveDomainInfo(hostname);
+		SiteInfo di = WebModule.resolveSiteInfo(hostname);
 		
 		if (di != null) {
 			SslContextFactory scf = di.getSecureContextFactory(hostname);

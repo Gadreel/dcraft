@@ -1,0 +1,9 @@
+<dcui Title="Help" AuthTags="Admin,Editor">
+	<Skeleton><div class="dcuiHelpViewer" data-dcui-mode="enhance"><MD><![CDATA[
+## Edit Section Help
+
+Edit the content for a section of the page using the Markdown codes to add formatting.
+
+<IncludePart Path="/dcm/edit/MD-help" />
+	]]></MD></div></Skeleton>
+</dcui>

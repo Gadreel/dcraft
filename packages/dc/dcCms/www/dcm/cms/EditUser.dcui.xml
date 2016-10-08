@@ -1,0 +1,142 @@
+<dcui Title="Edit User">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Edit User</h1>
+				
+				<Form Name="EditUser">
+					<FieldContainer Label="Username">
+						<TextInput Name="Username" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="First Name:">
+						<TextInput Name="FirstName" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Last Name:">
+						<TextInput Name="LastName" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Email:">
+						<TextInput Name="Email" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Backup Email:">
+						<TextInput Name="BackupEmail" />
+					</FieldContainer>
+					<FieldContainer Label="New Password:">
+						<PasswordInput Name="Password" placeholder="Enter only to change password" />
+					</FieldContainer>
+					<FieldContainer Label="Confirm Password:">
+						<PasswordInput Name="ConfirmPassword" />
+					</FieldContainer>
+					<CheckGroup Label="Badges:" Name="AuthorizationTags">
+						<RadioCheck Label="Admin" Value="Admin" />
+						<RadioCheck Label="Power User" Value="PowerUser" />
+						<RadioCheck Label="Editor" Value="Editor" />
+						<RadioCheck Label="Blogger" Value="Blogger" />
+						<RadioCheck Label="Order Processor" Value="Orders" />
+					</CheckGroup>
+					
+					<div class="formbuttons">
+						<Button Click="DoDelete" Label="Delete" />
+						<SubmitButton Label="Save" /> 
+					</div> 
+				</Form>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="Load"><![CDATA[
+			this.form().query('Username').focus();				
+	]]></Function>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			if (this.Params.Id) {
+				e.Message = { 
+					Service: 'dcCoreDataServices',
+					Feature: 'Users',
+					Op: 'LoadUser',
+					Body: { Id: this.Params.Id }
+				};
+			}
+			else {
+				e.AsNew = true;
+				e.Data = {
+				};
+			}
+	]]></Function>
+	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			/*
+			if (e.Data && e.Data.Names) {
+				e.Data.Names = e.Data.Names.join(',')
+			}
+			*/
+	]]></Function>	
+	<Function Name="SaveRecord" Params="e"><![CDATA[
+			if (this.Params.Id) 
+				e.Data.Id = this.Params.Id;
+			else
+				e.Data.Confirmed = true;
+				
+			// missing password 
+			if (!this.Params.Id && !e.Data.Password) {
+				e.Alert = "Password required";
+				return;
+			}
+				
+			// if password changed
+			if (e.Data.Password && (e.Data.Password != e.Data.ConfirmPassword)) {
+				e.Alert = "New passwords don't match";
+				return;
+			}
+			else if (e.Data.Password) {
+				delete e.Data.ConfirmPassword;
+			}
+				
+			/*
+			// if names changed
+			if (e.Data.Names) {
+				e.Data.Names = e.Data.Names.split(',');
+				
+				for (var i = 0; i < e.Data.Names.length; i++)
+					e.Data.Names[i] = e.Data.Names[i].trim();
+			}
+			*/
+			
+			e.Message = { 
+				Service: 'dcCoreDataServices',
+				Feature: 'Users',
+				Op: this.Params.Id ? 'UpdateUser' : 'AddUser',
+				Body: e.Data
+			};
+	]]></Function>
+	<Function Name="AfterSave"><![CDATA[
+			window.history.back();
+	]]></Function>
+	<Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Params.Id) {
+				window.history.back();
+				return;
+			}
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this User?', function() {
+				//console.log('delete');
+				dc.comm.sendMessage({ 
+					Service: 'dcCoreDataServices',
+					Feature: 'Users',
+					Op: 'RetireUser',
+					Body: { 
+						Id: entry.Params.Id
+					}
+				}, function(resp) {
+					if (resp.Result > 0) {
+						dc.pui.Popup.alert(resp.Message);
+						return;
+					}
+				
+					window.history.back();
+				});
+			});
+	]]></Function>
+</dcui>

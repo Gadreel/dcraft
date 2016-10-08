@@ -1,0 +1,120 @@
+<dcui Title="Dashboard">
+	<RequireLib Path="/dcm/edit/js/main.js" />
+	<RequireStyle Path="/dcm/edit/css/main.css" />
+	<RequireLib Path="/dcw/js/marked.min.js" />
+
+	<Skeleton>
+		<div id="sectTasks" class="ui-corner-all custom-corners section">
+			<div class="ui-bar ui-bar-a dcFlexRow">
+				<h4>Messages / Tasks</h4>
+				<div class="dcFlex1" style="text-align: right;">
+					<Link Label="Delete" Click="DoDeleteMessages" />
+				</div>
+			</div>
+			<div class="ui-body ui-body-a">
+				<ul id="lstTasks" data-role="listview" data-icon="false" data-split-icon="false" />
+			</div>
+		</div>
+		
+		<Button Label="Show CMS" Click="OnShowCMS" />
+		
+		<div id="sectSignUp" class="ui-corner-all custom-corners">
+			<div class="ui-bar ui-bar-a">
+				<h4>Sign In to Account</h4>
+			</div>
+
+			<div class="ui-body ui-body-a">
+				<Form Name="SignIn" Prefix="si">
+					<FieldContainer Label="Email:">
+						<TextInput Name="Email" Required="true" Pattern=".+@.+\..+" />
+					</FieldContainer>
+					<FieldContainer Label="Password:">
+						<PasswordInput Name="Password" Required="true" />
+					</FieldContainer>
+
+					<div class="formbuttons">
+						<SubmitButton Label="Sign In" />
+					</div>
+				</Form>
+			</div>
+
+			<div class="ui-bar ui-bar-a">
+				<h4>Sign Up for Account</h4>
+			</div>
+
+			<div class="ui-body ui-body-a">
+				<Form Name="SignUp" Prefix="su">
+					<FieldContainer Label="Email:">
+						<TextInput Name="Email" Required="true" Pattern=".+@.+\..+" />
+					</FieldContainer>
+					<FieldContainer Label="First Name:">
+						<TextInput Name="FirstName" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Last Name:">
+						<TextInput Name="LastName" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Password:">
+						<PasswordInput Name="Password" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Confirm Password:">
+						<PasswordInput Name="ConfirmPassword" Required="true" />
+					</FieldContainer>
+
+					<div class="formbuttons">
+						<SubmitButton Label="Register" />
+					</div>
+				</Form>
+			</div>
+		</div>
+		
+	</Skeleton>
+	<Function Name="Load" Params="cd"><![CDATA[
+			var page = this;
+			
+			cd.inc();
+			
+			console.log(new Date() +' main load');
+			
+			this.allocateTimeout({
+				Period: 1500,
+				Op: function() {
+					console.log(new Date() +' main load done');
+			
+					cd.dec();
+				}
+			});
+	]]></Function>
+	<Function Name="altLoad" Params="cd" Mode="Load"><![CDATA[
+			var page = this;
+			
+			cd.inc();
+			
+			console.log(new Date() +' alt load');
+			
+			this.allocateTimeout({
+				Period: 1500,
+				Op: function() {
+					console.log(new Date() +' alt load done');
+			
+					cd.dec();
+				}
+			});
+	]]></Function>
+	<Function Name="siLoadRecord" Params="e"><![CDATA[
+			//e.AsNew = true;
+			e.Data = {
+			};
+			
+			console.log(new Date() +' sign in loaded');
+	]]></Function>
+	<Function Name="suLoadRecord" Params="e"><![CDATA[
+			//e.AsNew = true;
+			e.Data = {
+			};
+			
+			console.log(new Date() +' sign up loaded');
+	]]></Function>
+	<Function Name="OnShowCMS"><![CDATA[
+			dc.cms.edit.Loader.start();
+	]]></Function>
+</dcui>

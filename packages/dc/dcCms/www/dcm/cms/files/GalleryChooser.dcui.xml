@@ -1,0 +1,262 @@
+<dcuip>
+	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+	
+	<Skeleton>
+		<div data-role="panel" id="galleryChooser" data-position="left" data-display="overlay" data-theme="a" style="min-width: 380px;">
+			<WideButton Click="DoHideGallery" Label="Close" Icon="delete" />
+		
+			<h3>Choose An Image</h3>
+			
+			<ul id="lstGallery" data-role="listview" data-inset="false" data-count-theme="a" />					
+		</div>
+	</Skeleton>
+	<Function Name="DoShowGallery" Params="orgscope,orgpath,orgcb,orgdata"><![CDATA[
+			var entry = this;
+
+			if (orgscope)
+				entry.Store.__GalleryScope = orgscope;
+			else if (!entry.Store.__GalleryScope)
+				entry.Store.__GalleryScope = 'Image';
+
+			if (orgpath)
+				entry.Store.__GalleryPath = orgpath;
+			else if (!entry.Store.__GalleryPath)
+				entry.Store.__GalleryPath = '/';
+				
+			if (entry.Store.__GalleryPath.endsWith('.v'))
+				entry.Store.__GalleryPath = entry.Store.__GalleryPath.substr(0, entry.Store.__GalleryPath.lastIndexOf('/'));
+	
+			if (orgcb)
+				entry.Store.__GalleryCB = orgcb;
+
+			if (orgdata)
+				entry.Store.__GalleryData = orgdata;
+
+			var list = $('#lstGallery');		
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			list.listview('refresh');
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'ListFiles',
+				Body: { 
+					FolderPath: entry.Store.__GalleryPath
+				}
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to list images: ' + rmsg.Message);
+					return;
+				}
+
+				var items = rmsg.Body.Files;			
+				
+				list.empty();
+				
+				// add paren folder
+				if (entry.Store.__GalleryPath.length > 1) {
+					var litm = $('<li data-icon="false"></li>');
+					
+					var pname = entry.Store.__GalleryPath.substr(entry.Store.__GalleryPath.lastIndexOf('/') + 1);
+					
+					var anchr = $('<a href="#"><h2><i class="fa fa-backward"></i> ' + pname + '</h2></a>')
+					
+					anchr.click(item, function(e) {
+						var curr = entry.Store.__GalleryPath;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+
+						entry.Store.__GalleryPath = path;
+						entry.callPageFunc('DoShowGallery');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr);
+					list.append(litm);
+				}
+				
+				// add calculated fields
+				//for (var i = 0; i < items.length; i++) {
+				//	var item = items[i];					
+					//item.TotalCharges = item.Sales + item.Shipping;
+				//}
+				
+				// sort
+				items.sort(dc.util.List.sortObjects('FileName'));
+
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					var litm = $('<li data-icon="false"></li>');
+					
+					var icon = item.IsFolder ?  '<i class="fa fa-folder-o"></i>' : '<i class="fa fa-file-image-o"></i>';
+					
+					var anchr = $('<a href="#"><h2>' + icon + ' ' + String.escapeHtml(item.FileName) + '</h2></a>')
+					
+					anchr.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.__GalleryPath.length > 1)
+							path = entry.Store.__GalleryPath + '/' + e.data.FileName;
+								
+						if (e.data.IsFolder) {
+							entry.Store.__GalleryPath = path;
+							entry.callPageFunc('DoShowGallery');
+						}
+						else if (entry.Store.__GalleryScope == 'Variation') {
+							entry.Store.__GalleryPath = path + '.v';
+							entry.callPageFunc('DoShowGalleryVariation');
+						}
+						else {
+							$('#galleryChooser').panel('close');	
+							
+							entry.Store.__GalleryPath = path + '.v';
+							
+							if (entry.Store.__GalleryCB)
+								entry.Store.__GalleryCB.call(entry.Store.__GalleryCB, entry.Store.__GalleryPath, e.data, entry.Store.__GalleryData);
+							else
+								entry.callPageFunc('DoSelectGallery', path, e.data);
+								
+							delete entry.Store.__GalleryCB;
+							delete entry.Store.__GalleryData;
+						}
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					
+					litm.append(anchr);
+					list.append(litm);
+				}
+				
+				list.listview('refresh');
+				
+			});				
+				
+			$('#galleryChooser').panel('open');
+	]]></Function>
+	<Function Name="DoShowGalleryVariation" Params="orgpath,orgcb,orgdata"><![CDATA[
+			var entry = this;
+
+			if (orgpath)
+				entry.Store.__GalleryPath = orgpath;
+			else if (!entry.Store.__GalleryPath)
+				entry.Store.__GalleryPath = '/';
+	
+			if (orgcb)
+				entry.Store.__GalleryCB = orgcb;
+
+			if (orgdata)
+				entry.Store.__GalleryData = orgdata;
+
+			var list = $('#lstGallery');		
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+				
+			list.listview('refresh');
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCms',
+				Feature: 'WebGallery',
+				Op: 'ListVariations',
+				Body: { 
+					Path: entry.Store.__GalleryPath
+				}
+			}, function(rmsg) {
+				if (rmsg.Result > 0) {
+					dc.pui.Popup.alert('Unable to list images: ' + rmsg.Message);
+					return;
+				}
+
+				var items = rmsg.Body.Variants;			
+				
+				list.empty();
+				
+				// add parent folder
+				if (entry.Store.__GalleryPath.length > 1) {
+					var litm = $('<li data-icon="false"></li>');
+					
+					var pname = entry.Store.__GalleryPath.substr(entry.Store.__GalleryPath.lastIndexOf('/') + 1);
+					
+					var anchr = $('<a href="#"><h2><i class="fa fa-backward"></i> ' + pname.substr(0, pname.length - 2) + '</h2></a>')
+					
+					anchr.click(item, function(e) {
+						var curr = entry.Store.__GalleryPath;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+
+						entry.Store.__GalleryPath = path;
+						entry.callPageFunc('DoShowGallery');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr);
+					list.append(litm);
+				}
+				
+				// add calculated fields
+				//for (var i = 0; i < items.length; i++) {
+				//	var item = items[i];					
+					//item.TotalCharges = item.Sales + item.Shipping;
+				//}
+				
+				// sort
+				items.sort(dc.util.List.sortObjects('Name'));
+
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					var litm = $('<li data-icon="false"></li>');
+					
+					var icon = '<i class="fa fa-cube"></i>';
+					
+					var anchr = $('<a href="#"><h2>' + icon + ' ' + String.escapeHtml(item.Name) + '</h2></a>')
+					
+					anchr.click(item, function(e) {
+						var path = '/' + e.data.Name;
+					
+						if (entry.Store.__GalleryPath.length > 1)
+							path = entry.Store.__GalleryPath + '/' + e.data.Name;
+								
+						$('#galleryChooser').panel('close');	
+						
+						if (entry.Store.__GalleryCB)
+							entry.Store.__GalleryCB.call(entry.Store.__GalleryCB, path, e.data, entry.Store.__GalleryData);
+						else
+							entry.callPageFunc('DoSelectGallery', path, e.data);
+							
+						delete entry.Store.__GalleryCB;
+						delete entry.Store.__GalleryData;
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr);
+					list.append(litm);
+				}
+				
+				list.listview('refresh');				
+			});				
+				
+			$('#galleryChooser').panel('open');
+	]]></Function>
+	<Function Name="DoHideGallery"><![CDATA[
+			$('#galleryChooser').panel('close');	
+	]]></Function>
+</dcuip>

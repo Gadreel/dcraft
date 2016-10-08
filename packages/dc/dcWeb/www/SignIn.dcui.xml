@@ -1,0 +1,55 @@
+<dcui Title="Sign In">
+	<Skeleton>
+		<IncludePart Path="/dcw/app/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<h1>Sign In</h1>
+				
+				<Form Name="SignIn">
+					<FieldContainer Label="Username:">
+						<TextInput Name="Username" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Password:">
+						<PasswordInput Name="Password" Required="true" />
+					</FieldContainer>
+					<FieldContainer Label="Remember Me:">
+						<YesNo Name="RememberMe" />
+					</FieldContainer>
+					<div class="formbuttons">
+						<SubmitButton Label="Sign In" /> 
+					</div> 
+				</Form>
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/app/Footer" />
+	</Skeleton>
+	<Function Name="LoadRecord" Params="e"><![CDATA[
+			dc.pui.Loader.setDestPage(dc.pui.Loader.__appHome);
+				
+			var info = dc.user.getUserInfo();
+			
+			if (info.Credentials) {
+				e.Data = $.extend(true, { RememberMe: info.RememberMe }, info.Credentials);
+				this.form().query('Password').focus();
+			}
+			else {
+				this.form().query('Username').focus();
+			}
+	]]></Function>
+	<Function Name="Save" Params="e"><![CDATA[
+			var values = this.form().getValues('SignIn');
+			
+			dc.user.signin(values.Username, values.Password, values.RememberMe, function(msg) { 
+				if (dc.user.isVerified()) {
+					if (dc.pui.Loader.__destPage)
+						dc.pui.Loader.loadPage(dc.pui.Loader.__destPage);
+					else
+						dc.pui.Loader.loadPortalPage();
+				}
+				else
+					dc.pui.Popup.alert('Invalid sign in');
+			});
+	]]></Function>
+</dcui>

@@ -3,6 +3,7 @@ package dcraft.web.http;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponse;
 
+@SuppressWarnings("deprecation")
 public class HttpContentCompressor extends io.netty.handler.codec.http.HttpContentCompressor {
 	@Override
 	protected Result beginEncode(HttpResponse headers, String acceptEncoding) throws Exception {

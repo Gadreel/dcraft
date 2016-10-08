@@ -16,15 +16,19 @@
 ************************************************************************ */
 package dcraft.interchange.sshd;
 
+/*
 import org.apache.sshd.server.Command;
 import org.apache.sshd.server.CommandFactory;
+*/
 
-public class CommandFactoryImpl implements CommandFactory {
+public class CommandFactoryImpl {
+	/*
+	implements CommandFactory {
 
 	@Override
 	public Command createCommand(String arg0) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	*/
 }

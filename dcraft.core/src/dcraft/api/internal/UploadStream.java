@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 
 import dcraft.lang.op.OperationResult;
 
+@SuppressWarnings("deprecation")
 public class UploadStream extends AbstractHttpData implements FileUpload {
     public static final String CONTENT_DISPOSITION = "Content-Disposition";
     public static final String NAME = "name";
@@ -58,6 +59,30 @@ public class UploadStream extends AbstractHttpData implements FileUpload {
         
         this.in = in;
         this.ops = ops;
+    }
+    
+    @Override
+    public FileUpload touch() {
+    	// TODO Auto-generated method stub
+    	return null;		// ???
+    }
+    
+    @Override
+    public FileUpload touch(Object arg0) {
+    	// TODO Auto-generated method stub
+    	return null;
+    }
+    
+    @Override
+    public FileUpload replace(ByteBuf arg0) {
+    	// TODO Auto-generated method stub
+    	return null;
+    }
+    
+    @Override
+    public FileUpload retainedDuplicate() {
+    	// TODO Auto-generated method stub
+    	return null;
     }
 
     @Override

@@ -308,7 +308,7 @@ public class FileWatcher extends ExtensionBase implements IService {
 					XElement config = el.getSettings();
 					
 					if (config != null)
-						for (XElement del : config.selectAll("Domain"))
+						for (XElement del : config.selectAll("Tenant"))
 							names.addItem(del.getAttribute("Name"));
 				}
 				

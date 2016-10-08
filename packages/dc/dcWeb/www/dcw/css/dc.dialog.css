@@ -1,0 +1,23 @@
+#dcuiDialog {
+	position: fixed;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	background-color: rgba(90,90,90,0.8);
+	display: flex;
+	justify-content: center;
+	align-items: center;		
+	overflow-x: hidden;
+	overflow-y: auto;
+	z-index: 200;
+}
+
+#dcuiDialogPane {
+	flex: 0 1 748px;
+	max-height: 100vh;	 
+}
+
+body.dcDialogMode {
+	overflow: hidden;
+}
