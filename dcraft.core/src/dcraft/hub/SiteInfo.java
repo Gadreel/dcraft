@@ -13,15 +13,18 @@ import dcraft.filestore.bucket.BucketUtil;
 import dcraft.groovy.GCompClassLoader;
 import dcraft.io.CacheFile;
 import dcraft.io.LocalFileStore;
+import dcraft.lang.op.FuncResult;
 import dcraft.locale.Dictionary;
 import dcraft.locale.ILocaleResource;
 import dcraft.locale.LocaleDefinition;
+import dcraft.util.IOUtil;
 import dcraft.util.MimeUtil;
 import dcraft.util.StringUtil;
 import dcraft.web.core.SiteIntegration;
 import dcraft.web.core.WebSite;
 import dcraft.web.http.SslContextFactory;
 import dcraft.xml.XElement;
+import dcraft.xml.XmlReader;
 
 /*
  * The "root" site never comes from the /alias/sites/root/* folder.  It always uses the configuration
@@ -44,6 +47,7 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	static public SiteInfo from(XElement settings, TenantInfo tenant) {
 		SiteInfo site = new SiteInfo();
 		site.tenant = new WeakReference<TenantInfo>(tenant);
+		site.alias = settings.getAttribute("Name");
 
 		site.init(settings);
 		
@@ -152,6 +156,22 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 		Path cpath = this.resolvePath("/config");
 		
 		if ((cpath != null) && Files.exists(cpath)) {
+			Path cspath = cpath.resolve("settings.xml");
+			
+			if (Files.exists(cspath)) {
+				FuncResult<CharSequence> res = IOUtil.readEntireFile(cspath);
+				
+				if (res.isEmptyResult())
+					return;
+				
+				FuncResult<XElement> xres = XmlReader.parse(res.getResult(), true);
+				
+				if (xres.isEmptyResult())
+					return;
+				
+				this.settings = settings = xres.getResult();
+			}
+			
 			// dictionary
 			
 			Path dicpath = cpath.resolve("dictionary.xml");
@@ -196,6 +216,8 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 					if (StringUtil.isEmpty(lname))
 						continue;
 					
+					this.tenant.get().registerSiteDomain(dname, this);
+					
 					this.sitelocales.put(dname, def);
 				}
 			}		
@@ -223,7 +245,7 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 			}
 		}
 		
-		this.website = WebSite.from(settings, this);
+		this.website = WebSite.from((settings != null) ? settings.selectFirst("Web") : null, this);
 	}
 
 	public String getMimeType(String ext) {

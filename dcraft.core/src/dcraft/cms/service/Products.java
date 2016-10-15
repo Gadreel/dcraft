@@ -18,6 +18,7 @@ package dcraft.cms.service;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import dcraft.bus.Message;
 import dcraft.db.IDatabaseManager;
@@ -32,8 +33,8 @@ import dcraft.db.update.InsertRecordRequest;
 import dcraft.db.update.RetireRecordRequest;
 import dcraft.db.update.ReviveRecordRequest;
 import dcraft.db.update.UpdateRecordRequest;
-import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
+import dcraft.hub.SiteInfo;
 import dcraft.lang.op.OperationContext;
 import dcraft.struct.CompositeStruct;
 import dcraft.struct.RecordStruct;
@@ -129,12 +130,12 @@ public class Products {
 				@Override
 				public void process(CompositeStruct result) {
 					if (!this.hasErrors()) {
-						TenantInfo domain = OperationContext.get().getUserContext().getTenant();
+						SiteInfo site = OperationContext.get().getSite();
 						
-						String path = "/dcw/" + domain.getAlias() + "/galleries/store/category/" + rec.getFieldAsString("Alias");
+						Path catpath = site.resolvePath("galleries/store/category/" + rec.getFieldAsString("Alias"));
 						
 						try {
-							Files.createDirectories(Hub.instance.getTenantsFileStore().resolvePath(path));
+							Files.createDirectories(catpath);
 						} 
 						catch (IOException x) {
 							// TODO Auto-generated catch block
@@ -307,12 +308,12 @@ public class Products {
 				@Override
 				public void process(CompositeStruct result) {
 					if (!this.hasErrors()) {
-						TenantInfo domain = OperationContext.get().getUserContext().getTenant();
+						SiteInfo site = OperationContext.get().getSite();
 						
-						String path = "/dcw/" + domain.getAlias() + "/galleries/store/category/" + rec.getFieldAsString("Alias");
+						Path catpath = site.resolvePath("galleries/store/category/" + rec.getFieldAsString("Alias"));
 						
 						try {
-							Files.createDirectories(Hub.instance.getTenantsFileStore().resolvePath(path));
+							Files.createDirectories(catpath);
 						} 
 						catch (IOException x) {
 							// TODO Auto-generated catch block
@@ -443,12 +444,12 @@ public class Products {
 				@Override
 				public void process(CompositeStruct result) {
 					if (!this.hasErrors()) {
-						TenantInfo domain = OperationContext.get().getUserContext().getTenant();
+						SiteInfo site = OperationContext.get().getSite();
 						
-						String path = "/dcw/" + domain.getAlias() + "/galleries/store/product/" + rec.getFieldAsString("Alias");
+						Path catpath = site.resolvePath("galleries/store/product/" + rec.getFieldAsString("Alias"));
 						
 						try {
-							Files.createDirectories(Hub.instance.getTenantsFileStore().resolvePath(path));
+							Files.createDirectories(catpath);
 						} 
 						catch (IOException x) {
 							// TODO Auto-generated catch block

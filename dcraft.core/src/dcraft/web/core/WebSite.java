@@ -37,6 +37,12 @@ import dcraft.xml.XNode;
 import dcraft.xml.XmlReader;
 
 public class WebSite {
+	static final public CommonPath PATH_INDEX = new CommonPath("/index");
+	static final public CommonPath PATH_HOME = new CommonPath("/Home");
+	
+	static final public String[] EXTENSIONS_STD = new String[] { ".html", ".gas" };	
+	static final public String[] EXTENSIONS_LEGACY = new String[] { ".dcui.xml", ".html", ".gas" };	
+
 	static public WebSite from(XElement settings, SiteInfo site) {
 		WebSite web = new WebSite();
 		web.site = new WeakReference<SiteInfo>(site);
@@ -47,19 +53,19 @@ public class WebSite {
 	protected WeakReference<SiteInfo> site = null;
 	
 	protected HtmlMode htmlmode = HtmlMode.Dynamic;
-	protected CommonPath homepath = null;
+	protected CommonPath homepath = WebSite.PATH_HOME;
 	protected XElement webconfig = null;
 
 	protected Map<String, Class<? extends XElement>> tagmap = new HashMap<String, Class<? extends XElement>>();
 	
-	protected String[] specialExtensions = new String[] { ".html", ".gas" };	
+	protected String[] specialExtensions = WebSite.EXTENSIONS_STD;	
 	
 	protected List<HubPackage> packagelist = null;
 	
 	protected boolean sharedsessenabled = false;		// TODO configure for this
 	protected Session sharedsess = null;
 	
-	protected boolean oldweb = false;
+	protected boolean legacyweb = false;
 	
 	public HtmlMode getHtmlMode() {
 		return this.htmlmode;
@@ -73,30 +79,26 @@ public class WebSite {
 		return this.webconfig;
 	}
 	
+	public SiteInfo getSite() {
+		if (this.site != null)
+			return this.site.get();
+		
+		return null;
+	}
+	
+	public boolean isLegacySite() {
+		return this.legacyweb;
+	}
+	
 	public List<HubPackage> getPackagelist() {
 		return this.packagelist;
-	}
-
-	// TODO - not working as intended, may be best to fold into caller
-	public void translatePath(WebContext ctx) {
-		CommonPath path = ctx.getRequest().getPath();
-		
-		/* TODO also try
-	
-			//new CommonPath("/index.html");
-			// 				this.homepath = new CommonPath("/Home");		
-		 * 
-		 */
-		
-		if (path.isRoot()) 
-			ctx.getRequest().setPath(this.getHomePath());
 	}
 	
 	public CommonPath getNotFound() {
 		if (this.homepath != null)
 			return this.homepath;
 
-		return new CommonPath("/dcw/notfound.html");
+		return new CommonPath("/Not-Found.html");
 	}
 	
 	public void init(XElement settings) {
@@ -111,20 +113,6 @@ public class WebSite {
 				" : " + this.site.get().getAlias() + " - " + settings);
 		
 		if (settings != null) {
-			// UI = app or customer uses builder
-			// UI = basic is just 'index.html' approach
-			if (settings.hasAttribute("UI")) {
-				this.oldweb = "custom".equals(settings.getAttribute("UI").toLowerCase());
-				
-				if (this.oldweb) {
-					// TODO a setting or such to get the ServerHandler something to do if old domain
-					// vs new domain - two modes of web server
-				}
-			}
-			
-			if (settings.hasAttribute("HomePath")) 
-				this.homepath = new CommonPath(settings.getAttribute("HomePath"));
-			
 			if (settings.hasAttribute("HtmlMode")) {
 				try {
 					this.htmlmode = HtmlMode.valueOf(settings.getAttribute("HtmlMode"));
@@ -133,13 +121,20 @@ public class WebSite {
 					OperationContext.get().error("Unknown HTML Mode: " + settings.getAttribute("HtmlMode"));
 				}
 			}
-
-			/* TODO make sure these ideas still get through
-			else if (this.appFramework == Framework.basic)
-				this.homepath = new CommonPath("/index.html");		
-			else if ((this.appFramework == Framework.custom) || (this.appFramework == Framework.dc))
-				this.homepath = new CommonPath("/Home");	
-				*/	
+			
+			if (settings.hasAttribute("HomePath")) 
+				this.homepath = new CommonPath(settings.getAttribute("HomePath"));
+			else if ((this.htmlmode == HtmlMode.Static) || (this.htmlmode == HtmlMode.Ssi))
+				this.homepath = WebSite.PATH_INDEX;		
+			
+			// legacy support
+			if (settings.hasAttribute("UI")) 
+				this.legacyweb = "custom".equals(settings.getAttribute("UI").toLowerCase());
+			
+			if (this.legacyweb)
+				this.specialExtensions = WebSite.EXTENSIONS_LEGACY;
+			
+			// TODO load tag addons (tagmap)
 			
 			// collect packages - if not in the domain, then go look in the packages 
 			for (XElement pel :  settings.selectAll("Package")) 
@@ -162,11 +157,12 @@ public class WebSite {
 				// add to the package name list all the packages turned on for entire web service
 				if (webextconfig != null) {
 					for (XElement pel :  webextconfig.selectAll("Package"))
-						packagenames.add(pel.hasAttribute("Id") ? pel.getAttribute("Id") :pel.getAttribute("Name"));
+						packagenames.add(pel.getAttribute("Name"));
 				}
 			}
 		}
 		
+		// adjust the order the packages
 		this.packagelist = Hub.instance.getResources().getPackages().buildLookupList(packagenames);
 		
 		if (Logger.isDebug())
@@ -251,6 +247,7 @@ public class WebSite {
 		return null;
 	}
 
+	// flag that means only use shared sessions and not regular sessions
 	public boolean isSharedSession() {
 		return this.sharedsessenabled;
 	}
@@ -287,7 +284,7 @@ public class WebSite {
 			host = host.substring(0, pos);
 		}
 		
-		XElement web = this.webconfig.selectFirst("Web");
+		XElement web = this.webconfig;
 		
 		if (web == null)
 			return null;
@@ -344,11 +341,14 @@ public class WebSite {
 		
 		if (Logger.isDebug())
 			Logger.debug("Translating path: " + ctx.getRequest().getPath());
-		
-		this.translatePath(ctx);
-		
+
 		CommonPath path = ctx.getRequest().getPath();
-	
+				
+		if (path.isRoot()) {
+			path = this.getHomePath();
+			ctx.getRequest().setPath(path);
+		}
+		
 		if (Logger.isDebug())
 			Logger.debug("Process path: " + path);
 		
@@ -474,6 +474,9 @@ public class WebSite {
 		// only developers and sysadmins should make changes that can run server scripts
 		if ((path.getNameCount() > 1) && ("galleries".equals(path.getName(0)) || "files".equals(path.getName(0)))) {
 			ioa = new StaticOutputAdapter();
+		}
+		else if (this.legacyweb && (filename.endsWith(".dcui.xml") || filename.endsWith(".dcuis.xml"))) {
+			ioa = (IOutputAdapter) Hub.instance.getInstance("dcraft.web.ui.adapter.DcuiOutputAdapter");
 		}
 		else if (filename.endsWith(".html")) {
 			if (hmode == HtmlMode.Ssi) 

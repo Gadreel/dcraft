@@ -51,7 +51,7 @@ public class UtilitiesAdapter {
 				
 				try {
 					// see if there is even such a table in the schema
-					tables.rebuildIndexes(dm.getTenantInfo(did), when);
+					tables.rebuildIndexes(dm.resolveTenantInfo(did), when);
 					
 					return true;
 				}

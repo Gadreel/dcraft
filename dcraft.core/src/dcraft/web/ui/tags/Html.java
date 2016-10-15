@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import dcraft.filestore.CommonPath;
-import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
+import dcraft.hub.SiteInfo;
 import dcraft.lang.op.OperationContext;
 import dcraft.util.StringUtil;
 import dcraft.web.core.IOutputAdapter;
@@ -120,10 +120,9 @@ public class Html extends MixIn {
 				.with(new UIElement("title").withText("@val|PageTitle@ - @ctx|SiteTitle@"))   
 	   		;
 	    	
-	    	TenantInfo domain = work.get().getContext().getTenant();
+	    	SiteInfo site = work.get().getContext().getSite();
 			
-			XElement domainconfig = domain.getSettings();
-			XElement domainwebconfig =  (domainconfig != null) ? domainconfig.selectFirst("Web") : null;
+			XElement domainwebconfig = site.getWebsite().getWebConfig();
 			
 			String icon = this.getAttribute("Icon");
 			
@@ -134,7 +133,7 @@ public class Html extends MixIn {
 				icon = domainwebconfig.getAttribute("Icon");
 			
 			if (StringUtil.isEmpty(icon))
-				icon = "/dcw/logo";
+				icon = "/imgs/logo";
 			
 			if (StringUtil.isNotEmpty(icon)) { 
 				// if full name then use as the 16x16 version

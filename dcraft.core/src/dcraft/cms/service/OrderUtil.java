@@ -90,7 +90,7 @@ public class OrderUtil {
 						
 						// TODO lookup user and see if they are in "test" mode - this way some people can run test orders through system
 						
-						XElement dsettings = OperationContext.get().getTenant().getSettings();
+						XElement dsettings = OperationContext.get().getSite().getSettings();
 						
 						XElement sset = dsettings.find("Store");
 						
@@ -219,7 +219,7 @@ public class OrderUtil {
 					return;
 				}
 				
-				XElement dsettings = OperationContext.get().getTenant().getSettings();
+				XElement dsettings = OperationContext.get().getSite().getSettings();
 				
 				AtomicReference<BigDecimal> itmcalc = new AtomicReference<>(BigDecimal.ZERO);
 				AtomicReference<BigDecimal> taxcalc = new AtomicReference<>(BigDecimal.ZERO);

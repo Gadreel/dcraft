@@ -54,7 +54,7 @@ public class UIUtil {
 		Map<String, Class<? extends XElement>> tagmap = new HashMap<String, Class<? extends XElement>>();
 
 		// fully server side, not sent to client
-		tagmap.put("html", Html.class);
+		tagmap.put("dc.Html", Html.class);
 		tagmap.put("dc.MixIn", MixIn.class);		// TODO figure out MixIn role - it is nice in NAK Simple-2
 		tagmap.put("body", Fragment.class);
 		tagmap.put("dc.Fragment", Fragment.class);

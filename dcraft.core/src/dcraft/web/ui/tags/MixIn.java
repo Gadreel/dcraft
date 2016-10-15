@@ -2,7 +2,7 @@ package dcraft.web.ui.tags;
 
 import java.lang.ref.WeakReference;
 
-import dcraft.cms.feed.tool.FeedAdapter;
+import dcraft.cms.feed.core.FeedAdapter;
 import dcraft.lang.CountDownCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;

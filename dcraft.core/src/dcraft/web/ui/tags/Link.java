@@ -16,19 +16,10 @@ public class Link extends UIElement {
 	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		String to = this.getAttribute("To", "#");
-		this.removeAttribute("To");
-		
 		String label = this.getAttribute("Label");
-		this.removeAttribute("Label");
-		
 		String icon = this.getAttribute("Icon");
-		this.removeAttribute("Icon");
-		
 		String click = this.getAttribute("Click");
-		this.removeAttribute("Click");
-		
 		String page = this.getAttribute("Page");
-		this.removeAttribute("Page");
 		
 		if (StringUtil.isNotEmpty(label))
 			this.withText(label);

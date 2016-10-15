@@ -328,12 +328,11 @@ Context: {
 					// be sure to send the message with the correct context
 					this.useContext();
 					
-					Message vmsg = new Message("dcAuth", "Authentication", "Verify");
-			    	
-					Hub.instance.getBus().sendMessage(vmsg, r ->	{	
-						Session.this.setUser(r.hasErrors() ? UserContext.allocateGuest() : r.getContext().getUserContext());
-						
-						// TODO communicate to session initiator that our context has changed
+					this.verifySession(new FuncCallback<Message>() {				
+						@Override
+						public void callback() {
+							// TODO communicate to session initiator that our context has changed
+						}
 					});
 				}
 				finally {
@@ -730,30 +729,27 @@ Context: {
 					return;
 				}
 				else if ("ReloadUser".equals(op)) {
-					Message vmsg = new Message("dcAuth", "Authentication", "Verify");
-			    	
-					Hub.instance.getBus().sendMessage(vmsg, r ->	{	
-						UserContext uc = r.hasErrors() ? UserContext.allocateGuest() : r.getContext().getUserContext();
-						
-						Session.this.setUser(uc);
-						
-						if (r.hasErrors()) {
-							Session.this.reply(r.getResult(), msg);
-							return;
+					this.verifySession(new FuncCallback<Message>() {				
+						@Override
+						public void callback() {
+							Message rmsg = this.getResult();
+							
+							if (rmsg.hasErrors()) {
+								Session.this.reply(rmsg, msg);
+								return;
+							}
+							
+							rmsg = new Message();
+							
+							RecordStruct body = new RecordStruct();							
+							rmsg.setField("Body", body);
+							
+							Session.this.user.freezeRpc(body);
+							
+							body.setField("SessionId", Session.this.id);		
+							
+							Session.this.reply(rmsg, msg);
 						}
-						
-						Message rmsg = new Message();
-						
-						// TODO review how this is used/give less info to caller by default
-						RecordStruct body = new RecordStruct();							
-						rmsg.setField("Body", body);
-						
-						Session.this.user.freezeRpc(body);
-						
-						body.setField("SessionId", Session.this.id);		
-						//body.setField("SessionKey", Session.this.key);				// TODO remove this, use only the HTTPONLY cookie for key - resolve for Java level clients
-						
-						Session.this.reply(rmsg, msg);
 					});
 					
 					return;
@@ -1070,6 +1066,7 @@ Context: {
 		this.setUser(new OperationContextBuilder()
 			.withGuestUserTemplate()
 			.withTenantId(this.user.getTenantId())
+			.withSite(this.user.getSiteAlias())
 			.toUserContext());
 	}
 

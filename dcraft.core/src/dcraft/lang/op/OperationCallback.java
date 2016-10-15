@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import dcraft.hub.Hub;
 import dcraft.lang.TimeoutPlan;
+import dcraft.log.Logger;
 import dcraft.scheduler.ISchedule;
 import dcraft.work.IWork;
 import dcraft.work.Task;
@@ -144,6 +145,9 @@ abstract public class OperationCallback extends OperationResult {
 			
 			// TODO review, this may not be useful
 			//this.opcontext.fireEvent(OperationEvents.COMPLETED, null);
+		}
+		catch (Exception x) {
+			Logger.warn("Callback failure: " + x);
 		}
 		finally {
 			OperationContext.set(ctx);

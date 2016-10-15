@@ -48,6 +48,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
+import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.HttpContent;
@@ -87,7 +88,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     	
     	if (wctx == null) 
     		this.context = wctx = WebContext.from(ctx.channel());
-    	
+
+    	if (this.context.getChannel() == null)
+    		this.context.setChannel(ctx.channel());
+    	    	
     	if (msg instanceof HttpContent) {
     		this.context.offerContent((HttpContent)msg);
     		return;
@@ -714,21 +718,29 @@ Cookie: SessionId=00700_fa2h199tkc2e8i2cs4e8s9ujhh_EetvVV9EocXc; $Path="/"
 
 	 * 
      */
-
+	
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        Logger.warn("Web server connection exception was " + cause);
-    	
-    	if (Logger.isDebug())
-    		Logger.debug("Web server connection exception was " + ctx.channel().localAddress() 
+    	if (cause instanceof ReadTimeoutException) {
+    		Logger.info("Web server closed channel, read timeout " + ctx.channel().localAddress() 
     				+ " from " + ctx.channel().remoteAddress()); // + " session " + this.context.getSession().getId());
+    	}
+    	else {
+	        Logger.warn("Web server connection exception was " + cause);
+	    	
+	    	if (Logger.isDebug())
+	    		Logger.debug("Web server connection exception was " + ctx.channel().localAddress() 
+	    				+ " from " + ctx.channel().remoteAddress()); // + " session " + this.context.getSession().getId());
+    	}
     	
-    	// TODO logging
-    	//System.out.println("EC?");
-        //?cause.printStackTrace();        
-        ctx.close();
+    	ctx.close();
+    	
+    	WebContext wctx = this.context;
+    	
+    	if (wctx != null) 
+    		wctx.closed();
     }
-
+    
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
     	if (Logger.isDebug())

@@ -39,7 +39,7 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
 
 import dcraft.bus.Message;
-import dcraft.cms.feed.tool.FeedAdapter;
+import dcraft.cms.feed.core.FeedAdapter;
 import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
@@ -51,16 +51,17 @@ import dcraft.net.ssl.SslHandler;
 import dcraft.session.Session;
 import dcraft.struct.CompositeStruct;
 import dcraft.struct.RecordStruct;
+import dcraft.struct.Struct;
 import dcraft.util.KeyUtil;
 import dcraft.util.MimeUtil;
 import dcraft.util.StringUtil;
 import dcraft.web.WebModule;
-import dcraft.web.mdx.Configuration;
-import dcraft.web.mdx.ProcessContext;
-import dcraft.web.mdx.plugin.GallerySection;
-import dcraft.web.mdx.plugin.HtmlSection;
-import dcraft.web.mdx.plugin.PairedMediaSection;
-import dcraft.web.mdx.plugin.StandardSection;
+import dcraft.web.md.Configuration;
+import dcraft.web.md.ProcessContext;
+import dcraft.web.md.plugin.GallerySection;
+import dcraft.web.md.plugin.HtmlSection;
+import dcraft.web.md.plugin.PairedMediaSection;
+import dcraft.web.md.plugin.StandardSection;
 import dcraft.xml.XElement;
 
 @SuppressWarnings("deprecation")
@@ -499,20 +500,13 @@ public class WebContext implements IInnerContext {
 			  
 			  String val = this.getInternalParam(vname);
 			  
-			  // TODO review and remove paths, excessive
-			  if ((val == null) && (vname.equals("SignInPath") || vname.equals("HomePath") || vname.equals("PortalPath")
-					  || vname.equals("SiteTitle") || vname.equals("SiteAuthor") || vname.equals("SiteCopyright")))
+			  if ((val == null) && (vname.equals("SiteTitle") || vname.equals("SiteAuthor") || vname.equals("SiteCopyright")))
 			  {
-				TenantInfo domain = this.getTenant();
+				  // TODO fall back to site title ??
+				  XElement web = this.getSite().getWebsite().getWebConfig();
 				
-				XElement domconfig = domain.getSettings();
-				
-				if (domconfig != null) {
-					XElement web = domconfig.selectFirst("Web");
-					
-					if ((web != null) && (web.hasAttribute(vname))) 
-						val = web.getRawAttribute(vname);
-				}
+				  if ((web != null) && (web.hasAttribute(vname))) 
+					  val = web.getRawAttribute(vname);
 			  }
 			  
 			  // if not a web setting, perhaps a user field?
@@ -588,7 +582,7 @@ public class WebContext implements IInnerContext {
 		return fpath.asXml();
 	}
 	
-	// string path is relative to tenants/[alias]/[path]
+	// string path is relative to tenants/[alias]/[section]/[path]
 	public CompositeStruct getJsonResource(String section, String path) {
 		CacheFile fpath = this.getSite().getWebsite().findSectionFile(section, path, this.isPreview());
 		
@@ -598,7 +592,7 @@ public class WebContext implements IInnerContext {
 		return fpath.asJson();
 	}
 	
-	// string path is relative to tenants/[alias]/[path]
+	// string path is relative to tenants/[alias]/[section]/[path]
 	public String getTextResource(String section, String path) {
 		CacheFile fpath = this.getSite().getWebsite().findSectionFile(section, path, this.isPreview());
 		
@@ -609,7 +603,12 @@ public class WebContext implements IInnerContext {
 	}
 	
 	public FeedAdapter getFeedAdapter(String alias, String path) {
-		XElement feed = OperationContext.get().getTenant().getSettings().find("Feed");
+		XElement settings = OperationContext.get().getSite().getSettings();
+		
+		if (settings == null) 
+			return null;
+		
+		XElement feed = settings.find("Feed");
 		
 		if (feed == null) 
 			return null;
@@ -647,6 +646,23 @@ public class WebContext implements IInnerContext {
 	
 	public CompositeStruct getGalleryMeta(String path) {
 		return this.getJsonResource("galleries", path + "/meta.json");
+	}
+	
+	public void forEachGalleryShowImage(String path, String show, GalleryImageConsumer consumer) {
+		RecordStruct gallery = (RecordStruct) this.getGalleryMeta(path);
+		
+		if ((gallery != null) && (gallery.hasField("Shows"))) {
+			for (Struct s : gallery.getFieldAsList("Shows").getItems()) {
+				RecordStruct showrec = (RecordStruct) s;
+				
+				if (!show.equals(showrec.getFieldAsString("Alias")))
+					continue;
+				
+				for (Struct i : showrec.getFieldAsList("Images").getItems()) {
+					consumer.accept(gallery, showrec, i);
+				}
+			}
+		}
 	}
 
 	// TODO enhance how plugins are loaded

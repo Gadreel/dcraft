@@ -508,6 +508,7 @@ public class AuthService extends ExtensionBase implements IService {
 		OperationContext.switchUser(ctx, new OperationContextBuilder()
 			.withGuestUserTemplate()
 			.withTenantId(uc.getTenantId())
+			.withSite(uc.getSiteAlias())
 			.toUserContext());
 	}
 	

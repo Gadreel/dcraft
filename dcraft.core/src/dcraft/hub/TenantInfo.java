@@ -135,10 +135,7 @@ public class TenantInfo extends CommonInfo {
 	}
 	
 	public XElement getSettings() {
-		if (this.settings != null)
-			return this.settings;
-		
-		return this.info.getFieldAsXml("Settings");
+		return this.settings;
 	}
 	
 	public SchemaManager getSchema() {
@@ -267,9 +264,14 @@ public class TenantInfo extends CommonInfo {
 		// =====================================
 		// load settings
 		// =====================================
+		
+		// start with default settings for domain
+		this.settings = this.info.getFieldAsXml("Settings");
+		
+		// then override if find any in config
 		Path cpath = this.resolvePath("/config");
 
-		if ((cpath != null) && Files.notExists(cpath)) {
+		if ((cpath != null) && Files.exists(cpath)) {
 			Path cspath = cpath.resolve("settings.xml");
 	
 			if (Files.exists(cspath)) {
@@ -457,5 +459,7 @@ public class TenantInfo extends CommonInfo {
 
 	public void registerSiteDomain(String dname, SiteInfo site) {
 		this.domainsites.put(dname, site);
+		
+		Hub.instance.getTenants().registerDomain(dname, this);
 	}
 }

@@ -20,11 +20,12 @@ import dcraft.util.StringUtil;
 
 public class TenantManager {
 	// domain tracking
-	protected DomainNameMapping<TenantInfo> dnamemap = new DomainNameMapping<>();
-	protected ConcurrentHashMap<String, TenantInfo> dsitemap = new ConcurrentHashMap<>();
+	protected DomainNameMapping<TenantInfo> domainmap = new DomainNameMapping<>();
+	protected ConcurrentHashMap<String, TenantInfo> idmap = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, TenantInfo> aliasmap = new ConcurrentHashMap<>();
 	
 	public Collection<TenantInfo> getTenants() {
-		return this.dsitemap.values();
+		return this.idmap.values();
 	}
 
 	public void dumpTenantNames() {
@@ -36,11 +37,17 @@ public class TenantManager {
 			return null;
 		
 		// if this is a domain id then return it
-		if (this.dsitemap.containsKey(domain))
+		if (this.idmap.containsKey(domain))
 			return domain;
 
 		// if not an id then try lookup of domain name
-		TenantInfo di = this.dnamemap.get(domain);
+		TenantInfo di = this.domainmap.get(domain);
+		
+		if (di != null)
+			return di.getId();
+
+		// if not an id then try lookup of alias
+		di = this.aliasmap.get(domain);
 		
 		if (di != null)
 			return di.getId();
@@ -53,29 +60,28 @@ public class TenantManager {
 			return null;
 		
 		// if this is a domain id then return it
-		TenantInfo di = this.dsitemap.get(domain);
+		TenantInfo di = this.idmap.get(domain);
 		
 		if (di != null)
 			return di;
 
 		// if not an id then try lookup of domain name
-		di = this.dnamemap.get(domain);
+		di = this.domainmap.get(domain);
+		
+		if (di != null)
+			return di;
+
+		// if not an id then try lookup of domain alias
+		di = this.aliasmap.get(domain);
 		
 		if (di != null)
 			return di;
 		
 		return null;
 	}
-		
-	public TenantInfo getTenantInfo(String id) {
-		if (StringUtil.isEmpty(id))
-			return null;
-		
-		return this.dsitemap.get(id);
-	}
 	
 	public void updateTenantRecord(String did, RecordStruct drec) {
-		TenantInfo di = TenantManager.this.dsitemap.get(did);
+		TenantInfo di = TenantManager.this.idmap.get(did);
 		
 		// update old
 		if (di != null) {
@@ -84,24 +90,30 @@ public class TenantManager {
 			if (names != null)
 				for (Struct dn : names.getItems()) {
 					String n = Struct.objectToCharsStrict(dn).toString();
-					TenantManager.this.dnamemap.remove(n);
+					this.domainmap.remove(n);
 				}
 		}
 		// insert new
 		else {
 			di = TenantInfo.from(drec);
-			TenantManager.this.dsitemap.put(did, di);
+			this.idmap.put(did, di);
 		}
 		
 		di.load(drec);
+
+		this.aliasmap.put(di.getAlias(), di);
 		
 		ListStruct names = di.getNames();
 
 		if (names != null)
 			for (Struct dn : names.getItems()) {
 				String n = Struct.objectToCharsStrict(dn).toString();
-				TenantManager.this.dnamemap.add(n, di);
+				this.domainmap.add(n, di);
 			}
+	}
+
+	public void registerDomain(String domain, TenantInfo tenantInfo) {
+		this.domainmap.add(domain, tenantInfo);
 	}
 	
 	public void init() {
@@ -153,50 +165,74 @@ public class TenantManager {
 		
 		// register for file store events before we start any services that might listen to these events
 		// we need to catch domain config change events 
-		if (Hub.instance.getTenantsFileStore() != null) { 
-			/*	Examples:
-				./tenants/[domain alias]/config     holds web setting for tenant
-					- settings.xml are the general settings (dcmHomePage - dcmDefaultTemplate[path]) - editable in CMS only
-					- dictionary.xml is the domain level dictionary - direct edit by web dev
-					- vars.json is the domain level variable store - direct edit by web dev
-			*/
-			
-			FuncCallback<FileStoreEvent> localfilestorecallback = new FuncCallback<FileStoreEvent>() {
-				@Override
-				public void callback() {
-					this.resetCalledFlag();
-					
-					CommonPath p = this.getResult().getPath();
-					
-					//System.out.println(p);
-					
-					// only notify on config updates
-					if (p.getNameCount() < 4) 
-						return;
-					
-					// must be inside a domain or we don't care
-					String mod = p.getName(0);
-					String domain = p.getName(1);
-					String section = p.getName(2);
-					
-					if ("dcw".equals(mod)) {
-						for (TenantInfo wdomain : TenantManager.this.dsitemap.values()) {
-							if (domain.equals(wdomain.getAlias())) {
-								if (("config".equals(section) || "services".equals(section) || "glib".equals(section) || "buckets".equals(section))) {
-									wdomain.reloadSettings();
-									Hub.instance.fireEvent(HubEvents.TenantConfigChanged, wdomain);
-								}
-								
-								wdomain.fileChanged(this.getResult());								
-								break;
-							}
-						}
-					}
+
+		/*	Examples:
+			./tenants/[domain alias]/config     holds web setting for tenant
+				- settings.xml are the general settings (dcmHomePage - dcmDefaultTemplate[path]) - editable in CMS only
+				- dictionary.xml is the domain level dictionary - direct edit by web dev
+				- vars.json is the domain level variable store - direct edit by web dev
+		*/
+		
+		FuncCallback<FileStoreEvent> localfilestorecallback = new FuncCallback<FileStoreEvent>() {
+			@Override
+			public void callback() {
+				this.resetCalledFlag();
+				
+				CommonPath p = this.getResult().getPath();
+				
+				//System.out.println(p);
+				
+				// only notify on section updates - no notice to root of a tenant
+				if (p.getNameCount() < 3) 
+					return;
+				
+				// must be inside a domain or we don't care
+				String tenant = p.getName(0);
+				String section = p.getName(1);
+				
+				TenantInfo ten = TenantManager.this.resolveTenantInfo(tenant);
+				
+				if (("config".equals(section) || "services".equals(section) || "glib".equals(section) || "buckets".equals(section))) {
+					ten.reloadSettings();
+					Hub.instance.fireEvent(HubEvents.TenantConfigChanged, ten);
 				}
-			};
-			
-			Hub.instance.getTenantsFileStore().register(localfilestorecallback);
-		}		
+				
+				if ("feed".equals(section) || "feed-preview".equals(section)) {
+					/*  TODO automatically import feeds - also do so in nightly backup task if the feed date is recent
+					 * 
+					Task task = new Task()
+						.withWork(new IWork() {
+							@Override
+							public void run(TaskRun trun) {
+								ImportWebsiteTool iutil = new ImportWebsiteTool();
+								
+								
+								// TODO use domain path resolution
+								iutil.importFeedFile(Paths.get("./public" + p), new OperationCallback() {
+									@Override
+									public void callback() {
+										trun.complete();
+									}
+								});
+							}
+						})
+						.withTitle("Importing feed " + p)
+						.withTopic("Batch")		// only one at a time
+						.withContext(new OperationContextBuilder()
+							.withRootTaskTemplate()
+							.withTenantId(wdomain.getId())
+							.toOperationContext()
+						);
+					
+					Hub.instance.getWorkPool().submit(task);
+					 */
+				}
+				
+				ten.fileChanged(this.getResult());								
+			}
+		};
+		
+		Hub.instance.getTenantsFileStore().register(localfilestorecallback);
 		
 		Hub.instance.getBus().sendMessage(
 			new Message("dcTenants", "Manager", "LoadAll"), 

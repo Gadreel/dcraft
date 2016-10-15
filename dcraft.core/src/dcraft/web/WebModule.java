@@ -29,6 +29,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,9 +43,6 @@ import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.HubEvents;
 import dcraft.hub.SiteInfo;
-import dcraft.io.FileStoreEvent;
-import dcraft.io.LocalFileStore;
-import dcraft.lang.op.FuncCallback;
 import dcraft.log.Logger;
 import dcraft.mod.ExtensionLoader;
 import dcraft.mod.ModuleBase;
@@ -116,17 +114,12 @@ public class WebModule extends ModuleBase {
 	protected ConcurrentHashMap<Integer, Channel> activelisteners = new ConcurrentHashMap<>();
     protected ReentrantLock listenlock = new ReentrantLock();
 	
-	// --- website manager ---
-	
-	//protected String version = null;
 	protected String defaultTlsPort = "443";
 	
 	protected List<SslContextFactory> tls = new ArrayList<>(); 
 
 	protected Map<String,IWebMacro> macros = new HashMap<String,IWebMacro>();
 	protected ValuesMacro vmacros = new ValuesMacro();
-	
-	protected List<XElement> devices = new ArrayList<XElement>();
 	
 	protected boolean sharedSession = false;
 	
@@ -159,8 +152,6 @@ public class WebModule extends ModuleBase {
 			if (settings != null) {
 				// ideally we would only load in Hub level settings, try to use sparingly
 				MimeUtil.load(settings);
-				
-				this.devices = settings.selectAll("DeviceRule");
 				
 				for (XElement macros : settings.selectAll("Macro")) {
 					String name = macros.getAttribute("Name");
@@ -204,110 +195,6 @@ public class WebModule extends ModuleBase {
 			}
 		}
 		
-		// ========================================================================
-		
-		/**
-		 * - ./private/tenants/filetransferconsulting/www-preview/dcf/index.html
-		 * - ./private/tenants/filetransferconsulting/www/dcf/index.html
-		 * - ./public/tenants/filetransferconsulting/www-preview/dcf/index.html
-		 * - ./public/tenants/filetransferconsulting/www/dcf/index.html
-		 */			
-
-		FuncCallback<FileStoreEvent> localfilestorecallback = new FuncCallback<FileStoreEvent>() {
-			@Override
-			public void callback() {
-				this.resetCalledFlag();
-				
-				/* TODO rework so it works for Sites and Tenants - perhaps setup in the domain itself?
-				 * 
-				CommonPath p = this.getResult().getPath();
-				
-				//System.out.println(p);
-				
-				// only notify on www updates
-				if (p.getNameCount() < 4) 
-					return;
-				
-				// must be inside a domain or we don't care
-				String mod = p.getName(0);
-				String domain = p.getName(1);
-				String section = p.getName(2);
-				
-				if (!"dcw".equals(mod) || (!"www".equals(section) && !"www-preview".equals(section) && !"feed".equals(section) && !"feed-preview".equals(section)))
-					return;
-				
-				for (TenantSettings wdomain : WebSiteManager.this.dsitemap.values()) {
-					if (domain.equals(wdomain.getAlias())) {
-						wdomain.dynNotify();
-						
-						// TODO after we merge TenantInfo and WebDomain features this will work better,
-						// right now feed only gets imported if the domain has been loaded via HTTP(S) request
-						/*
-						if ("feed".equals(section) || "feed-preview".equals(section)) {
-							Task task = new Task()
-								.withWork(new IWork() {
-									@Override
-									public void run(TaskRun trun) {
-										ImportWebsiteTool iutil = new ImportWebsiteTool();
-										
-										
-										// TODO use domain path resolution
-										iutil.importFeedFile(Paths.get("./public" + p), new OperationCallback() {
-											@Override
-											public void callback() {
-												trun.complete();
-											}
-										});
-									}
-								})
-								.withTitle("Importing feed " + p)
-								.withTopic("ServicePool")		// only one at a time
-								.withContext(new OperationContextBuilder()
-									.withRootTaskTemplate()
-									.withTenantId(wdomain.getId())
-									.toOperationContext()
-								);
-							
-							Hub.instance.getWorkPool().submit(task);
-						}
-						* /
-						
-						break;
-					}
-				}
-				*/
-			}
-		};
-		
-		// register for file store events
-		LocalFileStore pubfs = Hub.instance.getTenantsFileStore();
-		
-		if (pubfs != null) 
-			pubfs.register(localfilestorecallback);
-
-		/**
-		 * - ./packages/zCustomPublic/www/dcf/index.html
-		 * - ./packages/dc/dcFilePublic/www/dcf/index.html
-		 * - ./packages/dcWeb/www/dcf/index.html
-		 */			
-
-		FuncCallback<FileStoreEvent> localpackagecallback = new FuncCallback<FileStoreEvent>() {
-			@Override
-			public void callback() {
-				// TODO restore this
-				//for (TenantSettings domain : WebSiteManager.this.dsitemap.values())
-				//	domain.dynNotify();
-				
-				this.resetCalledFlag();
-			}
-		};
-		
-		// register for package file events
-		LocalFileStore packfs = Hub.instance.getResources().getPackages().getPackageFileStore();
-		
-		if (packfs != null) 
-			packfs.register(localpackagecallback);		
-		
 		Hub.instance.subscribeToEvent(HubEvents.Connected, e -> this.goOnline());
 		Hub.instance.subscribeToEvent(HubEvents.Booted, e -> this.goOffline());
 	}
@@ -347,6 +234,8 @@ public class WebModule extends ModuleBase {
 					protected void initChannel(SocketChannel ch) throws Exception {
 		    	        ChannelPipeline pipeline = ch.pipeline();
 		    	        
+		    	        pipeline.addLast("timeout", new ReadTimeoutHandler(600));   // solves notebook sleep issue.  after 10 minutes close socket
+
 		    	        if (secure) 
 		    	        	pipeline.addLast("ssl", new SniHandler());
 		    	        
@@ -391,8 +280,6 @@ public class WebModule extends ModuleBase {
 		finally {
 			this.listenlock.unlock();
 		}
-		
-		// TODO
 	}
 	
 	public void goOffline() {
@@ -460,44 +347,4 @@ public class WebModule extends ModuleBase {
 	public IWebExtension getWebExtension() {
 		return this.webExtension;
 	}
-	
-	public List<String> getDevice(Request req) {
-		List<String> res = new ArrayList<String>();
-		String agent = req.getHeader("User-Agent");
-		
-		if (StringUtil.isEmpty(agent)) {
-			res.add("simple");
-			res.add("std");
-			res.add("mobile");
-			
-			return res;
-		}
-		
-		for (XElement el : this.devices) {
-			boolean fnd = (el.findIndex("AnyAgent") > -1);
-			
-			if (!fnd) {
-				for (XElement fel : el.selectAll("IfAgent")) {
-					if (agent.contains(fel.getAttribute("Contains"))) {
-						fnd = true;
-						break;
-					}
-				}
-			}
-			
-			if (fnd) {
-				for (XElement fel : el.selectAll("TryDevice")) {
-					String name = fel.getAttribute("Name");
-					
-					if (StringUtil.isNotEmpty(name)) 
-						res.add(name);
-				}
-				
-				break;
-			}
-		}
-		
-		return res;
-	}	
-	
 }

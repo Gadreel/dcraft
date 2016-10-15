@@ -1413,7 +1413,14 @@ public class OperationContext implements ITranslationAdapter {
 	
 	public String tr(String token, Object... params) {
 		ILocaleResource tr = this.getLocaleResource();
+		
+		if (tr == null)
+			return token;
+		
 		LocaleDefinition def = this.getWorkingLocaleDefinition();
+		
+		if (def == null)
+			return token;
 	
 		return tr.getDictionary().tr(tr, def, token, params);
 	}

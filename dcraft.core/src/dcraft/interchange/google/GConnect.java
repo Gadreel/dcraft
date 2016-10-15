@@ -24,6 +24,8 @@ public class GConnect {
 		if (settings == null)
 			return null;
 		
+		// TODO generalize this concept, ad utility for api/service lookup
+		
 		String apiid = Hub.instance.getResources().isForTesting() ? "Google-Test" : "Google";
 		
 		for (XElement api : settings.selectAll("ApiList/Api")) {

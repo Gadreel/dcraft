@@ -18,7 +18,7 @@ public class Markdown extends UIElement {
     	String content = this.getText();
 		
 		// TODO allocate from webdomain
-    	dcraft.web.mdx.Markdown mdp = new dcraft.web.mdx.Markdown();
+    	dcraft.web.md.Markdown mdp = new dcraft.web.md.Markdown();
 
 		try {
 			XElement root = "Safe".equals(mode) 

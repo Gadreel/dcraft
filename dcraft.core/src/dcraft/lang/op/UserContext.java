@@ -44,7 +44,7 @@ public class UserContext {
 		return new OperationContextBuilder()
 			.withGuestUserTemplate()
 			.withTenantId(currcon.getUserContext().getTenantId())
-			.withSite("root")
+			.withSite(currcon.getUserContext().getSiteAlias())
 			.toUserContext();
 	}
 	

@@ -30,7 +30,7 @@ import dcraft.db.update.ReviveRecordRequest;
 import dcraft.db.update.UpdateRecordRequest;
 import dcraft.hub.Hub;
 import dcraft.hub.HubEvents;
-import dcraft.io.LocalFileStore;
+import dcraft.hub.SiteInfo;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationContextBuilder;
@@ -318,42 +318,37 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				db.submit(req, new ObjectResult() {
 					@Override
 					public void process(CompositeStruct result) {
-						LocalFileStore fs = Hub.instance.getTenantsFileStore();
+						SiteInfo site = OperationContext.get().getSite();
 						
-						// TODO make it so we use the configured web folder - not just dcw
-						if (fs != null)  {
-							Path dspath = fs.getFilePath().resolve("dcw/" + rec.getFieldAsString("Alias") + "/");
-							
-							try {
-								Files.createDirectories(dspath.resolve("files"));
-								Files.createDirectories(dspath.resolve("galleries"));
-								Files.createDirectories(dspath.resolve("www"));
-							} 
-							catch (IOException x) {
-								request.error("Unable to create directories for new Tenant: " + x);
-								request.returnEmpty();
-								return;
-							}
-							
-							Path cpath = dspath.resolve("config/settings.xml");
-
-							XElement tenantsettings = new XElement("Settings",
-									new XElement("Web", 
-											new XAttribute("UI", "Custom"),
-											new XAttribute("SiteTitle", rec.getFieldAsString("Title")),
-											new XAttribute("SiteAuthor", rec.getFieldAsString("Title")),
-											new XAttribute("SiteCopyright", new DateTime().getYear() + ""),
-											new XElement("Package", 
-													new XAttribute("Name", "dcWeb")
-											),
-											new XElement("Package", 
-													new XAttribute("Name", "dc/dcCms")
-											)
-									)
-							);
-
-							IOUtil.saveEntireFile(cpath, tenantsettings.toString(true));							
+						try {
+							Files.createDirectories(site.resolvePath("files"));
+							Files.createDirectories(site.resolvePath("galleries"));
+							Files.createDirectories(site.resolvePath("www"));
+						} 
+						catch (IOException x) {
+							request.error("Unable to create directories for new Tenant: " + x);
+							request.returnEmpty();
+							return;
 						}
+						
+						Path cpath = site.resolvePath("config/settings.xml");
+
+						XElement tenantsettings = new XElement("Settings",
+								new XElement("Web", 
+										new XAttribute("UI", "Custom"),
+										new XAttribute("SiteTitle", rec.getFieldAsString("Title")),
+										new XAttribute("SiteAuthor", rec.getFieldAsString("Title")),
+										new XAttribute("SiteCopyright", new DateTime().getYear() + ""),
+										new XElement("Package", 
+												new XAttribute("Name", "dcWeb")
+										),
+										new XElement("Package", 
+												new XAttribute("Name", "dc/dcCms")
+										)
+								)
+						);
+
+						IOUtil.saveEntireFile(cpath, tenantsettings.toString(true));
 						
 						Hub.instance.fireEvent(HubEvents.TenantAdded, ((RecordStruct)result).getFieldAsString("Id"));
 						
@@ -365,19 +360,10 @@ public class CoreDataServices extends ExtensionBase implements IService {
 			}
 						
 			if ("ImportTenant".equals(op)) {
+				SiteInfo site = OperationContext.get().getSite();
 				String alias = rec.getFieldAsString("Alias");
 				
-				LocalFileStore fs = Hub.instance.getTenantsFileStore();
-				
-				if (fs == null)  {
-					request.error("Public file store not enabled.");
-					request.complete();
-					return;
-				}
-				
-				Path dspath = fs.getFilePath().resolve("dcw/" + alias + "/");
-				
-				Path cpath = dspath.resolve("config/settings.xml");
+				Path cpath = site.resolvePath("config/settings.xml");
 				
 				if (Files.notExists(cpath)) {
 					request.error("Settings file not present.");

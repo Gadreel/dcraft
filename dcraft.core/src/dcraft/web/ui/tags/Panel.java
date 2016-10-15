@@ -31,7 +31,7 @@ public class Panel extends UIElement {
 		// Default, Primary, Success, Info, Warning, Danger
 		String scope = this.getAttribute("Scope", "Primary").toLowerCase();
 		
-		this.setAttribute("class", this.getAttribute("class", "") + " dc-pui-panel dc-pui-panel-" + scope);
+		this.withClass("dc-pui-panel", "dc-pui-panel-" + scope);
 		
 		this.with(new UIElement("div")
 				.withAttribute("class", "dc-pui-panel-heading")

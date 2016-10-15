@@ -15,7 +15,6 @@ import dcraft.filestore.IFileStoreFile;
 import dcraft.filestore.local.FileSystemDriver;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
-import dcraft.io.LocalFileStore;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
@@ -106,18 +105,13 @@ public class Bucket {
 		// TODO enhance, someday this doesn't have to be a local FS
 		this.fsd = new FileSystemDriver();
 		
-		String root = ".\temp";
-		
 		// TODO load from settings
 		this.bestEvidence = "SHA256";
 		this.minEvidence = "Size";
 		
 		this.channels = Hub.instance.getSessions().createForService();
 		
-		LocalFileStore pubfs = Hub.instance.getTenantsFileStore();
-		
-		if (pubfs != null) 
-			root = di.resolvePath(bel.getAttribute("RootFolder", root)).toAbsolutePath().normalize().toString();
+		String root = di.resolvePath(bel.getAttribute("RootFolder", ".\temp")).toAbsolutePath().normalize().toString();
 
 		RecordStruct cparams = new RecordStruct().withField("RootFolder", root);
 		

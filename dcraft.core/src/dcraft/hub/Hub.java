@@ -48,6 +48,7 @@ import dcraft.api.IApiSessionFactory;
 import dcraft.bus.Bus;
 import dcraft.count.CountManager;
 import dcraft.ctp.net.CtpServices;
+import dcraft.db.Constants;
 import dcraft.db.DataRequest;
 import dcraft.db.IDatabaseManager;
 import dcraft.db.ObjectResult;
@@ -540,7 +541,7 @@ public class Hub {
 	}
 	
 	public TenantInfo getTenantInfo(String id) {
-		return this.tenantman.getTenantInfo(id);
+		return this.tenantman.resolveTenantInfo(id);
 	}
 	
 	/**
@@ -674,10 +675,22 @@ public class Hub {
 			or.exitCodeTr(139);
 			return or;
 		}
-		// load the sql databases, if any
 		
+		// load the dc databases, if any		
 		or.debug(0, "Initializing dcDatabase");
 		
+		// LEGACY support old tenant names
+		XElement dcdbmode = config.find("dcDatabaseMode");
+		
+		if (dcdbmode != null) {
+			if ("true".equals(dcdbmode.getAttribute("Legacy"))) {
+				// tenants used to be called domains - ignore this if past version 0.8
+				Constants.DB_GLOBAL_TENANT_DB = "dcDomain";
+				Constants.DB_GLOBAL_TENANT_IDX_DB = "dcDomainIndex";
+			}
+		}
+		
+		// start the database
 		XElement dcdb = config.find("dcDatabase");
 		
 		if (dcdb != null) {
@@ -713,7 +726,6 @@ public class Hub {
 		or.debug(0, "Initializing package file store");		
 		
 		this.resources.getPackages().init(or, config.find("PackageFileStore"));
-		
 		
 		XElement fstore = config.find("TenantsFileStore");
 		
