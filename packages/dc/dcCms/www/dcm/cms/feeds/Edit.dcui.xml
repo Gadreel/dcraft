@@ -52,7 +52,7 @@
 							<TextArea Name="Description" />
 						</FieldContainer>
 						<FieldContainer Label="Published:">
-							<TextInput Name="Published" Pattern="\d\d\d\d-\d\d-\d\d(\s\d\d:\d\d)?" placeholder="YYYY-MM-DD or YYYY-MM-DD hh:mm, military time" />
+							<TextInput Name="Published" xPattern="\d\d\d\d-\d\d-\d\d(\s\d\d:\d\d)?" placeholder="YYYY-MM-DD or YYYY-MM-DD hh:mm, military time" />
 						</FieldContainer>
 						<FieldContainer Label="Author:">
 							<TextInput Name="AuthorName" readonly="true" />
@@ -346,9 +346,9 @@
 				if (e.Data.hasOwnProperty(fldname) && (fldname != 'Tags')) {
 					var fld = e.Data[fldname];
 
-					if (fldname == 'Published')
+					if (fld && (fldname == 'Published')) 
 						fld = fld.replace(' ', 'T');
-
+	
 					savedata.SetFields.push({
 						Name: fldname,
 						Value: fld

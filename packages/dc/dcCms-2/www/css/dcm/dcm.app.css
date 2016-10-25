@@ -1,0 +1,272 @@
+
+.dcm-fb-header {
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;
+}
+
+.dcm-fb-icon img {
+	width: 50px;
+}
+
+.dcm-fb-stamp {
+	margin-left: 8px;
+}
+
+.dcm-fb-stamp h3 {
+	margin-top: 0;
+	margin-bottom: 2px;
+}
+
+.dcm-fb-stamp {
+	font-size: 14px;
+}
+
+.dcm-fb-body img {
+	max-width: 100%;
+}
+
+.dcm-ig-listing {
+	text-align: center;
+}
+
+.dcm-ig-entry img {
+	width: 114px;
+	margin-top: 8px;
+	margin-right: 8px;
+	float: right;
+}
+
+/*
+.dcuiSectionButton,
+.dcuiPartButton {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 28px;
+	height: 28px;
+	background-color: rgba(255,0,0,0.66);
+	color: black;
+	z-index: 100;
+	padding: 7px;
+	line-height: 0;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.dcuiPartButton {
+	right: 32px;
+}
+
+#dcuiIntegratedTab {
+	position: fixed;
+	top: 240px;
+	left: 0;
+	width: 28px;
+	height: 28px;
+	background-color: rgba(255,0,0,0.66);
+	z-index: 500;
+	padding: 7px;
+	line-height: 0;
+    overflow: hidden;
+    border-radius: 0px 8px 8px 0px;
+}
+
+#dcuiIntegratedTab:hover,
+.dcuiPartButton:hover,
+.dcuiSectionButton:hover {
+	color: white;
+	cursor: pointer;
+}
+
+#dcuiIntegratedCms {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: rgba(90,90,90,0.5);
+	z-index: 505;
+	overflow: hidden;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    -ms-flex-direction: row;
+    flex-direction: row;
+}
+
+#dcuiIntegratedPane {
+    -webkit-flex: 1 1 auto;
+    -ms-flex: 1 1 auto;
+	flex: 1 1 auto;
+	background: white;
+	margin: 0;
+    overflow: hidden;
+}
+*/
+
+/* each individual pane fills full */
+
+/*
+#dcuiIntegratedPane > div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+	overflow: hidden;
+	overflow-y: auto;
+}
+
+#dcuiIntegratedCms.ui-content {
+	padding: 0;
+}
+
+#dcuiIntegratedMenu {
+	width: 48px;
+	background: white;
+	margin: 0;
+	overflow: hidden;
+	overflow-y: auto;
+}
+
+#dcuiIntegratedMenuCntrl {
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column-reverse;
+    -ms-flex-direction: column-reverse;
+    flex-direction: column-reverse;
+    -webkit-flex-wrap: nowrap;
+    -ms-flex-wrap: nowrap;
+    flex-wrap: nowrap;
+    -webkit-justify-content: flex-end;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
+    -webkit-align-content: center;
+    -ms-flex-line-pack: center;
+    align-content: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+}
+
+#dcuiIntegratedMenuCntrl > a {
+	display: block;
+    -webkit-flex: 0 0 auto;
+    -ms-flex: 0 0 auto;
+    flex: 0 0 auto;
+	margin: 12px;
+    font-size: 32px;
+}
+
+#dcuiIntegratedMenuCntrl > a.disabled {
+	color: gray;
+}
+
+@media all and (max-width: 959px) {
+	#dcuiIntegratedMenu {
+		border-right: 3px solid #58595b;
+	}
+	
+	#dcuiIntegratedMenu > a {
+		display: none;
+	}
+}
+
+@media all and (min-width: 960px) {
+	#dcuiIntegratedCms.ui-content {
+		padding: 8px;
+	}
+	
+	#dcuiIntegratedPane {
+		margin: 8px;
+		border-radius: 10px 10px 10px 10px;
+	}
+	
+	#dcuiIntegratedMenu {
+		width: 240px;
+		margin: 8px;
+		border-radius: 10px 10px 10px 10px;
+	}
+	
+	#dcuiIntegratedMenuCntrl {
+	    -webkit-flex-direction: row;
+	    -ms-flex-direction: row;
+	    flex-direction: row;
+	}
+
+	#dcuiIntegratedMenuCntrl > a.mobile {
+		display: none;		
+	}
+}
+*/
+
+/******************************
+  controls in CMS
+*******************************/
+
+/*
+#dcuiIntegratedPane textarea.ui-input-text.ui-textinput-autogrow {
+    min-height: 150px;
+}
+
+.dcuiHelpViewer {
+	padding: 12px;
+}
+
+@media all and (min-width: 960px) {
+	.dcuiHelpViewer {
+		padding: 24px;
+	}
+}
+*/
+
+/******************************
+  for /dcm/cms/file/EditImage
+*******************************/
+
+/*
+#editImageControls {
+	display: flex;  
+}
+
+#editImageControls .ui-slider {
+	flex: 1;
+}
+
+#editImageCanvasPresenter {
+	position: relative;
+	border-top: 1px solid black;
+	background-color: white;
+}
+
+#imageDetailGrid {
+	display: flex;  
+}
+
+#imageDetailSettings {
+	width: 340px;
+	margin-right: 16px;
+}
+
+#imageDetailViewer {
+	flex: 1;
+	display: flex;  
+	flex-direction: column;
+}
+
+#imageDetailImg {
+	flex: 1;
+	text-align: center;
+}
+
+#imageDetailImg img {
+	border: 1px solid black;
+}
+
+.dcappFullMain {
+	height: 100%;
+}
+*/

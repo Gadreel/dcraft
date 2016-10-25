@@ -1,12 +1,12 @@
-<dcui Title="Edit Domain">
+<dcui Title="Edit Tenant">
 	<Skeleton>
 		<IncludePart Path="/dcw/app/Header" />
 
 		<div class="dcappWrapper">
 			<article id="dcappMain">
-				<h1>Edit Domain</h1>
+				<h1>Edit Tenant</h1>
 				
-				<Form Name="EditDomain">
+				<Form Name="EditTenant">
 					<FieldContainer Label="Title:">
 						<TextInput Name="Title" Required="true" />
 					</FieldContainer>
@@ -31,7 +31,7 @@
 				<div class="formbuttons">
 					<Button Label="Build Sitemap" Click="DoBuildSitemap" /> 
 					<Button Label="Import Site" Click="DoImportSite" /> 
-					<Button Label="Reindex Domain" Click="DoReindex" /> 
+					<Button Label="Reindex Tenant" Click="DoReindex" /> 
 				</div> 
 			</article>
 		</div>
@@ -44,8 +44,8 @@
 	<Function Name="LoadRecord" Params="e"><![CDATA[
 			e.Message = { 
 				Service: 'dcCoreDataServices',
-				Feature: 'Domains',
-				Op: 'MyLoadDomain'
+				Feature: 'Tenants',
+				Op: 'MyLoadTenant'
 			};
 	]]></Function>
 	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
@@ -67,8 +67,8 @@
 			
 			e.Message = { 
 				Service: 'dcCoreDataServices',
-				Feature: 'Domains',
-				Op: 'MyUpdateDomain',
+				Feature: 'Tenants',
+				Op: 'MyUpdateTenant',
 				Body: e.Data
 			};
 	]]></Function>
@@ -108,7 +108,7 @@
 				Service: 'dcCoreDataServices',
 				Feature: 'Database',
 				Op: 'ExecuteProc', 
-				Body: { Proc: 'dcReindexDomain' }
+				Body: { Proc: 'dcReindexTenant' }
 			}, function(rmsg) {
 				if (rmsg.Result > 0) {
 					dc.pui.Popup.alert('Unable to reindex tables: ' + rmsg.Message);

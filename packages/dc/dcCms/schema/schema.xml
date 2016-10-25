@@ -66,8 +66,73 @@
 		 -->
 	</Database>
 	
-	<Shared />
-	
+	<Shared>
+		<Record Id="dciSendMailStatus">
+			<Field Name="TotalSent" Type="Integer" />
+			<Field Name="LastErrors">
+				<List>
+					<Record>
+						<Field Name="At" Type="dcSmallString" />
+						<Field Name="Message" Type="String" />
+					</Record>
+				</List>
+			</Field>
+		</Record>
+		
+		<Record Id="dcEmailRecord">
+			<Field Name="To" Type="dcSmallString" Required="True" />
+			<Field Name="From" Type="dcSmallString" />
+			<Field Name="ReplyTo" Type="dcSmallString" />
+			<Field Name="Subject" Type="String" Required="True" />
+			<Field Name="Body" Type="String" Required="True" />
+			<Field Name="TextBody" Type="String" />
+			<Field Name="Attachments">
+				<List>
+					<Record>
+						<Field Name="Name" Type="dcSmallString" Required="True" />
+						<Field Name="Mime" Type="dcSmallString" Required="True" />
+						<Field Name="Content" Type="Binary" />
+						<Field Name="File" Type="dcString" />
+					</Record>
+				</List>
+			</Field>
+		</Record>
+		
+		<Record Id="dcEmailRequest">
+			<Field Name="To" Type="dcSmallString" Required="True" />
+			<Field Name="From" Type="dcSmallString" />
+			<Field Name="ReplyTo" Type="dcSmallString" />
+			<Field Name="Template" Type="dcString" />
+			
+			<!-- either Data or DataPath should be present to provide context to template -->
+			<Field Name="DataPath" Type="dcString" />
+			<Field Name="Data" Type="Any" />
+		</Record>
+
+		<!-- TODO move to legacy modules  -->		
+		<Record Id="dciEmailCore">
+			<Field Name="Subject" Type="String" Required="True" />
+			<Field Name="Body" Type="String" Required="True" />
+			<Field Name="TextBody" Type="String" />
+			<Field Name="Attachments">
+				<List>
+					<Record>
+						<Field Name="Name" Type="dcSmallString" Required="True" />
+						<Field Name="Mime" Type="dcSmallString" Required="True" />
+						<Field Name="Content" Type="Binary" />
+						<Field Name="File" Type="dcString" />
+					</Record>
+				</List>
+			</Field>
+		</Record>
+		
+		<Record Id="dciEmailRecord" Inherits="dciEmailCore">
+			<Field Name="To" Type="dcSmallString" Required="True" />
+			<Field Name="From" Type="dcSmallString" />
+			<Field Name="ReplyTo" Type="dcSmallString" />
+		</Record>
+	</Shared>
+		
 	<Services>
 		<Service Name="dcAuth">
 			<Secure Tags="Guest,User">
@@ -1227,7 +1292,84 @@
 				</Feature>
 			</Secure>
 		</Service>
-	
+		
+		<Service Name="dcmCore">
+			<Secure Tags="Admin">	
+				<Feature Name="Events">
+					<Op Name="Trigger">
+						<Description>
+							Trigger a site event.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Event" Required="True" Type="dcTinyString" />
+									<Field Name="Alternate" Type="dcTinyString" />
+									<Field Name="Data" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+
+		<Service Name="dcEmail">
+			<Secure Tags="Admin">		
+				<Feature Name="Message">
+					<Op Name="Send">
+						<Description>
+							Send emails.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True" Type="dcEmailRecord" />
+						</Request>
+						<Response Inherits="TaskResponseMessage" />
+					</Op>
+					<Op Name="BuildSend">
+						<Description>
+							Send emails that gets generated from a template.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True" Type="dcEmailRequest" />
+						</Request>
+						<Response Inherits="TaskResponseMessage" />
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+
+		
+		<!-- TODO clear out these legacy services -->
+		
+		<Service Name="dciEmail">
+			<Secure Tags="Admin">		
+				<Feature Name="Message">
+					<Op Name="Send">
+						<Description>
+							Send emails.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True" Type="dciEmailRecord" />
+						</Request>
+						<Response Inherits="TaskResponseMessage" />
+					</Op>
+				</Feature>
+				<Feature Name="Status">
+					<Op Name="Check">
+						<Description>
+							Status of service.
+						</Description>
+						<Request Inherits="RequestMessage" />
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body" Type="dciSendMailStatus" />
+						</Response>
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+			
 		<Service Name="dcmEmailBuilder">
 			<Secure Tags="Admin">		
 				<Feature Name="Message">

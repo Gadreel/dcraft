@@ -1,9 +1,0 @@
-<Config>
-	<Packages>
-	  <Package Name="dc/dcCore" />
-	  <Package Name="dc/dcCorePublic" />
-	  <Package Name="dc/dcInterchange" />	  
-	  <Package Name="dc/dcWeb" />	  
-	  <Package Name="dc/dcFilePublic" />
-	</Packages>
-</Config>

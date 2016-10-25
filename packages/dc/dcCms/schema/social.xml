@@ -1,0 +1,63 @@
+<Schema>
+	<Services>
+		<Service Name="dcmSocialMedia">
+			<Secure Tags="Guest,User">	
+				<Feature Name="Facebook">
+					<Op Name="Feed">
+						<Description>
+							Load a Facebook feed.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Alternate" Type="dcTinyString" />
+									<Field Name="Count" Type="Integer" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="PostId" Type="dcSmallString" />
+										<Field Name="Posted" Type="dcSmallString" />
+										<Field Name="By" Type="dcSmallString" />
+										<Field Name="ById" Type="dcSmallString" />
+										<Field Name="Message" Type="String" />
+										<Field Name="Picture" Type="dcString" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
+				<Feature Name="Instagram">
+					<Op Name="Feed">
+						<Description>
+							Load a Instagram feed.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Alternate" Type="dcTinyString" />
+									<Field Name="Count" Type="Integer" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="PostId" Type="dcSmallString" />
+										<Field Name="Link" Type="dcSmallString" />
+										<Field Name="Picture" Type="dcString" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
+			</Secure>
+		</Service>
+	</Services>
+</Schema>
