@@ -2,12 +2,19 @@ package dcraft.web.md.plugin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
+import dcraft.lang.op.FuncResult;
+import dcraft.log.Logger;
 import dcraft.struct.RecordStruct;
 import dcraft.struct.Struct;
+import dcraft.util.StringUtil;
+import dcraft.web.WebModule;
+import dcraft.web.core.GalleryImageConsumer;
 import dcraft.web.md.Plugin;
 import dcraft.web.md.ProcessContext;
 import dcraft.web.ui.UIElement;
+import dcraft.xml.XElement;
 
 public class GallerySection extends Plugin {
 	public GallerySection() {
@@ -16,8 +23,9 @@ public class GallerySection extends Plugin {
 
 	@Override
 	public void emit(ProcessContext ctx, UIElement parent, List<String> lines, Map<String, String> params) {
-        /* TODO
-		XElement cbox = new XElement("div")
+		UIElement cbox = new UIElement("div");
+		
+		cbox
 			.withAttribute("class", "dc-section dc-section-gallery " + (params.containsKey("Class") ? params.get("Class") : ""))
 			.withAttribute("data-dccms-section", "plugin");
 			
@@ -36,7 +44,7 @@ public class GallerySection extends Plugin {
 		parent.add(cbox);
 		
 		if (params.containsKey("Title"))
-			cbox.add(new XElement("h2", params.get("Title")));
+			cbox.add(new UIElement("h2").withText("Title"));
 		
 		// convert the template to one string 
         StringBuilder in = new StringBuilder();
@@ -56,7 +64,9 @@ public class GallerySection extends Plugin {
 
         out.append("<div>");
 
-        ctx.getWeb().forEachGalleryShowImage(params.get("Path"), params.get("Show"), new GalleryImageConsumer() {
+        ctx.getOutput().getSite().forEachGalleryShowImage(params.get("Path"), params.get("Show"), 
+        		ctx.getOutput().isPreview(), new GalleryImageConsumer() 
+        {
 			@Override
 			public void accept(RecordStruct meta, RecordStruct show, Struct img) {
 			  boolean checkmatches = true;
@@ -65,7 +75,7 @@ public class GallerySection extends Plugin {
 			  
 			  while (checkmatches) {
 				  checkmatches = false;
-				  Matcher m = Node.macropatten.matcher(value);
+				  Matcher m = WebModule.macropatten.matcher(value);
 				  
 				  while (m.find()) {
 					  String grp = m.group();
@@ -74,7 +84,7 @@ public class GallerySection extends Plugin {
 					  
 					  // if any of these, then replace and check (expand) again 
 					  if (val != null) {
-						  value = value.replace(grp, XElement.quote(val));
+						  value = value.replace(grp, UIElement.quote(val));
 						  checkmatches = true;
 					  }
 				  }
@@ -87,7 +97,7 @@ public class GallerySection extends Plugin {
         out.append("</div>");
 
         try {
-        	FuncResult<XElement> xres = XmlReader.parse(out, false);
+        	FuncResult<XElement> xres = ctx.getOutput().getSite().getWebsite().parseUI(out);
         	
         	if (xres.isNotEmptyResult()) {
         		XElement lbox = xres.getResult();
@@ -101,14 +111,13 @@ public class GallerySection extends Plugin {
 				cbox.add(lbox);
         	}
         	else {
-				cbox.add(new XElement("div")
+				cbox.add(new UIElement("div")
 					.withText("Error parsing section."));
         	}
         }
         catch (Exception x) {
         	Logger.error("Error adding gallery section: " + x);
         }
-        */
 	}
 
   public String expandMacro(ProcessContext ctx, String path, RecordStruct meta, RecordStruct show, Struct img, String macro) {

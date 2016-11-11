@@ -5,10 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import dcraft.filestore.CommonPath;
-import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.lang.op.OperationContext;
 import dcraft.util.StringUtil;
@@ -29,10 +27,6 @@ public class Html extends MixIn {
 		return this.hiddenattributes;
 	}
 	
-	public String getHiddenAttribute(String name) {
-		return (this.hiddenattributes == null ? null : XNode.unquote(this.hiddenattributes.get(name)));
-	}
-	
 	public List<XNode> getHiddenChildren() {
 		return this.hiddenchildren;
 	}
@@ -43,7 +37,7 @@ public class Html extends MixIn {
 	}
 	
 	public Html() {
-		super("html");
+		super("dc.Html");
 	}
 	
 	@Override
@@ -70,15 +64,30 @@ public class Html extends MixIn {
 		// don't change my identity until after the scripts run
 		this.setName("html");
 
-		XElement body = this.find("body");
+		UIElement body = (UIElement) this.find("dc.Body");
 		
 		if (body == null) {
-			body = new Fragment()
+			body = new Fragment();
+			
+			body
 				.with(new UIElement("h1")
 						.withText("Missing Body Error!!")
 				);
+		}
+
+		String pc = this.getAttribute("PageClass");
+		
+		if (StringUtil.isNotEmpty(pc)) 
+			body.withClass(pc);
+		
+		for (XNode rel : this.getChildren()) {
+			if (! (rel instanceof XElement))
+				continue;
+
+			XElement xel = (XElement) rel;
 			
-			this.add(body);
+			if (xel.getName().equals("dc.Require") && xel.hasNotEmptyAttribute("Class")) 
+				body.withClass(xel.getAttribute("Class"));
 		}
 		
 		List<XElement> reqstyles =  this.selectAll("dc.RequireStyle");
@@ -92,8 +101,9 @@ public class Html extends MixIn {
 		this.children = new ArrayList<>();
     	
     	// setup a parameter so that PageTitle is available to macros when executing above
-    	this.withParam("PageTitle", XNode.unquote(this.hiddenattributes.get("Title")));
-
+		if (this.hiddenattributes != null) 
+			this.withParam("PageTitle", XNode.unquote(this.hiddenattributes.get("Title")));
+		
     	IOutputContext octx = work.get().getContext();
     	
     	if ((octx instanceof WebContext) && ((WebContext) octx).isDynamic()) {
@@ -199,25 +209,80 @@ public class Html extends MixIn {
 				);
 			}
 			
-			XElement del = this.find("dc.Description");
-			String desc = (del != null) ? del.getText() : "@ctx|SiteDescription@";
+			/*
+			 * 	Essential Meta Tags
+			 * 
+				https://css-tricks.com/essential-meta-tags-social-media/  
+				
+				- images:  Reconciling the guidelines for the image is simple: follow Facebook's 
+				recommendation of a minimum dimension of 1200x630 pixels (can go as low as 600 x 315) 
+				and an aspect ratio of 1.91:1, but adhere to Twitter's file size requirement of less than 1MB.  
+				
+				- Title max 70 chars
+				- Desc max 200 chars			
+			 */
 			
-			if (StringUtil.isNotEmpty(desc))
-				head.with(new UIElement("meta")
-						.withAttribute("name", "description")
-						.withAttribute("content", desc)
+			head
+				.with(new UIElement("meta")
+					.withAttribute("property", "og:title")
+					.withAttribute("content", "@val|PageTitle@")
 				);
 			
-			XElement kel = this.find("dc.Keywords");
-			String keywords = (kel != null) ? kel.getText() : "@ctx|SiteKeywords@";
-			
+			String keywords = XNode.unquote(this.hiddenattributes.get("Keywords"));
+
 			if (StringUtil.isNotEmpty(keywords))
-				head.with(new UIElement("meta")
+				head
+					.with(new UIElement("meta")
 						.withAttribute("name", "keywords")
 						.withAttribute("content", keywords)
-				);
+					);
 			
-			// TODO test meta, like MFD
+			String desc = XNode.unquote(this.hiddenattributes.get("Description"));
+			
+			if (StringUtil.isNotEmpty(desc))
+				head
+					.with(new UIElement("meta")
+						.withAttribute("name", "description")
+						.withAttribute("content", desc)
+					)
+					.with(new UIElement("meta")
+						.withAttribute("property", "og:description")
+						.withAttribute("content", desc)
+					);
+
+			
+			String indexurl = null;
+
+			if ((domainwebconfig != null) && domainwebconfig.hasNotEmptyAttribute("IndexUrl")) 
+				indexurl = domainwebconfig.getAttribute("IndexUrl");
+			
+			String image = XNode.unquote(this.hiddenattributes.get("Image"));
+
+			if (StringUtil.isEmpty(image) && (domainwebconfig != null) && domainwebconfig.hasNotEmptyAttribute("SiteImage")) 
+				image = domainwebconfig.getAttribute("SiteImage");
+			
+			if (StringUtil.isNotEmpty(indexurl) && StringUtil.isNotEmpty(image))
+				head
+					.with(new UIElement("meta")
+						.withAttribute("property", "og:image")
+						.withAttribute("content", this.getAttribute("Image", indexurl + image.substring(1)))
+					);
+			
+			if (StringUtil.isNotEmpty(indexurl))
+				head
+					.with(new UIElement("meta")
+						.withAttribute("property", "og:url")
+						.withAttribute("content", indexurl + work.get().getContext().getPath().toString().substring(1))
+					);
+			
+			/* TODO review
+				.with(new UIElement("meta")
+					.withAttribute("name", "twitter:card")
+					.withAttribute("content", "summary")
+				);
+			*/
+			
+			/* TODO review, generalize so we can override
 			if (domainwebconfig != null) {
 				for (XElement gel : domainwebconfig.selectAll("Meta")) {
 					UIElement m = new UIElement("meta");
@@ -228,8 +293,12 @@ public class Html extends MixIn {
 					head.with(m);
 				}
 			}
+			*/
 			
-			if (Hub.instance.getResources().isForTesting()) {
+			// TODO research canonical url too
+			
+			// TODO someday support compiled scripts and css
+			//if (Hub.instance.getResources().isForTesting()) {
 				head
 					.with(new UIElement("link")
 							.withAttribute("type", "text/css")
@@ -238,7 +307,12 @@ public class Html extends MixIn {
 					.with(new UIElement("link")
 							.withAttribute("type", "text/css")
 							.withAttribute("rel", "stylesheet")
-							.withAttribute("href", "/css/dc.pui.css"));		// has Normalize and Pure, plus dc
+							.withAttribute("href", "/css/dc.app.css"))		// has Normalize and Pure, plus dc
+					.with(new UIElement("link")
+							.withAttribute("type", "text/css")
+							.withAttribute("rel", "stylesheet")
+							.withAttribute("href", "/css/main.css"));		// default website styling, until overridden
+			/*
 			}
 			else {
 				head.with(new UIElement("link")
@@ -246,6 +320,7 @@ public class Html extends MixIn {
 					.withAttribute("rel", "stylesheet")
 					.withAttribute("href", "/css/cache/dc.min.css"));
 			}
+			*/
 			
 			if (domainwebconfig != null) {
 				for (XElement gel : domainwebconfig.selectAll("Global")) {
@@ -268,7 +343,7 @@ public class Html extends MixIn {
 			}
 			
 			// trim down the required code
-			if (Hub.instance.getResources().isForTesting()) {
+			//if (Hub.instance.getResources().isForTesting()) {
 				head
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
@@ -287,36 +362,35 @@ public class Html extends MixIn {
 							.withAttribute("src", "/js/vendor/velocity.min.js"))
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.lang.js"))
+							.withAttribute("src", "/js/dc.lang.js"))
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.schema.js"))
+							.withAttribute("src", "/js/dc.schema.js"))
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.schema.def.js"))   
+							.withAttribute("src", "/js/dc.schema.def.js"))   
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.user.js"))
+							.withAttribute("src", "/js/dc.user.js"))
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.comm.js"))
+							.withAttribute("src", "/js/dc.comm.js"))
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.pui.js"))
-					.with(new UIElement("script")
-							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/dc/dc.app.js"))
+							.withAttribute("src", "/js/dc.app.js"))
 				;
+				/*
 			}
 			else {
 				head.with(new UIElement("script")
 					.withAttribute("defer", "defer")
 					.withAttribute("src", "/js/cache/dc.min.js"));
 			}
+			*/
 			
 			head.with(new UIElement("script")
 					.withAttribute("defer", "defer")
-					.withAttribute("src", "/js/dc.main.js"));		// after ui so we can override 
+					.withAttribute("src", "/js/main.js"));		// after ui so we can override 
 				
 			if (domainwebconfig != null) {
 				for (XElement gel : domainwebconfig.selectAll("Global")) {
@@ -329,7 +403,7 @@ public class Html extends MixIn {
 
 			head.with(new UIElement("script")
 					.withAttribute("defer", "defer")
-					.withAttribute("src", "/js/dc/dc.go.js"));		// start the UI scripts
+					.withAttribute("src", "/js/dc.go.js"));		// start the UI scripts
 	    	
 			this
 				.withAttribute("lang", OperationContext.get().getWorkingLocaleDefinition().getLanguage())

@@ -22,27 +22,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.count.CountManager;
 import dcraft.hub.Hub;
 import dcraft.hub.ISystemWork;
+import dcraft.hub.SiteInfo;
 import dcraft.hub.SysReporter;
-import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationContextBuilder;
-import dcraft.lang.op.OperationObserver;
 import dcraft.lang.op.OperationResult;
 import dcraft.log.Logger;
 import dcraft.struct.RecordStruct;
 import dcraft.util.StringUtil;
-import dcraft.work.Task;
 import dcraft.work.TaskRun;
 import dcraft.xml.XElement;
 
 public class Sessions implements IService {
 	protected ConcurrentHashMap<String, Session> sessions = new ConcurrentHashMap<String, Session>();
+	//protected List<String> termsessions = new ArrayList<>();
 
 	public String serviceName() {
 		return "Session";
@@ -65,8 +63,11 @@ public class Sessions implements IService {
 					
 					for (Session sess : Sessions.this.sessions.values()) {
 						if (!sess.reviewPlan(clearGuest, clearUser)) {
+							Sessions.this.sessions.remove(sess.getId());
+							
 							Logger.info("Killing inactive session: " + sess.getId());
-							Sessions.this.terminate(sess.getId());
+							
+							sess.end();
 						}
 					}
 				}
@@ -88,9 +89,10 @@ public class Sessions implements IService {
 		Message msg = (Message) request.getTask().getParams();
 		
 		String feature = msg.getFieldAsString("Feature");
-		String op = msg.getFieldAsString("Op");
+		//String op = msg.getFieldAsString("Op");
 		
 		if ("Manager".equals(feature)) {
+			/* TODO probably a worthwhile concept, but review
 			RecordStruct req = msg.getFieldAsRecord("Body");
 			
 			if ("Start".equals(op)) {
@@ -122,6 +124,7 @@ public class Sessions implements IService {
 				request.complete();
 				return;
 			}
+			*/
 		}
 		else if ("Session".equals(feature)) {
 			RecordStruct req = msg.getFieldAsRecord("Body");
@@ -162,8 +165,6 @@ public class Sessions implements IService {
 			// if we get this far consider it delivered - as a far as we know anyway
 			request.complete();
 			
-			// session activity, don't time out
-			s.touch();
 			s.deliver(msg);
 			
 			return;
@@ -249,31 +250,79 @@ public class Sessions implements IService {
 		
 		return this.sessions.get(sessionid);
 	}
-
-	public Session lookupAuth(String sessionid, String accesscode) {
-		Session s = this.sessions.get(sessionid);
-		
-		if ((s != null) && s.getKey().equals(accesscode)) 
+	
+	public Session restore(SiteInfo site, String origin, String id, String key, String authtoken) {
+		Session s = new Session(id, key)
+				.withOriginalOrigin(origin)
+				.withUser(new OperationContextBuilder()
+					.withGuestUserTemplate()
+					.withTenantId(site.getTenant().getId())
+					.withSite(site.getAlias())
+					.withAuthToken(authtoken)
+					.withVerified(StringUtil.isEmpty(authtoken))
+					.toUserContext()
+				);
+			
+			this.sessions.put(s.getId(), s);
+			
 			return s;
-		
-		return null;
 	}
-
-	public Session create(String origin, String domain, String site, String token) {
-		Session s = new Session(origin, Hub.instance.getTenants().resolveTenantId(domain), site, token);
+	
+	public Session create(SiteInfo site, String origin) {
+		return this.create(site, origin, null);
+	}
+	
+	public Session create(SiteInfo site, String origin, String authtoken) {
+		return this.create(site.getTenant().getId(), site.getAlias(), origin, authtoken);
+	}
+	
+	public Session create(String tenant, String site, String origin) {
+		return this.create(Hub.instance.getTenants().resolveTenantId(tenant), site, origin, null);
+	}
+	
+	public Session create(String tenantid, String site, String origin, String authtoken) {
+		Session s = new Session()
+			.withOriginalOrigin(origin)
+			.withUser(new OperationContextBuilder()
+				.withGuestUserTemplate()
+				.withTenantId(tenantid)
+				.withSite(site)
+				.withAuthToken(authtoken)
+				.withVerified(StringUtil.isEmpty(authtoken))
+				.toUserContext()
+			);
+		
 		this.sessions.put(s.getId(), s);
+		
 		return s;
 	}
 
 	// a root and elevated session that doesn't timeout
 	public Session createForService() {
-		Session s = new Session(new OperationContextBuilder().withRootUserTemplate());
-		s.setKeep(true);
+		return this.createForService("root", "root");
+	}
+
+	// a root and elevated session that doesn't timeout
+	public Session createForService(String tenantid) {
+		return this.createForService(tenantid, "root");
+	}
+
+	// a root and elevated session that doesn't timeout
+	public Session createForService(String tenantid, String site) {
+		Session s = new Session()
+			.withKeep(true)
+			.withUser(new OperationContextBuilder()
+				.withRootUserTemplate()
+				.withTenantId(tenantid)
+				.withSite(site)
+				.toUserContext()
+			);
 		
 		this.sessions.put(s.getId(), s);
 		return s;
 	}
 
+	/*
 	// based on current context/user
 	public Session createForContext(OperationContext ctx) {
 		Session s = new Session(ctx);
@@ -282,7 +331,7 @@ public class Sessions implements IService {
 	}
 
 	// based on current context/user
-	public Session findOrCreateTether(OperationContext ctx) {
+	public Session findOrCreate(OperationContext ctx) {
 		String sid = ctx.getSessionId();
 		
 		Session s = this.sessions.get(sid);
@@ -333,26 +382,6 @@ public class Sessions implements IService {
 		
 		return new SessionTaskInfo(session, run);
 	}
-	
-	// runs a single task and then idles for "30" minutes
-	/* TODO review, we no longer give 30 minutes
-	public SessionTaskInfo createForSingleTaskAndWait(Task info) {
-		final Session session = this.createForContext(info.getContext());
-		
-		if (session == null)
-			return null;
-		
-		OperationObserver listener = new OperationObserver() {			
-			@Override
-			public void completed(OperationContext or) {
-				session.touch();		// keep alive relative to end time
-			}
-		};
-		
-		TaskRun run = session.submitTask(info, listener);
-		
-		return new SessionTaskInfo(session, run);
-	}
 	*/
 
 	public List<TaskRun> collectTasks(String... tags) {
@@ -385,8 +414,7 @@ public class Sessions implements IService {
 	public void terminate(String id) {
 		if (StringUtil.isEmpty(id))
 			return;
-		
-		// remove before end so we don't end up with infinite recursive terminate with dcAuth sign out
+
 		Session s = this.sessions.remove(id);
 
 		if (s != null)
@@ -404,7 +432,7 @@ public class Sessions implements IService {
 		HashMap<String,Long> tagcount = new HashMap<>();
 		
 		for (Session sess : lsessions) {
-			if (sess.getKeep())
+			if (sess.isKeep())
 				totalKeepers++;
 			
 			totalTasks += sess.countTasks();

@@ -37,7 +37,6 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import dcraft.db.Constants;
 import dcraft.db.DatabaseAudit;
 import dcraft.db.DatabaseResult;
 import dcraft.db.DatabaseTask;

@@ -17,10 +17,13 @@
 package dcraft.web.http;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.Objects;
 
 import dcraft.bus.Message;
 import dcraft.bus.MessageUtil;
 import dcraft.bus.net.StreamMessage;
+import dcraft.filestore.CommonPath;
 import dcraft.hub.Hub;
 import dcraft.hub.HubState;
 import dcraft.hub.SiteInfo;
@@ -28,6 +31,7 @@ import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationContextBuilder;
 import dcraft.lang.op.OperationResult;
+import dcraft.locale.LocaleDefinition;
 import dcraft.log.Logger;
 import dcraft.net.NetUtil;
 import dcraft.net.ssl.SslHandler;
@@ -72,6 +76,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	static protected OperationContext defaultOpContext = OperationContext.useNewGuest();  
 	
     protected WebContext context = null; 
+    protected RpcHandler rpchandler = null;
     
 	// TODO improve to ignore large POSTs on most Paths
 	// TODO ip lockout
@@ -114,7 +119,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     		this.context.sendInternalError();
     		return;
     	}
-        
+    	
         // Handle a bad request.
         if (!httpreq.getDecoderResult().isSuccess()) {
         	this.context.sendRequestBad();
@@ -126,13 +131,25 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
         Request req = this.context.getRequest();
         Response resp = this.context.getResponse();
         
-        /*
-		// to avoid lots of unused sessions
-		if (req.pathEquals("/favicon.ico")) {
-			this.context.sendNotFound();
-			return;
+        boolean pass = false;
+
+        // very limited support for http method - on purpose
+		if ((req.getMethod() == HttpMethod.PUT) || (req.getMethod() == HttpMethod.POST)) {
+	        if ((req.getPath().getNameCount() == 3) && req.getPath().getName(0).equals(ServerHandler.UPLOAD_PATH)) {
+	        	pass = true;
+			}    	
+	        else if (req.pathEquals(ServerHandler.RPC_PATH) && (req.getMethod() == HttpMethod.POST)) {
+	        	pass = true;
+	        }	        
+    	}
+		else if (req.getMethod() == HttpMethod.GET) {
+        	pass = true;
+    	}
+
+		if (!pass) {
+	        this.context.sendRequestBad();
+	        return;
 		}
-		*/
 		
 		// make sure we don't have a leftover task context
 		OperationContext.clear();
@@ -170,94 +187,106 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			Logger.trace("Site: " + site.getAlias());
 		
 		Session sess = null;
-		boolean needVerify = false;
 		
-		if (site.getWebsite().isSharedSession()) {
-			sess = site.getWebsite().getSharedSession();
+		Cookie sesscookie = req.getCookie("dcSessionId");
+		Cookie catoken = req.getCookie("dcAuthToken");
+		String authtoken = (catoken != null) ? catoken.value() : null;
+
+		boolean needVerify = StringUtil.isNotEmpty(authtoken);
+		
+		String fauthtoken = (needVerify) ? authtoken : null;		// make sure this is null not empty
+		
+		if (sesscookie != null) {
+			String v = sesscookie.value();
+			int upos = v.lastIndexOf('_');
 			
-	    	if (Logger.isDebug())
-				Logger.info("Using shared session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
+			if (upos != -1) {
+				String sessionid = v.substring(0, upos);
+				String accesscode = v.substring(upos + 1);
+				
+				sess = Hub.instance.getSessions().lookup(sessionid);
+
+				if ((sess != null) && !sess.getKey().equals(accesscode)) {
+					// TODO sess is there but wrong key - major, 100%, trust issue!
+					Cookie authk = new DefaultCookie("dcSessionId", "");
+					authk.setPath("/");
+					authk.setHttpOnly(true);
+					
+					// help pass security tests if Secure by default when using https 
+					authk.setSecure(this.context.isSecure());
+					
+					this.context.getResponse().setCookie(authk);
+					this.context.sendForbidden();
+					return;
+				}
+				
+				if (sess == null) {
+					// TODO restore not ideal - tiny trust issue
+					sess = Hub.instance.getSessions().restore(site, origin, sessionid, accesscode, fauthtoken);
+					Logger.info("Restored session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
+				}
+				else {
+					if (! sess.isKnownAuthToken(fauthtoken)) {
+						// TODO sess is there, authtoken is there, but wrong token - major, 100%, trust issue!
+						Cookie authk = new DefaultCookie("dcAuthToken", "");
+						authk.setPath("/");
+						authk.setHttpOnly(true);
+						
+						// help pass security tests if Secure by default when using https 
+						authk.setSecure(this.context.isSecure());
+						
+						this.context.getResponse().setCookie(authk);
+						this.context.sendForbidden();
+						return;
+					}
+
+					needVerify = false;
+				}
+			}
 		}
-		else {
-			Cookie sesscookie = req.getCookie("dcSessionId");
+		
+		if (sess == null) {
+			sess = Hub.instance.getSessions().create(site, origin, authtoken);
 			
-			if (sesscookie != null) {
-				String v = sesscookie.value();
-				int upos = v.lastIndexOf('_');
-				
-				if (upos != -1) {
-					String sessionid = v.substring(0, upos);
-					String accesscode = v.substring(upos + 1);
-					
-					// TODO if to fails then negative Trust to client
-					sess = Hub.instance.getSessions().lookupAuth(sessionid, accesscode);
-				}
-			}
+			Logger.info("Started new session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
 			
-			if (sess == null) {
-				Cookie catoken = req.getCookie("dcAuthToken");
-	
-				sess = Hub.instance.getSessions().create(origin, site.getTenant().getId(), site.getAlias(), (catoken != null) ? catoken.value() : null);
-				
-				Logger.info("Started new session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
-				
-				// this is non-blocking, the remainder of this HTTP operation will run on guest even though 
-				// token may be restored any moment and allow more access
-				if (catoken != null) 
-					needVerify = true;
-				
-				// TODO if ssl set client key on user context
-				//req.getSecuritySession().getPeerCertificates();
-				
-				/* TODO adapter review
-				sess.setAdatper(new HttpAdapter(this.context));
-				*/
-				
-				Cookie sk = new DefaultCookie("dcSessionId", sess.getId() + "_" + sess.getKey());
-				sk.setPath("/");
-				sk.setHttpOnly(true);
-				
-				// TODO configure, but make Secure by default if using https 
-				if (ctx.channel().pipeline().get("ssl") != null)
-					sk.setSecure(true);
-				
-				resp.setCookie(sk);		 
-			}
-			else {
-				String authupdate = sess.checkTokenUpdate();
-				
-				if (authupdate != null) {
-					Cookie sk = new DefaultCookie("dcAuthToken", authupdate);
-					sk.setPath("/");
-					sk.setHttpOnly(true);
-					
-					resp.setCookie(sk);
-				}
-			}
+			// TODO if ssl set client key on user context
+			//req.getSecuritySession().getPeerCertificates();
+			
+			/* TODO adapter review
+			sess.setAdatper(new HttpAdapter(this.context));
+			*/
+			
+			Cookie sk = new DefaultCookie("dcSessionId", sess.getId() + "_" + sess.getKey());
+			sk.setPath("/");
+			sk.setHttpOnly(true);
+			
+			// help pass security tests if Secure by default when using https 
+			sk.setSecure(this.context.isSecure());
+			
+			resp.setCookie(sk);		 
 		}
 		
 		this.context.setSessionId(sess.getId());
 		
-		sess.touch();
-		
-		OperationContextBuilder ctxb = sess.allocateContextBuilder()
+		OperationContextBuilder ctxb = sess.getUser().toBuilder()
 				.withOrigin(origin);
 		
-		Cookie localek = site.getWebsite().resolveLocale(this.context, sess.getUser(), ctxb);
+		Cookie localek = this.resolveLocale(sess, ctxb);
 		
 		if (localek != null) {
 			localek.setPath("/");
 			localek.setHttpOnly(true);
 			
-			// TODO configure, but make Secure by default if using https 
-			if (ctx.channel().pipeline().get("ssl") != null)
-				localek.setSecure(true);
+			// help pass security tests if Secure by default when using https 
+			localek.setSecure(this.context.isSecure());
 			
 			resp.setCookie(localek);		 
 		}
 		
-		OperationContext tc = sess.useContext(ctxb);		
-		//tc.setLocaleResource(site);
+		sess.withUser(ctxb.toUserContext());		// use lang of current request
+		
+		OperationContext tc = sess.useContext();
 		
 		// check errors now because we will clear errors after calling verify
 		// the call to verify does not count as real errors in our own operations of loading pages
@@ -266,7 +295,23 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			//resp.setHeader("X-dcResultCode", res.getCode() + "");
 			//resp.setHeader("X-dcResultMesage", res.getMessage());
 			this.context.sendNotFound();
+			return;
 		}
+		
+		// be sure to set Decoder before leaving the current thread
+        if (req.pathEquals(ServerHandler.RPC_PATH)) {
+    		this.rpchandler = new RpcHandler(ServerHandler.this.context);
+    		
+    		// decoder will decode but not run the RPC until verify (below) is completed
+            ServerHandler.this.context.setDecoder(new HttpBodyRequestDecoder(4096 * 1024, this.rpchandler));
+        }        
+        else if (needVerify && (req.getMethod() != HttpMethod.GET)) {
+        	// cannot verify during upload
+        	this.context.sendRequestBad();
+        	return;
+        }
+        
+		System.out.println("=========================== NOVHOATS: " + needVerify);
 
         // complete the verify before loading the page
 		if (needVerify) {
@@ -280,21 +325,51 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 					
 					tc.clearExitCode();
 					
-					ServerHandler.this.continueHttpRequest(tc);
+					ServerHandler.this.continueHttpRequest(fauthtoken);
 				}
 			});
 		}
 		else {
-			ServerHandler.this.continueHttpRequest(tc);
+			ServerHandler.this.continueHttpRequest(fauthtoken);
 		}
     }
-    
+	
     // after we get here we know we have a valid session and a valid user, even if that means that
     // the user session and user session requested has been replaced with Guest
-	public void continueHttpRequest(OperationContext tc) {
+	public void continueHttpRequest(String oldauthtoken) {
+		String sessid = this.context.getSessionId();
+		
+    	Session sess = Hub.instance.getSessions().lookup(sessid);
+		
+		if (sess == null) {
+            this.context.sendRequestBad();
+            return;
+		}
+    	
+		sess.touch();
+		
+		// context may have changed (in a verify), continue from session's context 
+		OperationContext tc = sess.useContext();		
+		
 		Request req = this.context.getRequest();
 		String origin = tc.getOrigin();
-		String sessid = tc.getSessionId();
+		
+		String vauthtoken = tc.getUserContext().getAuthToken();
+		
+		System.out.println("NOVHOATS final token: " + vauthtoken);
+		
+		if (! Objects.equals(oldauthtoken, vauthtoken)) {
+			Cookie authk = new DefaultCookie("dcAuthToken", (vauthtoken != null) ? vauthtoken : "");
+			authk.setPath("/");
+			authk.setHttpOnly(true);
+			
+			// help pass security tests if Secure by default when using https 
+			authk.setSecure(this.context.isSecure());
+			
+			this.context.getResponse().setCookie(authk);
+			
+			sess.addKnownToken(vauthtoken);
+		}
 		
         // --------------------------------------------
         // rpc request
@@ -303,21 +378,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		// "rpc" is it's own built-in extension.  all requests to rpc are routed through
 		// DivConq bus, if the request is valid
         if (req.pathEquals(ServerHandler.RPC_PATH)) {
-    		if (req.getMethod() != HttpMethod.POST) {
-                this.context.sendRequestBad();
-                return;
-    		}
-    		
 	    	if (Logger.isDebug())
 	    		tc.debug("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + origin + " session: " + sessid);
 
-    		// RPC will automatically do the user verify before the request is sent
-            ServerHandler.this.context.setDecoder(new HttpBodyRequestDecoder(4096 * 1024, new RpcHandler(ServerHandler.this.context)));
-    		
+	    	ServerHandler.this.rpchandler.tryProcess();
+	    	
         	return;
         }        
 		
-		tc.info("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + origin + " session: " + sessid);
+        // TODO configure how requests are logged
+        if (Logger.isDebug())
+        	tc.debug("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + origin + " session: " + sessid);
 		
 		// TODO if (Logger.isDebug()) {
 		//	System.out.println("Operating locale " + tc.getWorkingLocale());
@@ -335,11 +406,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	        
 			// "upload" is it's own built-in extension.  
 	        if ((req.getPath().getNameCount() == 3) && req.getPath().getName(0).equals(ServerHandler.UPLOAD_PATH)) {
-				if (!Hub.instance.isRunning()) {		// only allow uploads when running
-					this.context.sendRequestBad();
-					return;
-				}
-				
 				// currently only supporting POST/PUT of pure binary - though support for form uploads can be restored, see below
 				// we cannot rely on content type being meaningful
 				//if (!"application/octet-stream".equals(req.getContentType().getPrimary())) {
@@ -349,23 +415,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 
 				// TODO add CORS support if needed
 				
-				if ((req.getMethod() != HttpMethod.PUT) && (req.getMethod() != HttpMethod.POST)) {
-	                this.context.sendRequestBad();
-	                return;
-				}
-				
 				final String cid = req.getPath().getName(1);
 				final String op = req.getPath().getName(2);
 		        
 		    	if (Logger.isDebug())
 		    		Logger.debug("Initiating an upload block on " + cid + " for " + sessid);
-				
-		    	Session sess = Hub.instance.getSessions().lookup(sessid);
-				
-	    		if (sess == null) {
-	                this.context.sendRequestBad();
-	                return;
-	    		}
 		    	
 				DataStreamChannel dsc = sess.getChannel(cid);
 				
@@ -485,27 +539,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			
 			// "download" is it's own built-in extension.  
 	        if ((req.getPath().getNameCount() == 2) && req.getPath().getName(0).equals(ServerHandler.DOWNLOAD_PATH)) {
-				if (!Hub.instance.isRunning()) {		// only allow downloads when running
-					this.context.sendRequestBad();
-					return;
-				}
-				
-	    		if (req.getMethod() != HttpMethod.GET) {
-	                this.context.sendRequestBad();
-	                return;
-	    		}
-				
 				String cid = req.getPath().getName(1);
 				
 	            if (Logger.isDebug())
 		    		Logger.debug("Initiating an download on " + cid + " for " + sessid);
-				
-		    	Session sess = Hub.instance.getSessions().lookup(sessid);
-				
-	    		if (sess == null) {
-	                this.context.sendRequestBad();
-	                return;
-	    		}
 				
 				DataStreamChannel dsc = sess.getChannel(cid);
 				
@@ -635,6 +672,84 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			this.context.sendInternalError();
 		}
     }
+
+	public Cookie resolveLocale(Session sess, OperationContextBuilder ctxb) {
+		Map<String, LocaleDefinition> locales = this.context.getSite().getLocales();
+
+		LocaleDefinition locale = null;
+
+		// see if the path indicates a language
+		CommonPath path = context.getRequest().getPath();
+		
+		if (path.getNameCount() > 0)  {
+			String lvalue = path.getName(0);
+			
+			locale = locales.get(lvalue);
+			
+			// extract the language from the path
+			if (locale != null)
+				context.getRequest().setPath(path.subpath(1));
+		}
+
+		// but respect the cookie if it matches something though
+		Cookie langcookie = context.getRequest().getCookie("dcLang");
+		
+		if (locale == null) {
+			if (langcookie != null) {
+				String lvalue = langcookie.value();
+				
+				// if everything checks out set the op locale and done
+				if (locales.containsKey(lvalue)) {
+					ctxb.withOperatingLocale(lvalue);
+					return null;
+				}
+				
+				locale = this.context.getSite().getLocaleDefinition(lvalue);
+				
+				// use language if variant - still ok and done
+				if (locale.hasVariant()) {
+					if (locales.containsKey(locale.getLanguage())) {
+						ctxb.withOperatingLocale(lvalue);		// keep the variant part, it may be used in places on site - supporting a lang implicitly allows all variants
+						return null;
+					}
+				}
+				
+				// otherwise ignore the cookie, will replace it
+			}
+		}
+		
+		// see if the domain is set for a specific language
+		if (locale == null) {
+			String domain = context.getRequest().getHeader("Host");
+			
+			if (domain.indexOf(':') > -1)
+				domain = domain.substring(0, domain.indexOf(':'));
+			
+			locale = this.context.getSite().getSiteLocales().get(domain);
+		}
+		
+		// see if the user has a preference
+		if (locale == null) {
+			String lvalue = sess.getUser().getLocale();
+			
+			if (StringUtil.isNotEmpty(lvalue)) 
+				locale = locales.get(lvalue);
+		}
+		
+		// if we find any locale at all then to see if it is the default
+		// if not use it, else use the default
+		if ((locale != null) && !locale.equals(this.context.getSite().getDefaultLocaleDefinition())) {
+			ctxb.withOperatingLocale(locale.getName());
+			return new DefaultCookie("dcLang", locale.getName());
+		}
+		
+		// clear the cookie if we are to use default locale
+		if (langcookie != null) 
+			return new DefaultCookie("dcLang", "");
+		
+		// we are using default locale, nothing more to do
+		return null;
+	}
 
     // TODO this may not be a real threat but review it anyway
     // http://www.christian-schneider.net/CrossSiteWebSocketHijacking.html

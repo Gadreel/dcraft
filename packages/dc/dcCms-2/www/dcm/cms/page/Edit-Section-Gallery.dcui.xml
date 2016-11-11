@@ -1,20 +1,20 @@
-<dcui Title="Edit Show" AuthTags="Admin,Editor">
-	<RequireLib Path="/dcw/js/jquery-ui.min.js" />
-	<RequireLib Path="/dcm/cms/js/dc.cms.js" />
+<dc.Html Title="Edit Show" AuthTags="Admin,Editor">
+	<dc.RequireLib Path="/dcw/js/jquery-ui.min.js" />
+	<dc.RequireLib Path="/dcm/cms/js/dc.cms.js" />
 
-	<Skeleton>
-		<TitledSection Title="Edit Show" class="titledform">
+	<dc.Skeleton>
+		<dc.Panel Title="Edit Show">
 			<div class="formbuttons">
-				<Button Click="DoSelectImage" Label="Select Image From Gallery" />
-				<Button Click="DoAddImage" Label="Upload New Image" />
-				<Button Click="DoSaveShow" Label="Save" /> 
+				<dc.Button Click="DoSelectImage" Label="Select Image From Gallery" />
+				<dc.Button Click="DoAddImage" Label="Upload New Image" />
+				<dc.Button Click="DoSaveShow" Label="Save" /> 
 				<!--  TODO DoDelete is already here, add button but only show through CMS not direct banner -->
 			</div>
 			
 			<ul id="imageDesEList" data-role="listview" data-inset="true" data-count-theme="a" data-split-icon="delete" />					
-		</TitledSection>
-	</Skeleton>
-	<Function Name="Load"><![CDATA[
+		</dc.Panel>
+	</dc.Skeleton>
+	<dc.Function Name="Load"><![CDATA[
 			var entry = this;
 			
 			// if seetings are present then we are thawing, so don't do any loading/init
@@ -98,8 +98,8 @@
 			
 				entry.callPageFunc('RefreshImages');
 			});
-	]]></Function>
-	<Function Name="RefreshImages"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="RefreshImages"><![CDATA[
 			var entry = this;
 			 
 			var list = $('#imageDesEList');
@@ -175,8 +175,8 @@
 			
 				list.listview('refresh');									
 			}
-	]]></Function>
-	<Function Name="ReorderImages"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="ReorderImages"><![CDATA[
 			var entry = this;
 			
 			var oldimages = entry.Store.Show.Images;
@@ -196,8 +196,8 @@
 					}
 				}
 			});			
-	]]></Function>
-	<Function Name="DoSaveShow"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoSaveShow"><![CDATA[
 			var entry = this;
 			
 			dc.comm.sendMessage({ 
@@ -214,8 +214,8 @@
 				else
 					dc.pui.Popup.alert('Show saved');
 			});
-	]]></Function>
-	<Function Name="DoSelectImage"><![CDATA[			
+	]]></dc.Function>
+	<dc.Function Name="DoSelectImage"><![CDATA[			
 			var entry = this;
 		
 			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/Chooser', { 
@@ -234,8 +234,8 @@
 					entry.callPageFunc('RefreshImages');
 				} 
 			});
-	]]></Function>
-	<Function Name="DoAddImage"><![CDATA[			
+	]]></dc.Function>
+	<dc.Function Name="DoAddImage"><![CDATA[			
 			var entry = this;
 		
 			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/QuickUpload', { 
@@ -253,8 +253,8 @@
 					entry.callPageFunc('RefreshImages');
 				} 
 			});
-	]]></Function>
-	<Function Name="DoDelete"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoDelete"><![CDATA[
 			var entry = this;
 			
 			if (!entry.Params.Alias) {
@@ -291,5 +291,5 @@
 					window.history.back();
 				});
 			});
-	]]></Function>
-</dcui>
+	]]></dc.Function>
+</dc.Html>

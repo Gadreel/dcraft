@@ -23,23 +23,22 @@ dc.pui.layer = {
 };
 
 
-dc.pui.layer.Base = function(contentsel, options) {
-	this.init(contentsel, options);
+dc.pui.layer.Base = function(contentshell, content, options) {
+	this.init(contentshell, content, options);
 };
 
 dc.pui.layer.Base.prototype = {
-	Name: '[unknown]',
-	Params: { },
-	Content: null,
-	Current: null,
-	Context: null,
-	Store: null,
-	History: [ ],
-	Observers: { },
-	
-	init: function(contentsel, options) {
+	init: function(contentshell, content, options) {
 		$.extend(this, { 
-			Content: contentsel,
+			Name: '[unknown]',
+			Params: { },
+			Current: null,
+			Context: null,
+			Store: null,
+			History: [ ],
+			Observers: { },
+			ContentShell: contentshell,
+			Content: content,
 		}, options);
 
 		// TODO add layer Timers	- try to work with Velocity instead of making our own timers
@@ -130,8 +129,11 @@ dc.pui.layer.Base.prototype = {
 		var page = loader.Pages[entry.Name];
 		
 		$(layer.Content).empty().append(page.Layout).promise().then(function() {
-			$(layer.Content).attr('class', page.PageClass);
-			
+			if (layer.Content == layer.ContentShell)
+				$(layer.Content).attr('class', page.PageClass + ' dcuiLayer');
+			else
+				$(layer.Content).attr('class', page.PageClass);
+				
 			if (entry.Loaded && entry.FreezeTop)
 				$(layer.Content).scrollTop(entry.FreezeTop);				
 			else if (entry.TargetElement)
@@ -165,6 +167,13 @@ dc.pui.layer.Base.prototype = {
 		});
 	},
 	
+	query: function(selector) {
+		if (selector)
+			return $(this.Content).find(selector);
+
+		return $(this.Content);
+	},
+	
 	closePage: function(opts) {
 		if (opts)
 			this.loadPage(opts.Path, opts.Params);
@@ -184,6 +193,8 @@ dc.pui.layer.Base.prototype = {
 		
 		layer.Current = null;
 		
+		$(layer.Content).empty();
+		
 		var entry = this.History.pop();
 		
 		while (entry) {
@@ -193,6 +204,15 @@ dc.pui.layer.Base.prototype = {
 	},
 	
 	back: function() {
+		var layer = this;
+		
+		if (layer.Current) 
+			layer.Current.onDestroy();
+		
+		layer.Current = null;
+		
+		$(layer.Content).empty();
+		
 		var entry = this.History.pop();
 		
 		if (entry) {
@@ -205,11 +225,18 @@ dc.pui.layer.Base.prototype = {
 	},
 	
 	open: function() {
-		$(this.Content).show();
+		$(this.ContentShell).show();
 	},
 	
 	close: function() {
-		$(this.Content).hide();
+		this.clearHistory();
+
+		/* TODO some sort of event
+		if (!dmode)
+			dc.pui.Loader.currentPageEntry().callPageFunc('dcwDialogEvent', { Name: 'Close', Target: 'DialogPane' });
+		*/
+		
+		$(this.ContentShell).hide();
 	},
 	
 	current: function() {
@@ -236,7 +263,7 @@ dc.pui.layer.Base.prototype = {
 		if (entry)
 			entry.onDestroy(e);
 		
-		$(this.Content).remove();
+		$(this.ContentShell).remove();
 	},
 	
 	onFrame: function(e) {
@@ -248,8 +275,8 @@ dc.pui.layer.Base.prototype = {
 };
 
 
-dc.pui.layer.Main = function(contentsel, options) {
-	this.init(contentsel, options);
+dc.pui.layer.Main = function() {
+	this.init('#dcuiMain', '#dcuiMain');
 };
 
 dc.pui.layer.Main.prototype = new dc.pui.layer.Base();
@@ -349,115 +376,241 @@ dc.pui.layer.Main.prototype.refreshPage = function() {
 };
 
 
-
-
-dc.pui.layer.Dialog = function(contentsel, options) {
-	this.init(contentsel, options);
+dc.pui.layer.Dialog = function() {
+	this.init('#dcuiDialog', '#dcuiDialogPane');
 };
 
 dc.pui.layer.Dialog.prototype = new dc.pui.layer.Base();
 
-/*
-		loadPane: function(page, params, replaceState) {
-			var layer = dc.pui.dialog.Loader.getPane();
-			
-			$('#dcuiDialog').show();
-			
-			if (!params)
-				params = { };
-			
-			layer.loadPage(page, params, replaceState);
-				
-			$('body').addClass('dcDialogMode');
-		},
-	}
-};
-
- * 
- */
-
-dc.pui.layer.Dialog.prototype.clearHistory = function() {
-	dc.pui.layer.Base.prototype.clearHistory.call(this);
-	
-	// TODO $(this.__content).empty();
-};
-
-dc.pui.layer.Dialog.prototype.onDestroy = function() {
-	dc.pui.layer.Base.onDestroy.call(this);
-	
-	// TODO dc.pui.dialog.Loader.destroy();
-};
-
 dc.pui.layer.Dialog.prototype.open = function() {
-	dc.pui.layer.Base.open.call(this);
+	var dialog = this;
+	var del = $('#dcuiDialog');
 	
-	/* TODO if content not set then set it
-	entry.__dialogid = dc.util.Uuid.create();
-	
-	var pane = $('<div></div>');
-	pane.attr('id', entry.__dialogid);
-	*/
-	
-	/*
-			var pane = dc.pui.Loader.getLayer("DialogPane");
-			
-			if (!pane) {
-				$('#dcuiDialog').remove();
-	
-				$('body').append('<div id="dcuiDialog" class="ui-content">'
-					+ '<div id="dcuiDialogPane"></div></div>');
-				
-				pane = new dc.pui.layer.Dialog('#dcuiDialogPane', { Name: 'DialogPane' });
-				
-				dc.pui.Loader.addLayer(pane);
-			}
-			
-			return pane;
-	 * 
-	 */
-};
-
-dc.pui.layer.Dialog.prototype.close = function() {
-	dc.pui.layer.Base.close.call(this);
-	
-	/* TODO final close = remove the content element and reset it
+	if (! del.length) {
+		var dbox = $('<div id="dcuiDialog" class="dcuiLayer"></div>');
 		
-		try {
-			$('#' + layer.__current.__dialogid).remove();
-		}
-		catch (x) {
-			console.log('Unable to remove: ' + x);
-		}
-	 * 
-	 */
-	
-	
-	// TODO dc.pui.dialog.Loader.closeAll();
-	
-	/*
-	if (pane) 
-		pane.clearHistory();
-	
-	$('#dcuiDialog').hide();
+		var dbclose = $('<a href="#" class="dcuiCloseButton"><i class="fa fa-times fa-lg"></i></a>');
 		
-	$('body').removeClass('dcDialogMode');
+		$(dbclose).click(function (e) {
+			dialog.close();
+			
+			e.preventDefault();
+			return false;
+		});
+		
+		var dbpane = $('<div id="dcuiDialogPane"></div>');
+		
+		dbox.append(dbclose).append(dbpane);
+		
+		$('body').append(dbox);
+	}
 
-	if (!dmode)
-		dc.pui.Loader.currentPageEntry().callPageFunc('dcwDialogEvent', { Name: 'Close', Target: 'DialogPane' });
-	*/
-};
-
-dc.pui.layer.Dialog.prototype.onDestroy = function(e) {
-	dc.pui.layer.Base.onDestroy.call(this);
-	
-	$('#dcuiDialog').remove();
+	dc.pui.layer.Base.prototype.open.call(this);
 };
 
 // Dialog feature (singleton)
-dc.pui.Dialog = new dc.pui.layer.Dialog('xyz');
+dc.pui.Dialog = new dc.pui.layer.Dialog();
+
+
+dc.pui.layer.Alert = function() {
+	this.init('#dcuiAlert', '#dcuiAlertPane');
+};
+
+dc.pui.layer.Alert.prototype = new dc.pui.layer.Base();
+
+dc.pui.layer.Alert.prototype.open = function() {
+	var dialog = this;
+	var del = $('#dcuiAlert');
+	
+	if (! del.length) {
+		var dbox = $('<div id="dcuiAlert" class="dcuiLayer"></div>');
+		
+		var dbclose = $('<a href="#" class="dcuiCloseButton"><i class="fa fa-times fa-lg"></i></a>');
+		
+		$(dbox, dbclose).click(function (e) {
+			dialog.close();
+			
+			e.preventDefault();
+			return false;
+		});
+		
+		var dbpane = $('<div id="dcuiAlertPane"></div>');
+		
+		dbox.append(dbclose).append(dbpane);
+		
+		$('body').append(dbox);
+	}
+
+	dc.pui.layer.Base.prototype.open.call(this);
+};
+
+// Alert feature (singleton)
+dc.pui.Alert = new dc.pui.layer.Alert();
+
+
+dc.pui.layer.App = function() {
+	this.init('#dcuiApp', '#dcuiAppPane');
+};
+
+dc.pui.layer.App.prototype = new dc.pui.layer.Base();
+
+dc.pui.layer.App.prototype.open = function() {
+	var dialog = this;
+	var del = $('#dcuiApp');
+	
+	if (! del.length) {
+		var dbox = $('<div id="dcuiApp" class="dcuiLayer"></div>');
+		
+		var dbmenu = $('<div id="dcuiAppMenu"></div>');
+		var dbpane = $('<div id="dcuiAppPane"></div>');
+		
+		dbox
+			.append(dbmenu)
+			.append(dbpane);
+		
+		$('body').append(dbox);
+		
+		/* TODO ??
+		pane.setObserver('CMSPane', function() {
+			dc.cms.ui.Loader.loadMenu();
+		});
+		*/
+	}
+
+	dc.pui.layer.Base.prototype.open.call(this);
+};
+
+dc.pui.layer.App.prototype.start = function(context) {
+	var app = this;
+	app.Context = context;
+	
+	this.clearHistory();
+	
+	app.loadPage(context.Page, context.Params);
+};
+
+dc.pui.layer.App.prototype.manifestPage = function(entry, frompop) {
+	var app = this;
+	
+	dc.pui.layer.Base.prototype.manifestPage.call(this, entry);
+
+	app.loadMenu();
+};
+
+// area from MenuEnum (or from custom defined)
+dc.pui.layer.App.prototype.loadMenu = function() {
+	var app = this;
+	
+	var area = null;
+	
+	// get area from current pane, if any
+	if (app.Current && app.Current.Params._Menu)
+		area = app.Current.Params._Menu;
+	
+	if (!area && app.Context && app.Context.Menu)
+		area = app.Context.Menu;
+	
+	if (!area)
+		area = dc.pui.Apps.MenuEnum.SignIn;
+	
+	$('#dcuiAppMenu').empty();
+	
+	// if any page is loaded, use back
+	var hist = app.getHistory();
+	
+	var mcntrl = $('<div id="dcuiAppMenuCntrl"></div>');
+	
+	// mobile popup menu
+	var node1 = $('<a href="#"></a>');
+	node1.append('<i class="fa fa-bars"></i>');
+	node1.addClass('mobile');
+	
+	// the CMS popups don't get officially destroyed since they get erased on page loads
+	// TODO var puid = dc.cms.ui.Loader.addPopupMenu(area);
+	
+	node1.click(function(e) {
+		// TODO $('#' + puid).popup('open', { positionTo: e.currentTarget });
+		
+		e.preventDefault();
+		return false;
+	});
+	
+	mcntrl.append(node1);
+	
+	// help menu
+	var node0 = $('<a href="#"></a>');
+	node0.append('<i class="fa fa-question"></i>');
+	
+	node0.click(function(e) {
+		var hpage = app.Current.Name + "-help";
+		
+		app.loadPage(hpage);
+	});
+	
+	mcntrl.append(node0);
+	
+	// back menu
+	var node2 = $('<a id="dcuiIntegratedMenuBack" href="#"></a>');
+	node2.append('<i class="fa fa-chevron-left"></i>');
+	
+	node2.click(function(e) {
+		if (! $(this).hasClass('disabled')) {
+			app.back();
+		}
+	});
+	
+	if (hist.length == 0) 
+		node2.addClass('disabled');
+	
+	mcntrl.append(node2);
+	
+	// close menu
+	var node3 = $('<a href="#"></a>');
+	node3.append('<i class="fa fa-times"></i>');
+	
+	node3.click(function(e) {
+		app.close();
+	});
+	
+	mcntrl.append(node3);
+	
+	$('#dcuiAppMenu').append(mcntrl);
+	
+	var addbMenu = function(mnu) {
+		if (mnu.Auth && !dc.user.isAuthorized(mnu.Auth))
+			return;
+		
+		var node = $('<a href="#" class="pure-button"></a>');
+		
+		node.text(mnu.Title);
+		node.addClass(mnu.Kind);
+		
+		node.click(mnu, function(e) {
+			if (!dc.pui.Apps.busyCheck()) 
+				e.data.Op.call(app, e);
+			
+			e.preventDefault();
+			return false;
+		});
+	
+		$('#dcuiAppMenu').append(node);
+	};
+	
+	var amenu = dc.pui.Apps.Menus[area];
+	
+	if (amenu && amenu.Options) {
+		for (var i = 0; i < amenu.Options.length; i++) 
+			addbMenu(amenu.Options[i]);
+	}
+};
+
+// App feature (singleton)
+dc.pui.App = new dc.pui.layer.App();
+
 
 // ------------------- end Layer -------------------------------------------------------
-		
+
+
 dc.pui.Loader = {
 	LoadPageId: null,
 	Ids: { },
@@ -476,7 +629,7 @@ dc.pui.Loader = {
 	init: function() {
 		var loader = this;
 		
-		loader.MainLayer = new dc.pui.layer.Main('body'); 
+		loader.MainLayer = new dc.pui.layer.Main(); 
 		
 		loader.OriginPage = location.pathname;
 		loader.OriginHash = location.hash;
@@ -614,9 +767,7 @@ dc.pui.Loader = {
 	failedPageLoad: function(reason) {
 		var loader = this;
 		
-		// TODO review this
-		//if (reason == 1)
-		//	loader.loadSigninPage({FromFail: true});
+		dc.pui.Popup.alert('Failed to load page, you may not have permissions for it.');
 	},
 	callbackExtraLibs: function() {
 		var loader = this;
@@ -653,7 +804,7 @@ dc.pui.Loader = {
 			var key = dc.util.Crypto.makeSimpleKey();
 			
 			var script = document.createElement('script');
-			script.src = '/dcw/js/dc.extra-lib-callback.js?nocache=' + key;
+			script.src = '/js/dc.extra-lib-callback.js?nocache=' + key;
 			script.id = 'lib' + key;					
 			script.async = false;  	// needed when loading additional libraries, we can inject a final fake script that echos 
 									// a param (e.g. ?opid=3345) to us saying that it is loaded and hence all preceding scripts are also loaded
@@ -688,7 +839,7 @@ dc.pui.Loader = {
 			var key = dc.util.Crypto.makeSimpleKey();
 			
 			var script = document.createElement('script');
-			script.src = '/dcw/js/dc.extra-lib-callback.js?nocache=' + key;
+			script.src = '/js/dc.extra-lib-callback.js?nocache=' + key;		// TODO consolidate with dc.require.js ...
 			script.id = 'lib' + key;					
 			script.async = false;  	// needed when loading additional libraries, we can inject a final fake script that echos 
 									// a param (e.g. ?opid=3345) to us saying that it is loaded and hence all preceding scripts are also loaded
@@ -717,7 +868,10 @@ dc.pui.Loader = {
 		
 		if (entry)
 			entry.onFrame(e);
-				
+		
+		if (!loader.Layers)
+			return;
+		
 		for (var i = 0; i < loader.Layers.length; i++) 
 			loader.Layers[i].onFrame(e);
 	},
@@ -748,7 +902,7 @@ dc.pui.Apps = {
 			// TODO maybe change page if not auth tags? or if became guest
 		}, true);
 		
-		if (dc.handler.sessionChanged)
+		if (dc.handler && dc.handler.sessionChanged)
 			dc.handler.sessionChanged();
 	},
 	busyCheck: function() {
@@ -759,166 +913,75 @@ dc.pui.Apps = {
 		
 		return false;
 	},
-	activateCms: function(tabcb) {
-		var loader = dc.pui.Loader;
-		
-		if (!tabcb && !dc.user.isAuthorized(['Editor','Contributor','Developer']))
+	activateCms: function(options) {
+		if (!dc.user.isAuthorized(['Editor','Admin','Developer']))
 			return;
 		
-		if (!tabcb) {
-			tabcb = function() {
-				var def = loader.currentPageEntry().getDefinition();
-				
-				dc.cms.edit.Loader.setContext({
-					Menu: dc.cms.edit.MenuEnum.PageProps,
-					Params: {
-						Page: { 
-							Channel: def.CMSChannel, 
-							Path: def.CMSPath
-						}
-					}
-				});
-			
-				dc.cms.edit.Loader.openPane('/dcm/edit/page/edit-feed-prop');
-			};
-		}
-		
 		dc.pui.Apps.loadCms(function() {
-			dc.cms.edit.Loader.init(tabcb);		// TODO fix how the CMS layer works
+			dc.cms.Loader.init(options);		
 		});
 	},
 	loadCms: function(cb) {
-		var loader = dc.pui.Loader;
-		
-		// TODO new paths?
-		loader.addExtraStyles([ '/css/dcm/main.css' ], function() {
-			loader.addExtraLibs([ '/js/dcm/main.js' ], function() {
+		dc.pui.Loader.addExtraStyles([ '/css/dcm.cms.css' ], function() {
+			dc.pui.Loader.addExtraLibs([ '/js/dcm.cms.js' ], function() {
 				cb();
 			});
 		});
+	},
+	MenuEnum: {
+		SignIn: 'dcSignIn'
+	},
+	
+	Menus: {
+		dcSignIn: {
+			Options: [
+				{
+					Title: 'Welcome',
+					Kind: 'Option',
+					Op: function(e) {
+						dc.pui.App.loadPage('/dcw/Welcome');
+					}
+				},
+				{
+					Title: 'Sign In',
+					Kind: 'Option',
+					Op: function(e) {
+						dc.pui.App.loadPage('/dcw/Sign-In');
+					}
+				},
+				{
+					Title: 'Password Reset',
+					Kind: 'Option',
+					Op: function(e) {
+						dc.pui.App.loadPage('/dcw/Reset');
+					}
+				},
+				{
+					Title: 'Sign Out',
+					Kind: 'Option',
+					Op: function(e) {
+						dc.pui.Loader.signout();
+					}
+				}
+			]
+		}
 	}
 };
 
 dc.pui.Popup = {
-	Callback: null,
-	CallbackApprove: null,
-		
-	alert: function(msg, callback) {
-		console.log(msg);
-		
-		
-		/*
-		$('#dcuiAlertPane').remove();
-
-		$('body').append('<div id="dcuiAlertPane" class="ui-content"> \
-				<a id="dcuiAlertPaneClose" href="#" class="ui-corner-all ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a> \
-				<div id="dcuiAlertPaneHtml"></div> \
-		</div>');
-		
-		$("#dcuiAlertPaneClose,#dcuiAlertPane").click(function (e) {
-			if (dc.pui.Popup.Callback)
-				dc.pui.Popup.Callback();
-
-			dc.pui.Popup.Callback = null;
-			
-			$('#dcuiAlertPane').remove();
-			
-			e.preventDefault();
-			return false;
-		});
-		
-		dc.pui.Popup.Callback = callback;
-
-		$('#dcuiAlertPaneHtml').html(msg);
-		*/
-		
-		/* TODO
-	},
-	help: function(msg, callback) {
-		$('#dcuiHelpPane').remove();
-
-		$('body').append('<div id="dcuiHelpPane" class="ui-content"> \
-				<a id="dcuiHelpPaneClose" href="#" class="ui-corner-all ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a> \
-				<div id="dcuiHelpPaneHtml"></div> \
-		</div>');
-		
-		$("#dcuiHelpPane,#dcuiHelpPaneClose").click(function (e) {
-			if (dc.pui.Popup.Callback)
-				dc.pui.Popup.Callback();
-
-			dc.pui.Popup.Callback = null;
-			
-			$('#dcuiHelpPane').remove();
-			
-			e.preventDefault();
-			return false;
-		});
-		
-		$("#dcuiHelpPaneHtml").click(function (e) {
-			if (e.target.tagName == 'A' && e.target.href)
-				window.open(e.target.href);
-			
-			e.preventDefault();
-			return false;
-		});
-		
-		dc.pui.Popup.Callback = callback;
-
-		$('#dcuiHelpPaneHtml').html(msg);
+	alert: function(msg, callback, title) {
+		dc.pui.Alert.loadPage('/dcw/Alert', { Message: msg, Callback: callback, Title: title })
 	},
 
-	confirm: function(msg,callback) {
-		var pi = $('#puConfirm');
-		
-		// build alert if none present
-		if (!pi.length) {
-			$('body').append('<div data-role="popup" id="puConfirm" data-theme="a" class="ui-corner-all"> \
-					<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a> \
-					<form> \
-					<div> \
-						<div id="puConfirmHtml"></div> \
-						<button id="btnConfirmPopup" type="button" class="ui-btn ui-corner-all ui-shadow ui-btn-a">Yes</button> \
-						<button id="btnRejectPopup" type="button" class="ui-btn ui-corner-all ui-shadow ui-btn-a">No</button> \
-					</div> \
-				</form> \
-			</div>');
-			
-			// TODO
-			$('#puConfirm').enhanceWithin().popup();
-			
-			$("#puConfirm").on("popupafterclose", function () {
-				if (dc.pui.Popup.CallbackApprove && dc.pui.Popup.Callback)
-					dc.pui.Popup.Callback();
-
-				dc.pui.Popup.Callback = null;
-				
-				//console.log('aaaa');
-			});
-			
-			$('#btnConfirmPopup').click(function(e) {
-				dc.pui.Popup.CallbackApprove = true;
-				
-				$('#puConfirm').popup('close');
-					
-				e.preventDefault();
-				return false;
-			});
-			
-			$('#btnRejectPopup').click(function(e) {
-				$('#puConfirm').popup('close');
-					
-				e.preventDefault();
-				return false;
-			});
-		}
-		
-		dc.pui.Popup.Callback = callback;
-		dc.pui.Popup.CallbackApprove = false;
-		$('#puConfirmHtml').html(msg);
-		$('#puConfirm').popup('open', { positionTo: 'window', transition: 'pop' });
+	confirm: function(msg, callback, title) {
+		dc.pui.Alert.loadPage('/dcw/Confirm', { Message: msg, Callback: callback, Title: title })
 	},
-	loading: function() {
-	*/
+
+	menu: function(menu) {
+		if (dc.util.String.isString(menu))
+			menu = dc.pui.Apps.Menus[menu];
+		
+		dc.pui.Alert.loadPage('/dcw/Menu', { Menu: menu })
 	}
 };
 
@@ -954,48 +1017,72 @@ dc.pui.PageEntry.prototype = {
 		var page = dc.pui.Loader.Pages[this.Name];
 		var entry = this;
 		
-		// after forms are loaded, notify caller
-		var loadcntdwn3 = new dc.lang.CountDownCallback(1, function() { 
+		var steps = [ ];
+		
+		for (var i = 0; i < page.LoadFunctions.length; i++) {
+			steps.push({
+				Alias: 'LoadPageFunc' + i,
+				Title: 'Load page function: ' + i,
+				Params: {
+					Idx: i
+				},
+				Func: function(step) {
+					var event = { Wait: false };
+					
+					var func = page.LoadFunctions[step.Params.Idx];
+					
+					if (dc.util.String.isString(func)) 
+						entry.callPageFunc(func, event);
+					else
+						func.call(entry, event);
+					
+					if (! event.Wait)
+						this.resume();
+				}
+			});
+		}
+
+		steps.push({
+			Alias: 'MainLoadPage',
+			Title: 'Main load page function',
+			Func: function(step) {
+				var event = { Wait: false };
+
+				entry.callPageFunc('Load', event); 
+				
+				if (! event.Wait)
+					this.resume();
+			}
+		});
+
+		// now load forms, if any
+		Object.getOwnPropertyNames(entry.Forms).forEach(function(name) {
+			steps.push({
+				Alias: 'LoadFormFunc' + name,
+				Title: 'Load form function: ' + name,
+				Params: {
+					Name: name
+				},
+				Func: function(step) {
+					var task = this;
+					
+					entry.Forms[step.Params.Name][entry.Loaded ? 'thaw' : 'load'](function() {
+						task.resume();
+					});
+				}
+			});
+		});
+
+		var loadtask = new dc.lang.Task(steps, function(res) {
+			//console.log('observer: ' + res.Code);
+			
 			entry.Loaded = true;
 			
 			if (callback)
 				callback.call(entry);
 		});
 		
-		// loadcntdwn3 can be used by the forms loads to delay load callback
-		// if any form loader needs to do an async operation
-		var loadcntdwn2 = new dc.lang.CountDownCallback(1, function() { 
-			// now load forms, if any
-			Object.getOwnPropertyNames(entry.Forms).forEach(function(name) {
-				loadcntdwn3.inc();
-				
-				entry.Forms[name][entry.Loaded ? 'thaw' : 'load'](function() {
-					loadcntdwn3.dec();
-				});
-			});
-				
-			loadcntdwn3.dec();	
-		});
-		
-		// loadcntdwn2 can be used by the primary Load function to delay loading the forms
-		// if Load needs to do an async operation
-		var loadcntdwn1 = new dc.lang.CountDownCallback(1, function() { 
-			entry.callPageFunc('Load', loadcntdwn2); 
-			
-			loadcntdwn2.dec();
-		});
-		
-		// run all the LoadFunctions, they cannot depend on each other or on an order of execution
-		// loadcntdwn1 can be used by the LoadFunctions to delay primary Load of the form
-		// if any LoadFunctions needs to do an async operation
-		for (var i = 0; i < page.LoadFunctions.length; i++) {
-			if (dc.util.String.isString(page.LoadFunctions[i])) 
-				entry.callPageFunc(page.LoadFunctions[i], loadcntdwn1); 
-			else
-				page.LoadFunctions[i].call(entry, loadcntdwn1);
-		}
-			
-		loadcntdwn1.dec();		
+		loadtask.run();		
 	},
 	
 	callPageFunc: function(method) {
@@ -1005,6 +1092,10 @@ dc.pui.PageEntry.prototype = {
 			return page.Functions[method].apply(this, Array.prototype.slice.call(arguments, 1));
 			
 		return null;
+	},
+	
+	query: function(selector) {
+		return this.Layer.query(selector);
 	},
 	
 	form: function(name) {
@@ -1026,19 +1117,6 @@ dc.pui.PageEntry.prototype = {
 		
 		return $('#__unreal');
 	},
-	
-	// TODO rewrite
-	/*
-	addFormLayout: function(name, xtralayout) {
-		this.layout(xtralayout, new dc.pui.LayoutEntry({
-			Element: $('#frm' + name),
-			Definition: { Element: 'Form', Name: name },
-			PageEntry: this
-		}));
-		
-		$('#frm' + name).enhanceWithin();
-	},
-	*/
 	
 	freeze: function() {
 		var entry = this;
@@ -1197,7 +1275,9 @@ dc.pui.Form = function(pageEntry, node) {
 			RecordMap: { }, 		 // map records to data types 
 			AsNew: { },
 			AlwaysNew: false,
+			Managed: false,
 			Focus: null,
+			TitleFields: [ ],
 			FreezeInfo: null		//  { [recordname]: { Originals: { [fld]: [value] }, Values: { [fld]: [value] } }, [records]... }
 		});
 	
@@ -1211,6 +1291,8 @@ dc.pui.Form = function(pageEntry, node) {
 	var focus = $(node).attr('data-dcf-focus');
 	var prefix = $(node).attr('data-dcf-prefix');
 	var alwaysnew = $(node).attr('data-dcf-always-new');
+	var managed = $(node).attr('data-dcf-managed');
+	var titles = $(node).attr('data-dcf-title-fields');
 	
 	recorder = dc.util.String.isString(recorder) ? recorder.split(',') : [ 'Default' ];
 	rectype = dc.util.String.isString(rectype) ? rectype.split(',') : [ '' ];
@@ -1223,11 +1305,17 @@ dc.pui.Form = function(pageEntry, node) {
 	if (dc.util.String.isString(alwaysnew))
 		this.AlwaysNew = (alwaysnew == 'true');
 	
+	if (dc.util.String.isString(managed))
+		this.Managed = (managed == 'true');
+	
 	if (dc.util.String.isString(focus))
 		this.Focus = focus;
 	
 	if (dc.util.String.isString(prefix))
 		this.Prefix = prefix;
+	
+	if (dc.util.String.isString(titles))
+		this.TitleFields = titles.split(',');
 }
 
 dc.pui.Form.prototype = {
@@ -1235,7 +1323,14 @@ dc.pui.Form.prototype = {
 		return this.Inputs[name];
 	},
 	
-	query: function(name) {
+	query: function(selector) {
+		if (selector)
+			return $('#' + this.Id).find(selector);
+		
+		return $('#' + this.Id);
+	},
+	
+	inputQuery: function(name) {
 		var inp = this.Inputs[name];		// TODO use Input's "query" - return container control if more than one control
 		
 		return $('#' + (inp ? inp.Id : '__unreal'));
@@ -1276,167 +1371,458 @@ dc.pui.Form.prototype = {
 					
 	load: function(callback) {
 		var form = this;
-		var fnode = $('#' + form.Id);
 		
 		if(!form.RecordOrder) {
 			callback();
 			return;
 		}
-		
-		// build a queue of record names (copy array) to load 
-		var rnames = form.RecordOrder.concat(); 
-		
-		var qAfter = function(event) {
-			// handler will change Data if necessary
-			form.raiseEvent('AfterLoadRecord', event);
-		
-			form.loadRecord(event.Record, event.Data, event.AsNew);
-				
-			// process next record in queue
-			qProcess();
-		};
-		
-		// define how to process the queue
-		var qProcess = function() {
-			// all done with loading
-			if (rnames.length == 0) {
-				form.raiseEvent('AfterLoad', event);
-				
-				callback();					
-				return;
-			}
-				
-			var rname = rnames.shift();
-			
-			var event = { 
-				Record: rname
-			};
 
-			form.initChanges(event.Record);
+		var steps = [ ];
+		
+		steps.push( {
+			Alias: 'BeforeLoad',
+			Title: 'Before Load',
+			Func: function(step) {
+				var task = this;
+				
+				var event = { 
+					Task: task,
+					Wait: false,
+					Stop: false
+				};
 			
-			// handler will set Message if we need to load data from bus and Data if 
-			// we need to load a record they provide
-			// also they should set AsNew = true if this is a new record
-			form.raiseEvent('LoadRecord', event);
-
-			if (event.Stop) {
-				callback();
-				return;
+				// do before load record event
+				task.Store.Form.raiseEvent('BeforeLoad', event);
+			
+				if (event.Stop) 			// quit the task
+					task.kill();
+				else if (! event.Wait) 			//  continue the task, unless told to wait
+					task.resume();
 			}
+		} );
+
+		// TODO add before load controls
+		
+		for (var i = 0 ; i < form.RecordOrder.length; i++) {
+			var rec = form.RecordOrder[i];
 			
-			if (event.Message) {					
-				dc.comm.sendMessage(event.Message, function (e) {
-					if (e.Result != 0) { 
-						var ignore = false;
-						
-						if (event.IgnoreResults) {
-							for (var i = 0; i < event.IgnoreResults.length; i++) 
-								if (event.IgnoreResults[i] == e.Result) {
-									ignore = true;
-									break;
-								}
-						}
-						
-						if (!ignore) {
-							dc.pui.Popup.alert(e.Message);
-							callback();
-							return;
-						}
-					}
-	
-					event.Result = e;
-					event.Data = e.Body;
+			steps.push( {
+				Alias: 'LoadRecord',
+				Title: 'Load Record',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
+
+					task.Store.Current = {
+						Result: 0,
+						Message: null,
+						Record: step.Params.Record,
+						Data: { },
+						AsNew: false
+					};
 					
-					qAfter(event);
-				}, null, true);
+					task.Store.Form.initChanges(step.Params.Record);
+				
+					var event = { 
+						Task: task,
+						Wait: false,
+						Stop: false,
+						Record: step.Params.Record,
+						Data: { },
+						AsNew: false
+					};
+				
+					// do before save record event
+					task.Store.Form.raiseEvent('LoadRecord', event);
+				
+					if (event.Stop) {			// quit the task
+						task.kill();
+						return;
+					}
+				
+					if (event.Wait)
+						return;
+					
+					// if you use Wait then set task.Store.Current before resume
+					// otherwise set the result into event Data
+					task.Store.Current.Data = event.Data;
+					task.Store.Current.AsNew = event.AsNew;
+					
+					if (event.Alert) {
+						dc.pui.Popup.alert(event.Alert, function() {
+							task.kill();
+						});
+						
+						return;
+					}
+					
+					if (event.Message) {					
+						dc.comm.sendMessage(event.Message, function (e) {
+							if (e.Result != 0) { 
+								var ignore = false;
+								
+								if (event.IgnoreResults) {
+									for (var i = 0; i < event.IgnoreResults.length; i++) 
+										if (event.IgnoreResults[i] == e.Result) {
+											ignore = true;
+											break;
+										}
+								}
+								
+								if (!ignore) {
+									dc.pui.Popup.alert(e.Message);
+									task.kill();
+									return;
+								}
+							}
+							
+							task.Store.Current.Data = e.Body;
+							task.Store.Current.Result = e.Result;
+							task.Store.Current.Message = e.Message;
+							
+							task.resume();
+						});
+					}
+					else {
+						task.resume();
+					}	
+				}
+			} );		
+			
+			steps.push( {
+				Alias: 'AfterLoadRecord',
+				Title: 'After Load Record',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
+					
+					var event = { 
+						Task: task,
+						Wait: false,
+						Stop: false,
+						Record: step.Params.Record,
+						Data: task.Store.Current.Data,
+						AsNew: task.Store.Current.AsNew
+					};
+				
+					// do after load record event
+					task.Store.Form.raiseEvent('AfterLoadRecord', event);
+				
+					if (event.Stop) {			// quit the task
+						task.kill();
+						return;
+					}
+				
+					if (event.Wait)
+						return;
+					
+					// if you use Wait then set task.Store.Current before resume
+					// otherwise set the result into event Data
+					task.Store.Current.Data = event.Data;
+					task.Store.Current.AsNew = event.AsNew;
+					
+					if (event.Alert) {
+						dc.pui.Popup.alert(event.Alert, function() {
+							task.kill();
+						});
+						
+						return;
+					}
+					
+					task.resume();
+				}
+			} );		
+			
+			steps.push( {
+				Alias: 'FillRecordInputs',
+				Title: 'Fill Record Inputs',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
+					
+					task.Store.Form.loadRecord(task.Store.Current);
+					
+					task.resume();
+				}
+			} );		
+		}
+		
+		// TODO AfterLoadCtrls
+		
+		steps.push( {
+			Alias: 'AfterLoad',
+			Title: 'After Load',
+			Func: function(step) {
+				var task = this;
+				
+				task.Store.Current = {
+					Result: 0,
+					Message: null,
+					Record: null,
+					Data: { },
+					AsNew: false
+				};
+				
+				var event = { 
+					Task: task,
+					Wait: false,
+					Stop: false
+				};
+			
+				// do before save record event
+				task.Store.Form.raiseEvent('AfterLoad', event);
+			
+				if (event.Stop) {			// quit the task
+					task.kill();
+					return;
+				}
+			
+				if (event.Wait)
+					return;
+				
+				if (event.Alert) {
+					dc.pui.Popup.alert(event.Alert, function() {
+						task.kill();
+					});
+					
+					return;
+				}
+				
+				task.resume();				
 			}
-			else {
-				event.Result = 0;
-				qAfter(event);
+		} );		
+
+		var loadtask = new dc.lang.Task(steps, function(res) {
+			//console.log('observer: ' + res.Code);
+			callback();
+		});
+		
+		loadtask.Store = {
+			Form: form,
+			Current: {
+				Result: 0,
+				Message: null,
+				Record: null,
+				Data: { },
+				AsNew: false
 			}
 		};
 		
-		// start the queue processing
-		qProcess();
+		loadtask.run();				
 	},
 	
 	loadDefaultRecord: function(data, asNew) {
-		return this.loadRecord('Default', data, asNew);
+		return this.loadRecord( { 
+			Record: 'Default', 
+			Data: data, 
+			AsNew: asNew
+		});
 	},
 	
-	loadRecord: function(recname, data, asNew) {
+	loadRecord: function(info) {
 		var form = this;
 		
-		if (asNew)
-			form.AsNew[recname] = true;
+		if (info.AsNew)
+			form.AsNew[info.Record] = true;
 
-		if (!data) 
+		if (!info.Data) 
 			return;
 		
 		Object.getOwnPropertyNames(form.Inputs).forEach(function(name) {
 			var iinfo = form.Inputs[name];
 			
-			if ((iinfo.Record == recname) && data.hasOwnProperty(iinfo.Field)) {
-				iinfo.setValue(data[iinfo.Field]);
-				iinfo.OriginalValue = data[iinfo.Field];  //iinfo.getValue();
+			if ((iinfo.Record == info.Record) && info.Data.hasOwnProperty(iinfo.Field)) {
+				iinfo.setValue(info.Data[iinfo.Field]);
+				iinfo.OriginalValue = info.Data[iinfo.Field];  
 			}
 		});
 	},
-	
+					
 	thaw: function(callback) {
 		var form = this;
-		var fnode = $('#' + form.Id);
 		
 		if(!form.RecordOrder) {
 			callback();
 			return;
 		}
+
+		var steps = [ ];
 		
-		// build a queue of record names (copy array) to load 
-		var rnames = form.RecordOrder.concat(); 
-		
-		// define how to process the queue
-		var qProcess = function() {
-			// all done with thaw
-			if (rnames.length == 0) {
-				form.FreezeInfo = null;
-				callback();					
-				return;
+		steps.push( {
+			Alias: 'BeforeThaw',
+			Title: 'Before Thaw',
+			Func: function(step) {
+				var task = this;
+				
+				var event = { 
+					Task: task,
+					Wait: false,
+					Stop: false
+				};
+			
+				// do before load record event
+				task.Store.Form.raiseEvent('BeforeThaw', event);
+			
+				if (event.Stop) 			// quit the task
+					task.kill();
+				else if (! event.Wait) 			//  continue the task, unless told to wait
+					task.resume();
 			}
-				
-			var rname = rnames.shift();
-			
-			var event = { 
-				Record: rname,
-				Result: 0,
-				Data: form.FreezeInfo[rname].Values,
-				Originals: form.FreezeInfo[rname].Originals
-			};
-			
-			form.raiseEvent('ThawRecord', event);
+		} );
+
+		// TODO add before thaw controls
 		
-			form.thawRecord(event.Record, event.Data, event.Originals);
+		for (var i = 0 ; i < form.RecordOrder.length; i++) {
+			var rec = form.RecordOrder[i];
+			
+			steps.push( {
+				Alias: 'ThawRecord',
+				Title: 'Thaw Record',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
+
+					task.Store.Current = {
+						Result: 0,
+						Message: null,
+						Data: { },
+						AsNew: false,
+						Record: step.Params.Record,
+						Data: task.Store.Form.FreezeInfo[step.Params.Record].Values,
+						Originals: task.Store.Form.FreezeInfo[step.Params.Record].Originals
+					};
 				
-			// process next record in queue
-			qProcess();
+					var event = { 
+						Task: task,
+						Wait: false,
+						Stop: false,
+					};
+				
+					// do before thaw record event, set task.Store.Current before resume
+					task.Store.Form.raiseEvent('ThawRecord', event);
+				
+					if (event.Stop) {			// quit the task
+						task.kill();
+						return;
+					}
+				
+					if (event.Wait)
+						return;
+					
+					if (event.Alert) {
+						dc.pui.Popup.alert(event.Alert, function() {
+							task.kill();
+						});
+						
+						return;
+					}
+					
+					task.resume();
+				}
+			} );		
+			
+			steps.push( {
+				Alias: 'FillRecordInputs',
+				Title: 'Fill Record Inputs',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
+					
+					task.Store.Form.thawRecord(task.Store.Current);
+					
+					task.resume();
+				}
+			} );		
+		}
+		
+		// TODO AfterThawCtrls
+		
+		steps.push( {
+			Alias: 'AfterThaw',
+			Title: 'After Thaw',
+			Func: function(step) {
+				var task = this;
+				
+				task.Store.Current = {
+					Result: 0,
+					Message: null,
+					Record: null,
+					Data: { },
+					AsNew: false
+				};
+				
+				var event = { 
+					Task: task,
+					Wait: false,
+					Stop: false
+				};
+			
+				// do before save record event
+				task.Store.Form.raiseEvent('AfterThaw', event);
+			
+				if (event.Stop) {			// quit the task
+					task.kill();
+					return;
+				}
+			
+				if (event.Wait)
+					return;
+				
+				if (event.Alert) {
+					dc.pui.Popup.alert(event.Alert, function() {
+						task.kill();
+					});
+					
+					return;
+				}
+				
+				task.resume();				
+			}
+		} );		
+
+		var thawtask = new dc.lang.Task(steps, function(res) {
+			//console.log('observer: ' + res.Code);
+			form.FreezeInfo = null;
+				
+			callback();
+		});
+		
+		thawtask.Store = {
+			Form: form,
+			Current: {
+				Result: 0,
+				Message: null,
+				Record: null,
+				Data: { },
+				AsNew: false
+			}
 		};
 		
-		// start the queue processing
-		qProcess();
+		thawtask.run();				
 	},
 	
-	thawRecord: function(recname, data, originals) {
+	thawRecord: function(info) {
 		var form = this;
 
-		if (!data) 
+		if (!info.Data) 
 			return;
 		
 		Object.getOwnPropertyNames(form.Inputs).forEach(function(name) {
 			var iinfo = form.Inputs[name];
 			
-			if ((iinfo.Record == recname) && data.hasOwnProperty(iinfo.Field)) {
-				iinfo.setValue(data[iinfo.Field]);
-				iinfo.OriginalValue = originals[iinfo.Field];
+			if ((iinfo.Record == info.Record) && info.Data.hasOwnProperty(iinfo.Field)) {
+				iinfo.setValue(info.Data[iinfo.Field]);
+				iinfo.OriginalValue = info.Originals[iinfo.Field];
 			}
 		});
 	},
@@ -1478,124 +1864,360 @@ dc.pui.Form.prototype = {
 			callback();
 			return;
 		}
+
+		var steps = [ ];
 		
-		var fnode = $('#' + form.Id);
+		steps.push( {
+			Alias: 'BeforeSave',
+			Title: 'Before Save',
+			Func: function(step) {
+				var task = this;
+				
+				var event = { 
+					Task: task,
+					Wait: false,
+					Stop: false,
+					Changed: false
+				};
+			
+				// do before save record event
+				task.Store.Form.raiseEvent('BeforeSave', event);
+			
+				if (event.Changed)
+					task.Store.AnyChanged = true;
+			
+				if (event.Stop) 			// quit the task
+					task.kill();
+				else if (! event.Wait) 			//  continue the task, unless told to wait
+					task.resume();
+			}
+		} );
+
+		// TODO add before save controls
+		
+		for (var i = 0 ; i < form.RecordOrder.length; i++) {
+			var rec = form.RecordOrder[i];
+			
+			steps.push( {
+				Alias: 'SaveRecord',
+				Title: 'Save Record',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
 					
-		var event = { 
-			Changed: false
-		};
-		
-		// do before save record event
-		form.raiseEvent('BeforeSave', event);
-
-		if (event.Stop) {
-			callback();
-			return;
-		}
-		
-		var anychanged = event.Changed;
-				
-		// build a queue of record names to load 
-		var rnames = form.RecordOrder.concat(); 
-			
-		// define how to process the queue
-		var qProcess = function() {
-			// all done with loading
-			if (rnames.length == 0) {
-				// do after save record event
-				var event = {
-					NoChange: !anychanged
-				}
-		
-				form.raiseEvent('AfterSave', event);
-				
-				if (event.Alert)
-					dc.pui.Popup.alert(event.Alert);
-				else if (event.DefaultSaved)
-					dc.pui.Popup.alert(anychanged ? 'Saved' : 'No changes, nothing to save.');
-
-				callback();
-				return;
-			}
-			
-			var rname = rnames.shift();
-
-			if (!form.isChanged(rname)) {
-				// process next record in queue
-				qProcess();
-				return;
-			}
-			
-			anychanged = true;
-			
-			var event = {
-				Record: rname,
-				Data: form.getChanges(rname)
-			}
-			
-			var savecntdwn = new dc.lang.CountDownCallback(1, function() { 
-				if (event.Alert) {
-					dc.pui.Popup.alert(event.Alert);
-					callback();
-					return;
-				}
-				else if (event.Stop) {
-					callback();
-					return;
-				}
-				
-				if (event.Message) {					
-					dc.comm.sendMessage(event.Message, function (e) {
-						if (e.Result != 0) { 
-							dc.pui.Popup.alert(e.Message);
-							callback();
-							return;
-						}
+					task.Store.Current = {
+						Result: 0,
+						Message: null,
+						Record: step.Params.Record,
+						Data: task.Store.Form.getChanges(step.Params.Record),
+						AnyChanged: false,		// for current record
+						AfterData: null,
+						AfterFlag: false
+					};
 					
-						form.clearChanges(rname);
+					if (! task.Store.Form.isChanged(step.Params.Record)) {
+						task.resume();
+						return;
+					}
+				
+					task.Store.AnyChanged = true;
+					task.Store.Current.AnyChanged = true;
+				
+					var event = { 
+						Task: task,
+						Wait: false,
+						Stop: false,
+						Record: task.Store.Current.Record,
+						Data: task.Store.Current.Data
+					};
+					
+					if (task.Store.Form.Managed) {
+						var title = '';
 						
-						var aftersavecntdwn = new dc.lang.CountDownCallback(1, function() { 
-							// process next record in queue
-							qProcess();
-						});
-				
-						event.Result = e;
-						event.Data = e.Body;
-						event.CountDown = aftersavecntdwn;
-
-						form.raiseEvent('AfterSaveRecord', event);
+						for (var n = 0; n < task.Store.Form.TitleFields.length; n++) {
+							var fname = task.Store.Form.TitleFields[n];
+							
+							if (event.Data[fname]) {
+								if (title.length != 0)
+									title += ' - ';
 								
-						if (event.Alert) {
-							dc.pui.Popup.alert(event.Alert);
-							callback();
-							return;
-						}
-						else if (event.Stop) {
-							callback();
-							return;
+								title += event.Data[fname];
+							}
 						}
 						
-						aftersavecntdwn.dec();						
-					});
-				}
-				else {
-					form.clearChanges(rname);
+						// form the save message
+						event.Message = {
+							"Service":"dcmCore",
+							"Feature":"ManagedForm",
+							"Op":"Submit", 
+							Body: { 
+								Form: task.Store.Form.Name, 
+								Title: title, 
+								Data: event.Data
+							}
+						};
+					}
+					else {
+						// do before save record event
+						task.Store.Form.raiseEvent('SaveRecord', event);
+					}
 					
-					// process next record in queue
-					qProcess();
+					if (event.Stop) {			// quit the task
+						task.kill();
+						return;
+					}
+				
+					if (event.Wait)
+						return;
+					
+					// if you use Wait then set task.Store.Current before resume
+					// otherwise set the result into event Data
+					task.Store.Current.Data = event.Data;
+					
+					if (event.Alert) {
+						dc.pui.Popup.alert(event.Alert, function() {
+							task.kill();
+						});
+						
+						return;
+					}
+					
+					if (event.Message) {					
+						dc.comm.sendMessage(event.Message, function (e) {
+							if (e.Result != 0) { 
+								dc.pui.Popup.alert(e.Message);
+								task.kill();
+								return;
+							}
+					
+							task.Store.Current.AfterFlag = true;
+							task.Store.Current.AfterData = e.Body;
+							task.Store.Current.Result = e.Result;
+							task.Store.Current.Message = e.Message;
+				
+							task.Store.Form.clearChanges(step.Params.Record);
+							
+							task.resume();
+						});
+					}
+					else {
+						task.Store.Form.clearChanges(step.Params.Record);
+				
+						task.resume();
+					}	
+				}
+			} );		
+			
+			steps.push( {
+				Alias: 'AfterSaveRecord',
+				Title: 'After Save Record',
+				Params: {
+					Record: rec
+				},
+				Func: function(step) {
+					var task = this;
+					
+					if (! task.Store.Current.AnyChanged) {
+						task.resume();
+						return;
+					}
+					
+					var event = { 
+						Task: task,
+						Wait: false,
+						Stop: false,
+						Record: step.Params.Record,
+						Data: task.Store.Current.AfterData
+					};
+				
+					// do before save record event
+					task.Store.Form.raiseEvent('AfterSaveRecord', event);
+				
+					if (event.Stop) {			// quit the task
+						task.kill();
+						return;
+					}
+				
+					if (event.Wait)
+						return;
+					
+					// if you use Wait then set task.Store.Current before resume
+					// otherwise set the result into event Data
+					task.Store.Current.AfterData = event.Data;
+					
+					if (event.Alert) {
+						dc.pui.Popup.alert(event.Alert, function() {
+							task.kill();
+						});
+						
+						return;
+					}
+					
+					task.resume();
+				}
+			} );		
+			
+			// AfterSaveCtrls
+			
+			Object.getOwnPropertyNames(form.Inputs).forEach(function(name) {
+				var iinfo = form.Inputs[name];
+				
+				if (iinfo.Record != rec)
+					return;
+				
+				if (iinfo.onAfterSave) { 
+					//changes[name] = iinfo.getValue();
+					
+					steps.push( {
+						Alias: 'AfterSaveControl',
+						Title: 'After Save Control',
+						Params: {
+							Record: rec,
+							Input: iinfo
+						},
+						Func: function(step) {
+							var task = this;
+							
+							if (! task.Store.Current.AnyChanged) {
+								task.resume();
+								return;
+							}
+							
+							var event = { 
+								Task: task,
+								Record: step.Params.Record,
+								Data: task.Store.Current.AfterData
+							};
+							
+							// control has to resume/kill/etc
+							step.Params.Input.onAfterSave(event);
+						}
+					} );		
 				}
 			});
-	
-			event.CountDown = savecntdwn;
-	
-			// handler will set Message if we need to save data to bus  
-			form.raiseEvent('SaveRecord', event);
+			
+			if (form.Managed) {
+				steps.push( {
+					Alias: 'AfterSaveManaged',
+					Title: 'After Save Managed Event',
+					Params: {
+						Record: rec
+					},
+					Func: function(step) {
+						var task = this;
+						
+						if (! task.Store.Current.AnyChanged) {
+							task.resume();
+							return;
+						}
+						
+						dc.comm.sendMessage({
+							Service: "dcmCore",
+							Feature: "ManagedForm",
+							Op: "Complete", 
+							Body: { 
+								Form: task.Store.Form.Name,
+								Token: task.Store.Current.AfterData.Token
+							}
+						}, 
+						function (e) {
+							if (e.Result != 0) { 
+								dc.pui.Popup.alert(e.Message);
+								task.kill();
+								return;
+							}
+							
+							task.resume();
+						});
+					}
+				} );		
+			}
+		}
+		
+		steps.push( {
+			Alias: 'AfterSave',
+			Title: 'After Save',
+			Func: function(step) {
+				var task = this;
 				
-			savecntdwn.dec();						
+				var event = { 
+					Task: task,
+					Wait: false,
+					Stop: false,
+					Changed: task.Store.AnyChanged,
+					DefaultSaved: false
+				};
+			
+				if (task.Store.Form.Managed) {
+					task.Store.Form.query('a[data-dc-tag="dcf.SubmitButton"]').addClass('pure-button-disabled');
+					event.Alert = 'Form successfully submitted.';
+				}
+				
+				// do before save record event
+				task.Store.Form.raiseEvent('AfterSave', event);
+			
+				if (event.Stop) {			// quit the task
+					task.kill();
+					return;
+				}
+			
+				if (event.Wait)
+					return;
+				
+				task.Store.Current = {
+					Result: 0,
+					Message: null,
+					Record: null,
+					Data: { },
+					AnyChanged: false,		// for current record
+					AfterData: null,
+					AfterFlag: false,
+				};
+				
+				if (event.Alert) {
+					dc.pui.Popup.alert(event.Alert, function() {
+						task.kill();
+					});
+					
+					return;
+				}
+				
+				if (event.DefaultSaved) {
+					dc.pui.Popup.alert(task.Store.AnyChanged 
+						? 'Saved' : 'No changes, nothing to save.', function() 
+					{
+						task.resume();
+					});
+			
+					return;
+				}
+				
+				task.resume();				
+			}
+		} );		
+
+		var savetask = new dc.lang.Task(steps, function(res) {
+			//console.log('observer: ' + res.Code);
+			callback();
+		});
+		
+		savetask.Store = {
+			Form: form,
+			AnyChanged: false,
+			Current: {
+				Result: 0,
+				Message: null,
+				Record: null,
+				Data: { },
+				AnyChanged: false,		// for current record
+				AfterData: null,
+				AfterFlag: false,
+			}
 		};
 		
-		// start the queue processing
-		qProcess();
+		savetask.run();		
 	},
 	
 	initChanges: function(recname) { 
@@ -1793,6 +2415,8 @@ dc.pui.Form.prototype = {
 
 // ------------------- end Form -------------------------------------------------------
 
+dc.pui.TagCache = { };   // place to cache data that spans instances of a tag
+
 dc.pui.Tags = {
 	'dc.Button': function(entry, node) {
 		dc.pui.Tags['dc.Link'](entry, node);
@@ -1802,12 +2426,12 @@ dc.pui.Tags = {
 		var page = $(node).attr('data-dc-page');
 		var link = $(node).attr('href');
 		
-		if (link && (link.startsWith('http:') || link.startsWith('https:') || link.endsWith('.pdf')))
+		if (link && (link.startsWith('http:') || link.startsWith('https:') || link.startsWith('mailto:') || link.endsWith('.pdf')))
 			$(node).attr('target', '_blank');
 		
 		if (click || page) {
 			$(node).click(function(e) {
-				if (!dc.pui.Apps.busyCheck()) {
+				if (! $(node).hasClass('pure-button-disabled') && !dc.pui.Apps.busyCheck()) {
 					if (click)
 						entry.callPageFunc(click, e, this);
 					else if (page)
@@ -1818,15 +2442,26 @@ dc.pui.Tags = {
 				return false;
 			});
 		}
-		else if (link && (link.length > 1) && (l.charAt(0) == '#')) {
+		else if (link && (link.length > 1) && (link.charAt(0) == '#')) {
 			$(node).click(link, function(e) {
 				entry.scrollPage(e.data);
 				e.preventDefault();
 				return false;
 			});
 		}
+		else if (link && (link.charAt(0) == '/')) {
+			if ((link.length == 1) || (link.charAt(1) != '/')) {
+				$(node).click(link, function(e) {
+					entry.Layer.loadPage(e.data);
+					
+					e.preventDefault();
+					return false;
+				});
+			}
+		}
 	},
 	'dcf.MD': function(entry, node) {
+		/* TODO links should auto enhance in MD processor
 		$(node).find('a').each(function() { 
 			var en = $(this).attr('data-enhance');
 			
@@ -1888,6 +2523,10 @@ dc.pui.Tags = {
 				}
 			});
 		});
+		*/
+	},
+	'dcf.ManagedForm': function(entry, node) {
+		dc.pui.Tags['dcf.Form'](entry, node);
 	},
 	'dcf.Form': function(entry, node) {
 		var fname = $(node).attr('data-dcf-name');
@@ -1919,16 +2558,12 @@ dc.pui.Tags = {
 				var inp = vres.Inputs[i];
 				
 				if (inp.Code != 0) {
-					alert(inp.Message);
-					
-					/* TODO restore
 					dc.pui.Popup.alert(inp.Message, function() {
 						if (form.OnFocus)
 							form.PageEntry.callPageFunc(form.OnFocus, inp.Input);
 						else
-							form.query(inp.Input.Field).focus();
+							form.inputQuery(inp.Input.Field).focus();
 					});
-					*/
 					
 					vpass = false;
 					break;
@@ -1937,8 +2572,6 @@ dc.pui.Tags = {
 			
 			if (vpass) {
 				form.save(function() {
-					form.PageEntry.callPageFunc('Save');
-					
 					dc.pui.Apps.Busy = false;
 				});
 			}
@@ -1994,6 +2627,10 @@ dc.pui.Tags = {
 		// input self registers so don't do anything with it
 		var input = new dc.pui.controls.YesNo(entry, node);
 	},
+	'dcf.Uploader': function(entry, node) {
+		// input self registers so don't do anything with it
+		var input = new dc.pui.controls.Uploader(entry, node);
+	},
 	'dcf.ValidateButton': function(entry, node) {
 		$(node).on("click", function(e) { 
 			var fnode = $(node).closest('form');
@@ -2019,9 +2656,9 @@ dc.pui.Tags = {
 			var vres = form.validateField(fld);
 			
 			if (vres.Pass)
-				alert($(fld).find('div.dc-pui-message-info').text());		// TODO if no message then say "all good"
+				dc.pui.Popup.alert($(fld).find('div.dc-pui-message-info').text());		// TODO if no message then say "all good"
 			else
-				alert($(fld).find('div.dc-pui-message-danger').text());
+				dc.pui.Popup.alert($(fld).find('div.dc-pui-message-danger').text());
 			
 			e.preventDefault();
 			return false;
@@ -2029,13 +2666,12 @@ dc.pui.Tags = {
 	},
 	'dcf.SubmitButton': function(entry, node) {
 		$(node).on("click", function(e) { 
-			//if (!dc.pui.Apps.busyCheck()) {
-			//}
-			
-			var fnode = $(node).closest('form');
-			
-			if (fnode)
-				$(fnode).submit();
+			if (! $(node).hasClass('pure-button-disabled') && !dc.pui.Apps.busyCheck()) {
+				var fnode = $(node).closest('form');
+				
+				if (fnode)
+					$(fnode).submit();
+			}
 			
 			e.preventDefault();
 			return false;
@@ -2103,8 +2739,10 @@ dc.pui.controls.Input.prototype = {
 		
 		var rec = $(node).attr('data-dcf-record');
 		
-		if (rec) 
-			this.Record = rec;
+		if (! rec) 
+			rec = 'Default';
+			
+		this.Record = rec;
 
 		var dtype = $(node).attr('data-dcf-data-type');
 		
@@ -2515,6 +3153,88 @@ dc.pui.controls.CheckGroup.prototype.add = function(values) {
 		$('#' + this.Id).append($ctrl);
 	}
 }
+
+
+dc.pui.controls.Uploader = function(entry, node) {
+	this.init(entry, node);
+	
+	this.Values = [ ];
+	this.Files = [ ];
+};  
+
+dc.pui.controls.Uploader.prototype = new dc.pui.controls.ListInput();
+
+dc.pui.controls.Uploader.prototype.init = function(entry, node) {
+	var ctrl = this;
+	
+	dc.pui.controls.ListInput.prototype.init.call(this, entry, node);
+	
+	$(node).find('input').on("click focusout keyup", this, function(e) { e.data.validate(); });
+	
+	$(node).find('input').on("change", this, function(e) {
+		ctrl.addFiles(this.files); 
+		
+		e.data.validate();
+	});
+	
+	// TODO drag and drop
+};
+
+dc.pui.controls.Uploader.prototype.setValue = function(values) {
+	// do nothing - only file chooser can do this
+};
+
+dc.pui.controls.Uploader.prototype.getValue = function() {
+	return this.Values;
+};
+
+dc.pui.controls.Uploader.prototype.removeAll = function() {
+	this.Values = [ ];
+	this.Files = [ ];
+	
+	$('#' + this.Id + ' .dc-pui-uploader-listing').empty();
+};
+
+dc.pui.controls.Uploader.prototype.onAfterSave = function(e) {
+	console.log('onAfterSave: ' + this.Field)
+	
+	var task = e.Task;
+	
+	// TODO progress bars
+
+	var files = [ ];
+	
+	for (var i = 0; i < this.Files.length; i++) {
+		files.push({
+			File: this.Files[i],
+			Name: this.Values[i]
+		});
+	}
+	
+	var uploadtask = dc.transfer.Util.uploadFiles(files, 'ManagedForm', e.Data.Token, function() {
+		task.resume();
+	});
+	
+	uploadtask.Parent = task;
+
+	uploadtask.run();		
+};
+
+dc.pui.controls.Uploader.prototype.addFiles = function(values) {
+	for (var i = 0; i < values.length; i++) {
+		var file = values[i];			
+		
+		var fname = dc.util.File.toCleanFilename(file.name);
+		
+		this.Files.push(file);
+		this.Values.push(fname);
+		
+		var $ctrl = $('<div class="dc-pui-uploader-entry">' + fname + '</div>');
+		
+		$('#' + this.Id + ' .dc-pui-uploader-listing').append($ctrl);
+	}
+}
+
 
 // ------------------- end Controls -------------------------------------------------------
 

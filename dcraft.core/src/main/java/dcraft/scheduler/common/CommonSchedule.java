@@ -83,6 +83,8 @@ public class CommonSchedule extends OperationObserver implements ISchedule {
 		else
 			// only add the observer once per scheduled item
 			ctx.addObserver(this);
+			// TODO use the task's context - if it is working for Simple then maybe use here too
+			//this.ctxref = new WeakReference<OperationContext>(ctx);
 	}
 
 	@Override

@@ -36,6 +36,11 @@ public class Button extends UIElement {
 			.withAttribute("data-dc-enhance", "true")
 			.withAttribute("data-dc-tag", this.getName());
 		
+		// Default, Primary, Selected (TODO Success, Info, Warning, Danger)
+		String scope = this.getAttribute("Scope", "Default").toLowerCase();
+		
+		this.withClass("pure-button-" + scope);
+		
 		if (StringUtil.isNotEmpty(page))
 			this.withAttribute("data-dc-page", page);
 		

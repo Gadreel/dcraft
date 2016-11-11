@@ -25,8 +25,8 @@ import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.hub.Hub;
 import dcraft.lang.op.OperationContext;
-import dcraft.lang.op.OperationContextBuilder;
 import dcraft.lang.op.UserContext;
+import dcraft.log.Logger;
 import dcraft.mod.ExtensionBase;
 import dcraft.session.Session;
 import dcraft.struct.FieldStruct;
@@ -36,9 +36,23 @@ import dcraft.util.StringUtil;
 import dcraft.work.TaskRun;
 import dcraft.xml.XElement;
 
+/*
+ * AuthService can not be remote, though it may call a remote service
+ * 
+ * VERIFY
+ * 
+ * auth token is key here - if present in request and we find it, then pass (no matter session id)
+ * 	if present in request and we don't find it then reset to Guest and return error
+ *  if not present then check creds
+ *  
+ * NOTICE
+ * 
+ * Simple service does not (yet - TODO) timeout on the auth tokens, will collect forever
+ * 
+ */
 public class AuthService extends ExtensionBase implements IService {
 	protected SecureRandom random = new SecureRandom();
-	
+
 	protected Map<String, TenantUsers> tenantusers = new HashMap<>();
 	
 	@Override
@@ -103,31 +117,49 @@ public class AuthService extends ExtensionBase implements IService {
 		String feature = msg.getFieldAsString("Feature");
 		String op = msg.getFieldAsString("Op");
 
+		// uc is different from sess.getUser as uc may have credentials with it...sess should not
 		UserContext uc = request.getContext().getUserContext();
+		Session sess = request.getContext().getSession();
+		
+		TenantUsers du = this.tenantusers.get(uc.getTenantId());
+		
+		if (du == null) {
+			sess.clearToGuest();
+			OperationContext.switchUser(request.getContext(), sess.getUser());
+			
+			request.errorTr(442);
+			request.error("Tenant not found");
+			request.complete();
+			return;
+		}
 		
 		//System.out.println("Auth: " + feature + " - " + op);
 		
 		if ("Authentication".equals(feature)) {
+			
+			System.out.println("=== NOVHOATS Auth: " + op);
+			
 			if ("SignIn".equals(op)) {
+				
+				if (sess == null) {
+					OperationContext.switchUser(request.getContext(), UserContext.allocateGuest());
+					
+					request.errorTr(442);
+					request.error("Session not found");
+					request.complete();
+					return;
+				}
 				
 				String uname = uc.getUsername();
 				
-				TenantUsers du = this.tenantusers.get(uc.getTenantId());
+				RecordStruct urec = du.info(uname);
 				
-				if (du == null) {
-					this.clearUserContext(request.getContext());
-					request.error("Tenant not found");
+				if (urec == null) {
+					du.clear(sess, uc.getAuthToken());
+					request.error("User not found");
 				}
 				else {
-					RecordStruct urec = du.info(uname);
-					
-					if (urec == null) {
-						this.clearUserContext(request.getContext());
-						request.error("User not found");
-					}
-					else {
-						request.setResult(urec);
-					}
+					request.setResult(urec);
 				}
 				
 				request.complete();
@@ -135,22 +167,22 @@ public class AuthService extends ExtensionBase implements IService {
 			}			
 			
 			if ("Verify".equals(op)) {
+				
+				if (sess == null) {
+					OperationContext.switchUser(request.getContext(), UserContext.allocateGuest());
+					
+					request.errorTr(442);
+					request.error("Session not found");
+					request.complete();
+					return;
+				}
+				
 				String authToken = uc.getAuthToken();
 				
 				if (StringUtil.isNotEmpty(authToken)) {
-					//System.out.println("---------- Token not empty");
-					
-					Session sess = request.getContext().getSession();
-					
-					//System.out.println("---------- Xml Mode");
-					
-					if ((sess != null) && authToken.equals(sess.getUser().getAuthToken())) {
-						//System.out.println("---------- Token verified");
-						
-						// verified
-						request.complete();
-						return;
-					}
+					du.verifyToken(sess, authToken);
+					request.complete();
+					return;
 				}				
 				
 				//System.out.println("---------- Token empty or bad");
@@ -159,7 +191,8 @@ public class AuthService extends ExtensionBase implements IService {
 				RecordStruct creds = uc.getCredentials();  // msg.getFieldAsRecord("Credentials");
 				
 				if (creds == null) {
-					this.clearUserContext(request.getContext());
+					du.clear(sess, uc.getAuthToken());
+					
 					request.errorTr(442);
 					request.complete();
 					return;
@@ -170,40 +203,15 @@ public class AuthService extends ExtensionBase implements IService {
 				String uname = creds.getFieldAsString("Username"); 
 				String passwd = creds.getFieldAsString("Password");
 				
-				TenantUsers du = this.tenantusers.get(uc.getTenantId());
-				
-				if ((du == null) || !du.verify(uname, passwd)) {
-					this.clearUserContext(request.getContext());
-					request.errorTr(442);
-					request.complete();
-					return;
-				}
-				
-				byte[] feedbuff = new byte[32];
-				this.random.nextBytes(feedbuff);
-				String token = HexUtil.bufferToHex(feedbuff);
-				
-				//System.out.println("---------- Verified and token");
-				
-				// create the new context
-				uc = this.tenantusers.get(uc.getTenantId()).context(uname, token);
-				
-				// make sure we use the new context in our return
-				OperationContext.switchUser(request.getContext(), uc);
-				
-				Hub.instance.getSessions().findOrCreateTether(request.getContext());
-				
-				//System.out.println("verify new");
+				du.verifyCreds(sess, uname, passwd);
 				
 				request.complete();
 				return;
 			}			
 			
 			if ("SignOut".equals(op)) {
-				Hub.instance.getSessions().terminate(request.getContext().getSessionId());
-				//System.out.println("---------- Session removed");
-				
-				this.clearUserContext(request.getContext());
+				if (sess != null) 
+					du.clear(sess, uc.getAuthToken());
 				
 				request.complete();
 				return;
@@ -220,38 +228,70 @@ public class AuthService extends ExtensionBase implements IService {
 		request.complete();
 	}
 	
-	// be sure we keep the tenant id
-	public void clearUserContext(OperationContext ctx) {
-		UserContext uc = ctx.getUserContext();
-		
-		OperationContext.switchUser(ctx, new OperationContextBuilder()
-			.withGuestUserTemplate()
-			.withTenantId(uc.getTenantId())
-			.withSite(uc.getSiteAlias())
-			.toUserContext());
-	}
-	
 	public class TenantUsers {
 		protected String tenantid = null;
 		protected Map<String, XElement> cachedIndex = new HashMap<>();
 		
-		public boolean verify(String username, String password) {
+		// token to username map
+		protected Map<String, String> authtokens = new HashMap<>();
+		
+		public void verifyToken(Session sess, String authtoken) {
+			String uname = this.authtokens.get(authtoken);
+			
+			if (StringUtil.isEmpty(uname)) {
+				Logger.errorTr(442);
+				Logger.error("AuthToken not found, could not verify");
+				this.clear(sess, authtoken);
+				return;
+			}
+			
+			this.setContext(sess, uname, authtoken);
+		}
+		
+		public void verifyCreds(Session sess, String username, String password) {
 			XElement usr = this.cachedIndex.get(username);
 			
-			if (usr == null)
-				return false;
+			if (usr == null) {
+				Logger.errorTr(442);
+				Logger.error("User not found, could not verify");
+				this.clear(sess, null);
+				return;
+			}
 			
 			String upass = usr.getAttribute("EncryptedPassword");
 			
 			// any setting in the config file is set with Hub crypto not tenant crypto
-			return Hub.instance.getClock().getObfuscator().checkHexPassword(password, upass);
+			if (! Hub.instance.getClock().getObfuscator().checkHexPassword(password, upass)) {
+				Logger.errorTr(442);
+				Logger.error("Invalid credentials, could not verify");
+				this.clear(sess, null);
+				return;
+			}
+			
+			byte[] feedbuff = new byte[32];
+			AuthService.this.random.nextBytes(feedbuff);
+			String token = HexUtil.bufferToHex(feedbuff);
+			
+			this.setContext(sess, username, token);
 		}
 		
-		public UserContext context(String username, String token) {
+		public void clear(Session sess, String token) {
+			sess.clearToGuest();
+			OperationContext.switchUser(OperationContext.get(), sess.getUser());
+			
+			if (StringUtil.isNotEmpty(token))
+				this.authtokens.remove(token);
+		}
+		
+		public void setContext(Session sess, String username, String token) {
 			XElement usr = this.cachedIndex.get(username);
 			
-			if ((usr == null))
-				return null;
+			if ((usr == null)) {
+				Logger.errorTr(442);
+				Logger.error("User not found, could not verify");
+				this.clear(sess, null);
+				return;
+			}
 
 			String uid = usr.getAttribute("Id");
 			
@@ -264,7 +304,7 @@ public class AuthService extends ExtensionBase implements IService {
 			for (int i = 1; i < atags.length; i++) 
 				atags[i] = tags.get(i - 1).getText();
 			
-			return new OperationContextBuilder()
+			sess.withUser(sess.getUser().toBuilder()
 				.withTenantId(tenantid)
 				.withUserId(uid)
 				.withUsername(usr.getAttribute("Username"))
@@ -273,7 +313,11 @@ public class AuthService extends ExtensionBase implements IService {
 				.withVerified(true)
 				.withAuthTags(atags)
 				.withAuthToken(token)
-				.toUserContext(); 
+				.toUserContext());
+			
+			OperationContext.switchUser(OperationContext.get(), sess.getUser());
+			
+			this.authtokens.put(token, username);
 		}
 		
 		public RecordStruct info(String username) {

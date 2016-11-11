@@ -142,16 +142,7 @@ public class HubResources implements ILocaleResource {
 	 * @return true if is public facing
 	 */
 	public boolean isPublicFacing() {
-		return (this.mode == HubMode.Gateway) || (this.mode == HubMode.Public);
-	}
-	
-	/**
-	 * true: this Hub is not complete software, but is mostly support for network interchange 
-	 * 
-	 * @return true if is a gateway
-	 */
-	public boolean isGateway() {
-		return (this.mode == HubMode.Gateway);
+		return (this.mode == HubMode.Public);
 	}
 	
 	public boolean isForTesting() {

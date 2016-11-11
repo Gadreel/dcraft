@@ -37,7 +37,8 @@ dc.comm = {
 		// accounts - never shared accounts or public devices.
 		dc.user.loadRememberedUser();
 		
-		// periodically keep session going
+		/*
+		// periodically keep session going - no longer needed/wanted!
 		setInterval(function() {
 			if (dc.user.isVerified()) {
 				dc.comm.sendForgetMessage({ 
@@ -55,6 +56,7 @@ dc.comm = {
 				// TODO		callbackfunc( { Result: 1, Message: "AJAX call failed or timed out." } );
 			}
 		}, 55000);
+		*/
 
 		callback();				
 	},

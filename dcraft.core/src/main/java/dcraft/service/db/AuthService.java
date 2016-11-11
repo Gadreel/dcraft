@@ -25,9 +25,9 @@ import dcraft.db.update.UpdateRecordRequest;
 import dcraft.hub.Hub;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
-import dcraft.lang.op.OperationContextBuilder;
 import dcraft.lang.op.UserContext;
 import dcraft.mod.ExtensionBase;
+import dcraft.session.Session;
 import dcraft.struct.CompositeParser;
 import dcraft.struct.CompositeStruct;
 import dcraft.struct.FieldStruct;
@@ -47,6 +47,11 @@ public class AuthService extends ExtensionBase implements IService {
 
 		OperationContext tc = OperationContext.get();
 		UserContext uc = tc.getUserContext();
+
+		// uc is different from sess.getUser as uc may have credentials with it...sess should not
+		Session sess = tc.getSession();
+		
+		// TODO we are a specialized service - should be allowed direct access to DB, maybe?
 		
 		IDatabaseManager db = Hub.instance.getDatabase();
 		
@@ -68,8 +73,7 @@ public class AuthService extends ExtensionBase implements IService {
 				RecordStruct fbinfo = AuthService.fbSignIn(fbtoken, null);		// TODO use FB secret key someday? for app proof...
 				
 				if (request.hasErrors() || (fbinfo == null)) {
-					AuthService.this.clearUserContext(OperationContext.get());
-					request.errorTr(442);
+					request.error("Missing Facebook fields");
 					request.complete();
 					return;
 				}
@@ -77,8 +81,7 @@ public class AuthService extends ExtensionBase implements IService {
 				// TODO allow only `verified` fb users?
 				if (fbinfo.isFieldEmpty("id") || fbinfo.isFieldEmpty("email")
 						 || fbinfo.isFieldEmpty("first_name") || fbinfo.isFieldEmpty("last_name")) {		
-					AuthService.this.clearUserContext(OperationContext.get());
-					request.errorTr(442);
+					request.error("Missing Facebook fields");
 					request.complete();
 					return;
 				}
@@ -99,6 +102,16 @@ public class AuthService extends ExtensionBase implements IService {
 		}
 		else if ("Authentication".equals(feature)) {
 			if ("SignIn".equals(op)) {
+				
+				if (sess == null) {
+					OperationContext.switchUser(request.getContext(), UserContext.allocateGuest());
+					
+					request.errorTr(442);
+					request.error("Session not found");
+					request.complete();
+					return;
+				}
+				
 				LoadRecordRequest req = new LoadRecordRequest()
 					.withTable("dcUser")
 					.withId(uc.getUserId())
@@ -115,7 +128,7 @@ public class AuthService extends ExtensionBase implements IService {
 					public void process(CompositeStruct result) {
 						if (request.hasErrors() || (result == null)) {
 							tc.getTenant().authEvent(op, "Fail", uc);
-							AuthService.this.clearUserContext(request.getContext());
+							AuthService.this.clearUserContext(sess, request.getContext());
 							request.errorTr(442);
 						}
 						else {
@@ -131,6 +144,16 @@ public class AuthService extends ExtensionBase implements IService {
 
 			
 			if ("SignInFacebook".equals(op)) {
+				
+				if (sess == null) {
+					OperationContext.switchUser(request.getContext(), UserContext.allocateGuest());
+					
+					request.errorTr(442);
+					request.error("Session not found");
+					request.complete();
+					return;
+				}
+				
 				// TODO check domain settings that FB sign in is allowed
 				
 				// try to authenticate
@@ -143,7 +166,7 @@ public class AuthService extends ExtensionBase implements IService {
 				
 				if (request.hasErrors() || (fbinfo == null)) {
 					tc.getTenant().authEvent("SignIn", "Fail", uc);
-					AuthService.this.clearUserContext(OperationContext.get());
+					AuthService.this.clearUserContext(sess, OperationContext.get());
 					request.errorTr(442);
 					request.complete();
 					return;
@@ -153,7 +176,7 @@ public class AuthService extends ExtensionBase implements IService {
 				if (fbinfo.isFieldEmpty("id") || fbinfo.isFieldEmpty("email")
 						 || fbinfo.isFieldEmpty("first_name") || fbinfo.isFieldEmpty("last_name")) {		
 					tc.getTenant().authEvent("SignIn", "Fail", uc);
-					AuthService.this.clearUserContext(OperationContext.get());
+					AuthService.this.clearUserContext(sess, OperationContext.get());
 					request.errorTr(442);
 					request.complete();
 					return;
@@ -178,7 +201,7 @@ public class AuthService extends ExtensionBase implements IService {
 								
 								if (request.hasErrors() || (sirec == null)) {
 									tc.getTenant().authEvent("SignIn", "Fail", uc);
-									AuthService.this.clearUserContext(ctx);
+									AuthService.this.clearUserContext(sess, ctx);
 									request.errorTr(442);
 									request.complete();
 									return;
@@ -201,7 +224,7 @@ public class AuthService extends ExtensionBase implements IService {
 								if (StringUtil.isEmpty(fullname))
 									fullname = "[unknown]";
 								
-								OperationContext.switchUser(ctx, ctx.getUserContext().toBuilder() 
+								UserContext usr = sess.getUser().toBuilder() 
 										.withVerified(true)
 										.withAuthToken(sirec.getFieldAsString("AuthToken"))
 										.withUserId(sirec.getFieldAsString("UserId"))
@@ -209,12 +232,13 @@ public class AuthService extends ExtensionBase implements IService {
 										.withFullName(fullname)		
 										.withEmail(sirec.getFieldAsString("Email"))
 										.withAuthTags(atags)
-										.toUserContext()
-								);
+										.toUserContext();
+
+								sess.withUser(usr);
 								
-								Hub.instance.getSessions().findOrCreateTether(request.getContext());
+								OperationContext.switchUser(ctx, usr);
 								
-								tc.getTenant().authEvent("SignIn", "Success", uc);
+								tc.getTenant().authEvent("SignIn", "Success", usr);
 								
 								request.returnValue(new RecordStruct(
 										new FieldStruct("Username", sirec.getFieldAsString("Username")),
@@ -323,6 +347,18 @@ public class AuthService extends ExtensionBase implements IService {
 			// TODO now that we trust the token in Session this won't get called often - think about how to keep
 			// auth token fresh in database - especially since the token will expire in 30 minutes
 			if ("Verify".equals(op)) {
+				
+				if (sess == null) {
+					OperationContext.switchUser(request.getContext(), UserContext.allocateGuest());
+					
+					request.errorTr(442);
+					request.error("Session not found");
+					request.complete();
+					return;
+				}
+				
+				// if token is present that is all we use, get rid of token if you want a creds check
+				
 				String authToken = uc.getAuthToken();
 				
 				if (StringUtil.isNotEmpty(authToken)) {
@@ -335,7 +371,7 @@ public class AuthService extends ExtensionBase implements IService {
 							
 							if (request.hasErrors() || (urec == null)) {
 								tc.getTenant().authEvent(op, "Fail", uc);
-								AuthService.this.clearUserContext(ctx);
+								AuthService.this.clearUserContext(sess, ctx);
 								request.errorTr(442);
 							}
 							else {
@@ -357,17 +393,20 @@ public class AuthService extends ExtensionBase implements IService {
 								if (StringUtil.isEmpty(fullname))
 									fullname = "[unknown]";
 
-								OperationContext.switchUser(ctx, ctx.getUserContext().toBuilder() 
+								UserContext usr = sess.getUser().toBuilder() 
 										.withVerified(true)
 										.withUserId(urec.getFieldAsString("UserId"))
 										.withUsername(urec.getFieldAsString("Username"))
 										.withFullName(fullname)	
 										.withEmail(urec.getFieldAsString("Email"))
 										.withAuthTags(atags)
-										.toUserContext()
-								);
+										.toUserContext();
 								
-								tc.getTenant().authEvent(op, "Success", uc);
+								sess.withUser(usr);
+								
+								OperationContext.switchUser(ctx, usr);
+								
+								tc.getTenant().authEvent(op, "Success", usr);
 							}
 							
 							request.complete();
@@ -403,7 +442,7 @@ public class AuthService extends ExtensionBase implements IService {
 						
 						if (request.hasErrors() || (sirec == null)) {
 							tc.getTenant().authEvent(op, "Fail", uc);
-							AuthService.this.clearUserContext(ctx);
+							AuthService.this.clearUserContext(sess, ctx);
 							request.errorTr(442);
 						}
 						else {
@@ -424,21 +463,22 @@ public class AuthService extends ExtensionBase implements IService {
 							
 							if (StringUtil.isEmpty(fullname))
 								fullname = "[unknown]";
+
+							UserContext usr = sess.getUser().toBuilder() 
+								.withVerified(true)
+								.withAuthToken(sirec.getFieldAsString("AuthToken"))
+								.withUserId(sirec.getFieldAsString("UserId"))
+								.withUsername(sirec.getFieldAsString("Username"))
+								.withFullName(fullname)		
+								.withEmail(sirec.getFieldAsString("Email"))
+								.withAuthTags(atags)
+								.toUserContext();
 							
-							OperationContext.switchUser(ctx, ctx.getUserContext().toBuilder() 
-									.withVerified(true)
-									.withAuthToken(sirec.getFieldAsString("AuthToken"))
-									.withUserId(sirec.getFieldAsString("UserId"))
-									.withUsername(sirec.getFieldAsString("Username"))
-									.withFullName(fullname)		
-									.withEmail(sirec.getFieldAsString("Email"))
-									.withAuthTags(atags)
-									.toUserContext()
-							);
+							sess.withUser(usr);
 							
-							Hub.instance.getSessions().findOrCreateTether(request.getContext());
+							OperationContext.switchUser(ctx, usr);
 							
-							tc.getTenant().authEvent(op, "Success", uc);
+							tc.getTenant().authEvent(op, "Success", usr);
 						}
 						
 						request.complete();
@@ -452,9 +492,9 @@ public class AuthService extends ExtensionBase implements IService {
 				db.submit(RequestFactory.signOutRequest(uc.getAuthToken()), new ObjectResult() {
 					@Override
 					public void process(CompositeStruct result) {
-						Hub.instance.getSessions().terminate(request.getContext().getSessionId());
+						if (sess != null)
+							AuthService.this.clearUserContext(sess, request.getContext());
 						
-						AuthService.this.clearUserContext(request.getContext());
 						request.complete();
 					}
 				});
@@ -501,17 +541,12 @@ public class AuthService extends ExtensionBase implements IService {
 		request.complete();
 	}
 	
-	// be sure we keep the domain id
-	public void clearUserContext(OperationContext ctx) {
-		UserContext uc = ctx.getUserContext();
-		
-		OperationContext.switchUser(ctx, new OperationContextBuilder()
-			.withGuestUserTemplate()
-			.withTenantId(uc.getTenantId())
-			.withSite(uc.getSiteAlias())
-			.toUserContext());
+	public void clearUserContext(Session sess, OperationContext ctx) {
+		sess.clearToGuest();
+		OperationContext.switchUser(ctx, sess.getUser());
 	}
 	
+	// TODO move to another class
 	static public RecordStruct fbSignIn(String token, String secret) {
         try {
         	URL url = null;

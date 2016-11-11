@@ -71,14 +71,17 @@ dc.pui.Tags['dcm.Facebook'] = function(entry, node) {
 			
 			var link = $('<div class="dcm-fb-link"></div>');
 			
-			link.append('<p><a href="http://www.facebook.com/permalink.php?id='
+			link.append('<a href="http://www.facebook.com/permalink.php?id='
 				+ item.ById + '&story_fbid=' + item.PostId
-				+ '" target="_blank">View on Facebook - Share</a></p>');
+				+ '" target="_blank">View on Facebook - Share</a>');
 			
 			entry.append(link);
 				
 			$(node).append(entry);
-		}				
+		}
+		
+		if (entry)
+			entry.addClass('dcm-fb-entry-last');
 		
 		$(node).append('<div style="clear: both;"></div>');
 	});	
@@ -142,6 +145,116 @@ dc.pui.Tags['dcm.TwitterTimelineLoader'] = function(entry, node) {
 	 
 	  return t;
 	}(document, "script", "twitter-wjs"));
+};
+
+dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
+	var period = dc.util.Number.toNumberStrict($(node).attr('data-dcm-period'));
+	var gallery = $(node).attr('data-dcm-gallery');
+	var show = $(node).attr('data-dcm-show');
+	
+	// TODO add this to a standard utility
+	var imgLoadedFunc = function(img) { return img && img.complete && (img.naturalHeight !== 0); }
+	var ssinit = false;
+	var sscurr = -1;
+	
+	var imgPlacement = function(e) {
+		var centerEnable = $(node).attr('data-dcm-centering');
+
+		if (! centerEnable || (centerEnable.toLowerCase() != 'true'))
+			return;
+	
+		$(node).find('.dcm-basic-carousel-img').css({
+		     marginLeft: '0'
+		 });
+	
+		var fimg = dc.pui.TagCache['dcm.BasicCarousel'][gallery][show][sscurr];
+		
+		var idata = $(fimg).attr('data-dcm-img');
+		
+		if (!idata)
+			return;
+			
+		var ii = JSON.parse(idata);
+		
+		if (!ii.CenterHint)
+			return;
+	
+		var ch = ii.CenterHint;
+		var srcWidth = fimg.naturalWidth;
+		var srcHeight = fimg.naturalHeight;
+		var currWidth = $(node).width();
+		var currHeight = $(node).height();
+	
+		// strech whole image, no offset 
+		if (currWidth > srcWidth)
+			return;
+	
+		var zoom = currHeight / srcHeight;
+		var availWidth = srcWidth * zoom;
+		
+		var xoff = (availWidth - currWidth) / 2;
+		
+		if (dc.util.Number.isNumber(ch)) 
+			xoff -= ((srcWidth / 2) - ch) * zoom;
+		
+		if (xoff < 0)
+			xoff = 0;
+		if (xoff + currWidth > availWidth)
+			xoff = availWidth - currWidth;
+		
+		$(node).find('.dcm-basic-carousel-img').css({
+		     marginLeft: '-' + xoff + 'px'
+		 });
+	};
+	
+	entry.registerResize(imgPlacement);
+	
+	var switchImage = function(idx) {
+		if (sscurr == idx)
+			return;
+			
+		var fimg = dc.pui.TagCache['dcm.BasicCarousel'][gallery][show][idx];
+		
+		if (! imgLoadedFunc(fimg)) 
+			return;
+			
+		$(node).addClass('dcm-loaded');
+
+		$(node).find('.dcm-basic-carousel-img').attr('src', $(fimg).attr('src'));
+
+		imgPlacement();
+		
+		sscurr = idx;
+	};
+	
+	if (! dc.pui.TagCache['dcm.BasicCarousel'])
+		dc.pui.TagCache['dcm.BasicCarousel'] = { };
+	
+	if (! dc.pui.TagCache['dcm.BasicCarousel'][gallery])
+		dc.pui.TagCache['dcm.BasicCarousel'][gallery] = { };
+	
+	var icache = dc.pui.TagCache['dcm.BasicCarousel'][gallery][show];
+	
+	if (!icache) {
+		icache = [];
+		dc.pui.TagCache['dcm.BasicCarousel'][gallery][show] = icache;
+	}
+	
+	$(node).find('.dcm-basic-carousel-list img').each(function() { 
+		icache.push(this);
+	});
+
+	switchImage(0);
+		
+	entry.allocateInterval({
+		Title: 'Slide Show Controller',
+		Period: 1000,
+		Op: function() {
+			switchImage(0);
+			
+			// TODO switch slides periodically
+		}
+	});	
 };
 
 // ------------------- end Tags -------------------------------------------------------

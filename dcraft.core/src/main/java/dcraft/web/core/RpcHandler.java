@@ -16,6 +16,9 @@
 ************************************************************************ */
 package dcraft.web.core;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import dcraft.bus.Message;
 import dcraft.bus.MessageUtil;
 import dcraft.bus.ServiceResult;
@@ -36,6 +39,8 @@ import io.netty.handler.codec.http.cookie.DefaultCookie;
 
 public class RpcHandler implements IBodyCallback {
 	protected WebContext context = null;
+	protected CountDownLatch latch = new CountDownLatch(2);
+	protected Memory mem = null;
 
 	public RpcHandler(WebContext ctx) {
 		this.context = ctx;
@@ -57,6 +62,29 @@ public class RpcHandler implements IBodyCallback {
 	
 	@Override
 	public void ready(Memory mem) {
+		this.mem = mem;
+		
+		this.latch.countDown();
+		
+		if (this.latch.getCount() == 0)
+			this.process();
+	}
+	
+	public void tryProcess() {
+		this.latch.countDown();
+		
+		if (this.latch.getCount() == 0)
+			this.process();
+	}
+	
+	public void process() {
+		try {
+			this.latch.await(15, TimeUnit.SECONDS);
+		} 
+		catch (InterruptedException x) {
+			return;
+		}
+		
     	if (Logger.isTrace())
     		Logger.trace("RPC Message collected");
     	
@@ -128,9 +156,11 @@ public class RpcHandler implements IBodyCallback {
 			
 			rmsg.setField("Session", currsessid);
 			
+			// TODO review - this will really be about tokens not sessions
 			if ((sessionid != null) && !currsessid.equals(sessionid))
 				rmsg.setField("SessionChanged", true);
 			
+			/*
 			String authupdate = sess.checkTokenUpdate();
 			
 			if (authupdate != null) {
@@ -140,6 +170,7 @@ public class RpcHandler implements IBodyCallback {
 				
 				ctx.getResponse().setCookie(sk);
 			}
+			*/
     		
 			// TODO pickup from mailbox
 			

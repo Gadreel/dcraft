@@ -182,8 +182,10 @@ public class TenantManager {
 				
 				//System.out.println(p);
 				
+				int pcount = p.getNameCount();
+				
 				// only notify on section updates - no notice to root of a tenant
-				if (p.getNameCount() < 3) 
+				if (pcount < 3) 
 					return;
 				
 				// must be inside a domain or we don't care
@@ -193,42 +195,29 @@ public class TenantManager {
 				TenantInfo ten = TenantManager.this.resolveTenantInfo(tenant);
 				
 				if (ten != null) {
-					if (("config".equals(section) || "services".equals(section) || "glib".equals(section) || "buckets".equals(section))) {
+					boolean configchanged = false;
+
+					if ("sites".equals(section) && (pcount > 4)) {
+						section = p.getName(3);
+						pcount -= 2;
+					}
+
+					if (("config".equals(section) || "services".equals(section) || "glib".equals(section))) {
+						configchanged = true;
+					}
+					else if ("buckets".equals(section) && (pcount < 4)) {		// only fire on bucket if in root
+						configchanged = true;
+					}
+
+					if (configchanged) {
 						ten.reloadSettings();
+						
 						Hub.instance.fireEvent(HubEvents.TenantConfigChanged, ten);
 					}
 					
-					if ("feed".equals(section) || "feed-preview".equals(section)) {
-						/*  TODO automatically import feeds - also do so in nightly backup task if the feed date is recent
-						 * 
-						Task task = new Task()
-							.withWork(new IWork() {
-								@Override
-								public void run(TaskRun trun) {
-									ImportWebsiteTool iutil = new ImportWebsiteTool();
-									
-									
-									// TODO use domain path resolution
-									iutil.importFeedFile(Paths.get("./public" + p), new OperationCallback() {
-										@Override
-										public void callback() {
-											trun.complete();
-										}
-									});
-								}
-							})
-							.withTitle("Importing feed " + p)
-							.withTopic("Batch")		// only one at a time
-							.withContext(new OperationContextBuilder()
-								.withRootTaskTemplate()
-								.withTenantId(wdomain.getId())
-								.toOperationContext()
-							);
-						
-						Hub.instance.getWorkPool().submit(task);
-						 */
-					}
-					
+					// TODO in nightly processing, find new feed files since last batch and queue those for indexing just in case they were not
+					//if ("feed".equals(section) || "feed-preview".equals(section)) {
+
 					ten.fileChanged(this.getResult());	
 				}
 			}

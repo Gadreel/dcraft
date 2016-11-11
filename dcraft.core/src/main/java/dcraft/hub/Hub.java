@@ -292,22 +292,20 @@ public class Hub {
 		// if true then restart with resume code
 		
 		// gateways always use Auth and Tenant service from internal server
-		if (!this.resources.isGateway()) {
-			// these two services are required, if service not available and we are not on Gateway then load them
+		// these two services are required, if service not available and we are not on Gateway then load them
 			
-			// load default dcTenants
-			if (!this.bus.isServiceAvailable("dcTenants")) {
-				TenantsService s = new TenantsService();
-				s.init(null);
-				this.bus.getLocalHub().registerService(s);
-			}
-			
-			// load default dcAuth  
-			if (!this.bus.isServiceAvailable("dcAuth")) {
-				AuthService s = new AuthService();
-				s.init(null);
-				this.bus.getLocalHub().registerService(s);
-			}
+		// load default dcTenants
+		if (!this.bus.isServiceAvailable("dcTenants")) {
+			TenantsService s = new TenantsService();
+			s.init(null);
+			this.bus.getLocalHub().registerService(s);
+		}
+		
+		// load default dcAuth  
+		if (!this.bus.isServiceAvailable("dcAuth")) {
+			AuthService s = new AuthService();
+			s.init(null);
+			this.bus.getLocalHub().registerService(s);
 		}
 
 		this.tenantman.init();
@@ -791,6 +789,7 @@ public class Hub {
 			return or;
 		}
 		
+		/* was a slick solution, but just not in the place
 		if (this.resources.isGateway()) {
 			HubDependency conndep = new HubDependency("Gateway");
 			conndep.setPassConnected(false);
@@ -805,6 +804,7 @@ public class Hub {
 			
 			this.addDependency(conndep);
 		}
+		*/
 		
 		// TODO review if this even works...
 		// every five minutes run cleanup to remove expired temp files

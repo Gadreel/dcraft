@@ -435,6 +435,7 @@ public class Bucket {
 		});
 	}
 	
+	// TODO test this, somehow FullPath was returned to call (or in an error maybe)
 	public void handleListFiles(RecordStruct request, FuncCallback<ListStruct> fcb) {
 		// check bucket security
 		if (!this.checkReadAccess()) {
@@ -524,7 +525,7 @@ public class Bucket {
 		if (this.tryExecuteMethod("AllocateUploadToken", this, request, resp, fcb))
 			return;
 		
-		String token = StringUtil.buildSecurityCode(24);
+		String token = Session.nextUUId();  // StringUtil.buildSecurityCode(24);
 		
 		HashMap<String, Struct> scache = OperationContext.get().getSession().getCache();
 		

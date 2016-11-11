@@ -62,7 +62,10 @@ public class ActivityManager {
 	}
 	
 	public Instruction createInstruction(XElement def) {
-		IInstructionProvider mut = this.instProviders.get(def.getName());
+		String name = def.getName();
+		
+		IInstructionProvider mut = this.instProviders.get(name);
+		
 		return (mut != null) ? mut.createInstruction(def) : null;		
 	}
 

@@ -1,6 +1,6 @@
 
-// dc.pui.Loader.addExtraLibs( ['/dcm/edit/js/main.js'] );
-// dc.pui.Loader.addExtraStyles( ['/dcm/edit/css/main.css'] );
+// dc.pui.Loader.addExtraStyles( ['/css/dcm.cms.css'] );
+// dc.pui.Loader.addExtraLibs( ['/js/dcm.cms.js'] );
 
 if (!dc.cms)
 	dc.cms = {};

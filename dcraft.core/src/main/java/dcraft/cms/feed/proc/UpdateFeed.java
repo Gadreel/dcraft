@@ -15,6 +15,7 @@ import dcraft.db.query.SelectFields;
 import dcraft.db.update.DbRecordRequest;
 import dcraft.db.update.InsertRecordRequest;
 import dcraft.db.update.UpdateRecordRequest;
+import dcraft.filestore.CommonPath;
 import dcraft.lang.BigDateTime;
 import dcraft.lang.op.OperationResult;
 import dcraft.struct.CompositeStruct;
@@ -29,20 +30,18 @@ public class UpdateFeed implements IStoredProc {
 	public void execute(DatabaseInterface conn, DatabaseTask task, OperationResult log) {
 		RecordStruct params = task.getParamsAsRecord();
 		
-		String chann = params.getFieldAsString("Channel");
 		String path = params.getFieldAsString("Path");
-		Boolean edflag = params.getFieldAsBoolean("Editable");
 		ListStruct atags = params.getFieldAsList("AuthorizationTags");
 		ListStruct ctags = params.getFieldAsList("ContentTags");
 		ListStruct fields = params.getFieldAsList("Fields");
 		ListStruct prefields = params.getFieldAsList("PreviewFields");
-		ListStruct parts = params.getFieldAsList("PartContent");
-		ListStruct preparts = params.getFieldAsList("PreviewPartContent");
+		
+		CommonPath cp = CommonPath.from(path);
+		
+		CommonPath nchan = cp.subpath(0, 2);		// site and channel
 		
 		// TODO replicating
 		// if (task.isReplicating())
-		
-		// TODO support site
 		
 		TablesAdapter db = new TablesAdapter(conn, task); 
 		
@@ -51,7 +50,6 @@ public class UpdateFeed implements IStoredProc {
 		
 		AtomicReference<RecordStruct> oldvalues = new AtomicReference<>();
 		AtomicReference<DateTime> updatepub = new AtomicReference<>();
-		AtomicReference<DateTime> updateprepub = new AtomicReference<>();
 		
 		DatabaseResult fromUpdate = new ObjectResult() {
 			@Override
@@ -60,8 +58,6 @@ public class UpdateFeed implements IStoredProc {
 				 * Update index
 				 * 
 				 * ^dcmFeedIndex(did, channel, publish datetime, id)=[content tags]
-				 * 
-				 * ^dcmFeedPreviewIndex(did, channel, publish datetime, id)=[content tags]
 				 * 
 				 */
 				
@@ -82,17 +78,15 @@ public class UpdateFeed implements IStoredProc {
 
 				String did = task.getTenant();
 				
-				String ochan = null;
+				CommonPath ochan = null;
 				DateTime opubtime = null;
-				// TODO
-				//DateTime oprepubtime = null;
 				String otags = "|";
 				
 				if (oldvalues.get() != null) {
-					ochan = oldvalues.get().getFieldAsString("Channel");
+					CommonPath opath  = CommonPath.from(oldvalues.get().getFieldAsString("Path"));
+					ochan = opath.subpath(0, 2);		// site and channel
+					
 					opubtime = oldvalues.get().getFieldAsDateTime("Published");
-					// TODO
-					//oprepubtime = oldvalues.get().getFieldAsDateTime("PreviewPublished");
 					
 					ListStruct otlist = oldvalues.get().getFieldAsList("ContentTags");
 					
@@ -100,27 +94,11 @@ public class UpdateFeed implements IStoredProc {
 						otags = "|" + StringUtil.join(otlist.toStringList(), "|") + "|";
 				}
 				
-				String nchan = chann;
 				DateTime npubtime = updatepub.get();
-				// TODO
-				//DateTime nprepubtime = updateprepub.get();
 				String ntags = "|";
-				
-				if (StringUtil.isEmpty(nchan))
-					nchan = ochan;
-				
-				if (StringUtil.isEmpty(nchan)) {
-					log.error("Unable to update feed index - no channel available");
-					task.complete();
-					return;
-				}
 				
 				if (npubtime == null)
 					npubtime = opubtime;
-				
-				// TODO
-				//if (nprepubtime == null)
-				//	nprepubtime = oprepubtime;
 				
 				if (ctags != null) {
 					ntags = "|" + StringUtil.join(ctags.toStringList(), "|") + "|";
@@ -129,29 +107,13 @@ public class UpdateFeed implements IStoredProc {
 					ntags = otags; 
 				}
 				
-				//boolean diff1 = !ochan.equals(nchan) || !opubtime.equals(npubtime) || !oprepubtime.equals(nprepubtime);
-				// TODO fix this so we update only if pubtime changes
-				boolean diff1 = !nchan.equals(ochan) || ((opubtime == null) || (npubtime == null) || !opubtime.equals(npubtime));
-				boolean diff2 = !ntags.equals(otags); 
-				
 				try {
-					if (diff1 || diff2) {
-						if (diff1 && StringUtil.isNotEmpty(ochan)) {
-							if (opubtime != null) 
-								conn.kill("dcmFeedIndex", did, ochan, conn.inverseTime(opubtime), recid);
-							
-							// TODO
-							//if (oprepubtime != null) 
-							//	conn.kill("dcmFeedPreviewIndex", did, ochan, conn.inverseTime(oprepubtime), recid);
-						}
-						
-						if (npubtime != null) 
-							conn.set("dcmFeedIndex", did, nchan, conn.inverseTime(npubtime), recid, ntags);
-						
-						// TODO
-						//if (nprepubtime != null) 
-						//	conn.set("dcmFeedPreviewIndex", did, nchan, conn.inverseTime(nprepubtime), recid, ntags);
-					}
+					// only kill if needed
+					if ((opubtime != null) && (! opubtime.equals(npubtime) || ! ochan.equals(nchan)))
+						conn.kill("dcmFeedIndex", did, ochan.toString(), conn.inverseTime(opubtime), recid);
+					
+					if (npubtime != null) 
+						conn.set("dcmFeedIndex", did, nchan.toString(), conn.inverseTime(npubtime), recid, ntags);
 				}
 				catch (Exception x) {
 					log.error("Error updating feed index: " + x);
@@ -185,34 +147,18 @@ public class UpdateFeed implements IStoredProc {
 				
 				oldvalues.set((RecordStruct) result);
 				
-				if (oid == null) {
-					if (StringUtil.isEmpty(path) || StringUtil.isEmpty(chann)) {
-						log.error("Unable to insert feed - missing Path or Channel");
-						task.complete();
-						return;
-					}
+				if ((oid == null) && StringUtil.isEmpty(path)) {
+					log.error("Unable to insert feed - missing Path");
+					task.complete();
+					return;
 				}
 				
-				DbRecordRequest req = (oid == null) ? new InsertRecordRequest() : new UpdateRecordRequest();
+				DbRecordRequest req = (oid == null) ? new InsertRecordRequest() : new UpdateRecordRequest().withId(oid.toString());
 				
 				req.withTable("dcmFeed");
 				
-				if (oid != null) {
-					req.withId(oid.toString());
-				}
-				else {
-					//req.withUpdateField("dcmUuid", uuid);
-					req.withUpdateField("dcmImported", new DateTime());
-				}
-				
-				if (chann != null)
-					req.withUpdateField("dcmChannel", chann);
-				
 				if (path != null)
 					req.withUpdateField("dcmPath", path);
-				
-				if (edflag != null)
-					req.withUpdateField("dcmEditable", edflag);
 				
 				if (atags != null)
 					req.withSetList("dcmAuthorizationTags", atags);
@@ -249,10 +195,12 @@ public class UpdateFeed implements IStoredProc {
 						String key = entry.getFieldAsString("Name") + "." + entry.getFieldAsString("Locale");
 						req.withUpdateField("dcmPreviewFields", key, entry.getFieldAsString("Value"));
 						
-						if ("Published".equals(entry.getFieldAsString("Name"))) { 
+						// pre published is used when no published is ready
+						if ("Published".equals(entry.getFieldAsString("Name")) && (updatepub.get() == null)) {
 							DateTime pd = TimeUtil.parseDateTime(entry.getFieldAsString("Value")).withMillisOfSecond(0).withSecondOfMinute(0);
-							updateprepub.set(pd);							
-							req.withUpdateField("dcmPreviewPublished", pd);
+						
+							updatepub.set(pd);							
+							req.withUpdateField("dcmPublished", pd);
 						}
 						
 						if ("AuthorUsername".equals(entry.getFieldAsString("Name"))) {
@@ -265,32 +213,6 @@ public class UpdateFeed implements IStoredProc {
 						}
 					}
 				}
-				
-				if (parts != null) {
-					for (int i = 0; i < parts.getSize(); i++) {
-						RecordStruct entry = parts.getItemAsRecord(i);
-						String key = entry.getFieldAsString("Name") + "." + entry.getFieldAsString("Locale");
-						
-						// TODO process different format types to their indexable state (html -> text, etc)
-						// String fmt = entry.getFieldAsString("Format");
-						
-						req.withUpdateField("dcmPartContent", key, entry.getFieldAsString("Value"));
-					}
-				}
-				
-				if (preparts != null) {
-					for (int i = 0; i < preparts.getSize(); i++) {
-						RecordStruct entry = preparts.getItemAsRecord(i);
-						String key = entry.getFieldAsString("Name") + "." + entry.getFieldAsString("Locale");
-						
-						// TODO process different format types to their indexable state (html -> text, etc)
-						// String fmt = entry.getFieldAsString("Format");
-						
-						req.withUpdateField("dcmPreviewPartContent", key, entry.getFieldAsString("Value"));
-					}
-				}
-				
-				req.withUpdateField("dcmModified", new DateTime());
 					
 				task.getDbm().submit(req, fromUpdate);
 			}
@@ -302,9 +224,8 @@ public class UpdateFeed implements IStoredProc {
 				.withId(oid.toString())
 				.withSelect(new SelectFields()
 					.withField("Id")
-					.withField("dcmChannel", "Channel")
+					.withField("dcmPath", "Path")
 					.withField("dcmPublished", "Published")
-					.withField("dcmPreviewPublished", "PreviewPublished")
 					.withField("dcmContentTags", "ContentTags")
 				);
 			

@@ -343,7 +343,7 @@ dc.schema = {
 			if (this.Required == dc.schema.ReqTypes.IfPresent && !present)
 				return;
 			
-			mr.errorTr(424, [data, this.name]);
+			mr.errorTr(424, [data, this.Name]);
 		};
 		
 		this.getPrimaryType = function() {

@@ -1,0 +1,48 @@
+<dc.Html Title="Reset Password">
+	<dc.Body>
+		<dc.Panel Title="Reset Password">
+			<dcf.Form Name="Reset">
+				<dcf.Text Name="Username" Label="Username" Required="true" />
+				
+				<dcf.FormButtons>
+					<dc.Button Label="Cancel" Click="onCancel" />
+					<dcf.SubmitButton Label="Request Reset" />
+				</dcf.FormButtons>
+			</dcf.Form>
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="onCancel">
+				this.Layer.back();
+	</dc.Function>
+	<dc.Function Name="LoadRecord" Params="e">
+				var info = dc.user.getUserInfo();
+			
+				if (info.Credentials) 
+					e.Data = info.Credentials;
+			
+				this.form().query('Username').focus();
+	</dc.Function>
+	<dc.Function Name="Save" Params="e">
+				var entry = this;
+			
+				var values = this.form().getValues('SignIn');
+
+				/*  TODO
+			
+				dc.user.signin(values.Username, values.Password, values.RememberMe, function(msg) { 
+					if (dc.user.isVerified()) 
+						// TODO callback 
+						entry.Layer.back();
+					else
+						dc.pui.Popup.alert('Invalid sign in');
+				});
+				*/
+	</dc.Function>
+	<dc.Function Name="AfterSave" Params="e">
+				var entry = this;
+			
+				dc.pui.Popup.alert('This feature is under construction, request not handled.', function() {
+					entry.Layer.back();
+				});
+	</dc.Function>
+</dc.Html>

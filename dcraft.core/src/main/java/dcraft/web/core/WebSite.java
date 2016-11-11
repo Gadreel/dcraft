@@ -1,8 +1,5 @@
 package dcraft.web.core;
 
-import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
-
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,18 +13,15 @@ import dcraft.hub.Hub;
 import dcraft.io.CacheFile;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
-import dcraft.lang.op.OperationContextBuilder;
-import dcraft.lang.op.UserContext;
-import dcraft.locale.LocaleDefinition;
 import dcraft.log.Logger;
 import dcraft.mod.IExtension;
 import dcraft.net.ssl.SslHandler;
-import dcraft.session.Session;
 import dcraft.struct.Struct;
 import dcraft.util.StringUtil;
 import dcraft.web.WebModule;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIUtil;
+import dcraft.web.ui.adapter.MarkdownOutputAdapter;
 import dcraft.web.ui.adapter.SsiOutputAdapter;
 import dcraft.web.ui.adapter.GasOutputAdapter;
 import dcraft.web.ui.adapter.StaticOutputAdapter;
@@ -40,7 +34,7 @@ public class WebSite {
 	static final public CommonPath PATH_INDEX = new CommonPath("/index");
 	static final public CommonPath PATH_HOME = new CommonPath("/Home");
 	
-	static final public String[] EXTENSIONS_STD = new String[] { ".html", ".gas", ".md" };	
+	static final public String[] EXTENSIONS_STD = new String[] { ".html", ".md", ".gas" };	
 	static final public String[] EXTENSIONS_LEGACY = new String[] { ".dcui.xml", ".html", ".gas" };	
 
 	static public WebSite from(XElement settings, SiteInfo site) {
@@ -61,9 +55,6 @@ public class WebSite {
 	protected String[] specialExtensions = WebSite.EXTENSIONS_STD;	
 	
 	protected List<HubPackage> packagelist = null;
-	
-	protected boolean sharedsessenabled = false;		// TODO configure for this
-	protected Session sharedsess = null;
 	
 	protected boolean legacyweb = false;
 	
@@ -169,99 +160,6 @@ public class WebSite {
 			Logger.debug("Package list: " + this.site.get().getTenant().getAlias() + " : " + this.site.get().getAlias() + " - " + this.packagelist.size());
 	}
 
-	public Cookie resolveLocale(WebContext context, UserContext usr, OperationContextBuilder ctxb) {
-		Map<String, LocaleDefinition> locales = this.site.get().getLocales();
-
-		LocaleDefinition locale = null;
-
-		// see if the path indicates a language
-		CommonPath path = context.getRequest().getPath();
-		
-		if (path.getNameCount() > 0)  {
-			String lvalue = path.getName(0);
-			
-			locale = locales.get(lvalue);
-			
-			// extract the language from the path
-			if (locale != null)
-				context.getRequest().setPath(path.subpath(1));
-		}
-
-		// but respect the cookie if it matches something though
-		Cookie langcookie = context.getRequest().getCookie("dcLang");
-		
-		if (locale == null) {
-			if (langcookie != null) {
-				String lvalue = langcookie.value();
-				
-				// if everything checks out set the op locale and done
-				if (locales.containsKey(lvalue)) {
-					ctxb.withOperatingLocale(lvalue);
-					return null;
-				}
-				
-				locale = this.site.get().getLocaleDefinition(lvalue);
-				
-				// use language if variant - still ok and done
-				if (locale.hasVariant()) {
-					if (locales.containsKey(locale.getLanguage())) {
-						ctxb.withOperatingLocale(lvalue);		// keep the variant part, it may be used in places on site - supporting a lang implicitly allows all variants
-						return null;
-					}
-				}
-				
-				// otherwise ignore the cookie, will replace it
-			}
-		}
-		
-		// see if the domain is set for a specific language
-		if (locale == null) {
-			String domain = context.getRequest().getHeader("Host");
-			
-			if (domain.indexOf(':') > -1)
-				domain = domain.substring(0, domain.indexOf(':'));
-			
-			locale = this.site.get().getSiteLocales().get(domain);
-		}
-		
-		// see if the user has a preference
-		if (locale == null) {
-			String lvalue = usr.getLocale();
-			
-			if (StringUtil.isNotEmpty(lvalue)) 
-				locale = locales.get(lvalue);
-		}
-		
-		// if we find any locale at all then to see if it is the default
-		// if not use it, else use the default
-		if ((locale != null) && !locale.equals(this.site.get().getDefaultLocaleDefinition())) {
-			ctxb.withOperatingLocale(locale.getName());
-			return new DefaultCookie("dcLang", locale.getName());
-		}
-		
-		// clear the cookie if we are to use default locale
-		if (langcookie != null) 
-			return new DefaultCookie("dcLang", "");
-		
-		// we are using default locale, nothing more to do
-		return null;
-	}
-
-	// flag that means only use shared sessions and not regular sessions
-	public boolean isSharedSession() {
-		return this.sharedsessenabled;
-	}
-	
-	public Session getSharedSession() {
-		if (this.sharedsess == null) {
-			this.sharedsess = Hub.instance.getSessions().create("http:", this.site.get().getTenant().getId(), this.site.get().getAlias(), null);
-			this.sharedsess.setKeep(true);		// don't remove, stays until server shuts down
-			
-			Logger.info("Started new shared session: " + this.sharedsess.getId());
-		}
-		
-		return this.sharedsess;
-	}
 	
 	public IOutputMacro getMacro(String name) {
 		// TODO site or domain level support for macros
@@ -486,6 +384,9 @@ public class WebSite {
 			else if (hmode == HtmlMode.Static)
 				ioa = new StaticOutputAdapter();
 		}		
+		else if (filename.endsWith(".md")) {
+			ioa = new MarkdownOutputAdapter();		
+		}
 		else if (filename.endsWith(".gas")) {
 			ioa = new GasOutputAdapter();		
 		}

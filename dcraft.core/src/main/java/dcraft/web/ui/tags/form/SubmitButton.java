@@ -13,6 +13,14 @@ public class SubmitButton extends Button {
 	}
 	
 	@Override
+	public void build(WeakReference<UIWork> work) {
+		if (! this.hasNotEmptyAttribute("Label"))
+			this.withAttribute("Label", "Submit");
+		
+		super.build(work);
+	}
+	
+	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		this.withClass("pure-button-primary");
 		

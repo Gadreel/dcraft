@@ -15,7 +15,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import dcraft.hub.SiteInfo;
-import dcraft.hub.TenantInfo;
 import dcraft.lang.CountDownCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
@@ -23,20 +22,12 @@ import dcraft.log.Logger;
 import dcraft.util.StringUtil;
 import dcraft.xml.XElement;
 
-/*
- * TODO whole class needs review
- */
 public class FeedIndexer {
-	public static XElement findChannel(String site, String channel) {
+	public static XElement findChannel(String channel) {
 		if (StringUtil.isEmpty(channel))
 			return null;
 		
-		if (StringUtil.isEmpty(site))
-			site = "root";
-			
-		TenantInfo tenant = OperationContext.get().getTenant();
-		
-		SiteInfo siteinfo = tenant.resolveSiteInfo(site);
+		SiteInfo siteinfo = OperationContext.get().getSite();
 		
 		XElement feed = siteinfo.getSettings().find("Feed");
 		
@@ -52,20 +43,16 @@ public class FeedIndexer {
 			if (!calias.equals(channel)) 
 				continue;
 			
-			// TODO check if site name is allowed in this channel - right now we act as if all sites use the same list
-			
 			return chan;
 		}
 		
 		return null;
 	}
 	
-	public static List<XElement> findChannels(String site) {
+	public static List<XElement> findChannels() {
 		List<XElement> list = new ArrayList<>();
 		
-		TenantInfo tenant = OperationContext.get().getTenant();
-		
-		SiteInfo siteinfo = tenant.resolveSiteInfo(site);
+		SiteInfo siteinfo = OperationContext.get().getSite();
 		
 		XElement feed = siteinfo.getSettings().find("Feed");
 		
@@ -78,8 +65,6 @@ public class FeedIndexer {
 			if (calias == null)
 				calias = chan.getAttribute("Name");
 			
-			// TODO check if site name is allowed in this channel - right now we act as if all sites use the same list
-			
 			list.add(chan);
 		}
 		
@@ -87,11 +72,11 @@ public class FeedIndexer {
 	}
 	
 	protected Map<String, FeedInfo> feedpaths = new HashMap<>();
-
+	
 	/*
 	 * run collectTenant first
 	 */
-	public void importTenant(OperationCallback op) {
+	public void importSite(OperationCallback op) {
 		CountDownCallback cd = new CountDownCallback(this.feedpaths.size() + 1, new OperationCallback() {
 			@Override
 			public void callback() {
@@ -116,69 +101,42 @@ public class FeedIndexer {
 		cd.countDown();
 	}
 	
-	public void collectTenant(CollectContext cctx) {
-		XElement del = OperationContext.get().getTenant().getSettings();
+	public void collectSite(CollectContext cctx) {
+		XElement del = OperationContext.get().getSite().getSettings();
 		
-		if (del == null) {
-			Logger.error("Unable to import domain, settings not found");
-			return;
-		}
+		Logger.info("Importing web content for domain: " + del.getAttribute("Title", "[unknown]") + " site: " + OperationContext.get().getSite().getAlias());
 		
-		Logger.info("Importing web content for domain: " + del.getAttribute("Title", "[unknown]"));
+		// TODO improve collection process
 		
-		// --------- import sub sites ----------
-		
-		for (XElement site : del.selectAll("Site")) {
-			String sname = site.getAttribute("Name");
-			
-			for (XElement chan : FeedIndexer.findChannels(sname)) 
-				this.collectChannel(cctx, sname, chan);
-		}
-		
-		// --------- import root site ----------
-		
-		for (XElement chan : FeedIndexer.findChannels("root")) 
-			this.collectChannel(cctx, "root", chan);
+		for (XElement chan : FeedIndexer.findChannels()) 
+			this.collectChannel(cctx, chan);
 		
 		Logger.info("File count collected for import: " + this.feedpaths.size());
 	}
 	
-	public void collectSite(CollectContext cctx, String site) {
-		XElement del = OperationContext.get().getTenant().resolveSiteInfo(site).getSettings();
-		
-		Logger.info("Importing web content for domain: " + del.getAttribute("Title", "[unknown]") + " site: " + site);
-		
-		for (XElement chan : FeedIndexer.findChannels(site)) 
-			this.collectChannel(cctx, site, chan);
-		
-		Logger.info("File count collected for import: " + this.feedpaths.size());
-	}
-	
-	public void collectChannel(CollectContext cctx, String site, XElement chan) {
+	public void collectChannel(CollectContext cctx, XElement chan) {
 		String alias = chan.getAttribute("Alias");
 		
 		if (alias == null)
 			alias = chan.getAttribute("Name");
 		
 		// pages and blocks do not index the same way for public
-		if (cctx.isForSitemap() && ("Pages".equals(alias) || "Blocks".equals(alias) || !chan.getAttribute("AuthTags", "Guest").contains("Guest")))
+		if (cctx.isForSitemap() && ("Pages".equals(alias) || !chan.getAttribute("AuthTags", "Guest").contains("Guest")))
 			return;
 		
 		if (cctx.isForIndex() && "true".equals(chan.getAttribute("DisableIndex", "False").toLowerCase()))
 			return;
 		
-		Logger.info("Importing site content for: " + site + " > " + alias);
+		Logger.info("Importing site content for: " + OperationContext.get().getSite().getAlias() + " > " + alias);
 		
-		this.collectArea(site, "feed", alias, false);
+		this.collectArea("feed", alias, false);
 		
 		if (!cctx.isForSitemap())
-			this.collectArea(site, "feed", alias, true);
+			this.collectArea("feed", alias, true);
 	}
 	
-	public void collectArea(String site, String area, String channel, boolean preview) {
-		TenantInfo tenant = OperationContext.get().getTenant();
-		
-		SiteInfo siteinfo = tenant.resolveSiteInfo(site);
+	public void collectArea(String area, String channel, boolean preview) {
+		SiteInfo siteinfo = OperationContext.get().getSite();
 
 		String wwwpathf1 = preview ? area +  "-preview/" + channel : area +  "/" + channel;
 		
@@ -193,36 +151,33 @@ public class FeedIndexer {
 				public FileVisitResult visitFile(Path sfile, BasicFileAttributes attrs) {
 					Path relpath = wwwsrc1.relativize(sfile);
 					
-					String outerpath = "/" + relpath.toString().replace('\\', '/');
+					String fpath = "/" + relpath.toString().replace('\\', '/');
 
 					// only collect dcf files
-					if (!outerpath.endsWith(".dcf.xml")) 
+					if (!fpath.endsWith(".dcf.xml")) 
 						return FileVisitResult.CONTINUE;
 					
 					// TODO if this is a Page channel then confirm that there is a corresponding .dcui.xml file - if not skip it
 					
-					outerpath = outerpath.substring(0, outerpath.length() - 8);
+					fpath = fpath.substring(0, fpath.length() - 8);
 					
-					XElement chel = FeedIndexer.findChannel(site, channel);
+					fpath = "/" + channel + fpath;
 					
-					if (!chel.hasAttribute("InnerPath"))
-						outerpath = "/" + channel + outerpath;
-					
-					Logger.debug("Considering file " + channel + " > " + outerpath);
+					Logger.debug("Considering file " + channel + " > " + fpath);
 
 					// skip if already in the collect list
-					if (FeedIndexer.this.feedpaths.containsKey(site + outerpath)) 
+					if (FeedIndexer.this.feedpaths.containsKey(fpath)) 
 						return FileVisitResult.CONTINUE;
 					
 					// add to the list
 					if (preview) 
-						Logger.info("Adding preview only " + channel + " > " + outerpath);
+						Logger.info("Adding preview only " + channel + " > " + fpath);
 					else 
-						Logger.info("Adding published " + channel + " > " + outerpath);
+						Logger.info("Adding published " + channel + " > " + fpath);
 						
-					FeedInfo fi = FeedInfo.buildInfo(site, channel, outerpath);
+					FeedInfo fi = FeedInfo.buildInfo(channel, fpath);
 					
-					FeedIndexer.this.feedpaths.put(site + outerpath, fi);
+					FeedIndexer.this.feedpaths.put(fpath, fi);
 					
 					return FileVisitResult.CONTINUE;
 				}
@@ -240,85 +195,23 @@ public class FeedIndexer {
 			try {
 				XElement sel = new XElement("url");
 				
-				sel.add(new XElement("loc", indexurl + fi.getOuterPath().substring(1)));
+				// TODO except for Pages?  review
+				
+				sel.add(new XElement("loc", indexurl + fi.getFeedPath().substring(1)));
 				sel.add(new XElement("lastmod", lmFmt.print(Files.getLastModifiedTime(fi.getPubpath()).toMillis())));
 
 				for (String lname : altlocales)
 					sel.add(new XElement("xhtml:link")
 						.withAttribute("rel", "alternate")
 						.withAttribute("hreflang", lname)
-						.withAttribute("href", indexurl + lname + fi.getOuterPath())
+						.withAttribute("href", indexurl + lname + fi.getFeedPath())
 					);
 				
 				smel.add(sel);
 			}
 			catch (Exception x) {
-				Logger.error("Unable to add " + fi.getInnerPath() + ": " + x);
+				Logger.error("Unable to add " + fi.getFeedPath() + ": " + x);
 			}
 		}
 	}
-	
-	
-
-	/*
-	 * run collectDomain first
-	 */
-	public void importDomain(OperationCallback op) {
-		CountDownCallback cd = new CountDownCallback(this.feedpaths.size() + 1, new OperationCallback() {
-			@Override
-			public void callback() {
-				// =============== DONE ==============
-				if (op.hasErrors()) 
-					op.info("Website import completed with errors!");
-				else
-					op.info("Website import completed successfully");
-				
-				op.complete();
-			}
-		});
-		
-		for (FeedInfo fi : this.feedpaths.values())
-			fi.updateDb(new OperationCallback() {				
-				@Override
-				public void callback() {
-					cd.countDown();
-				}
-			});
-		
-		cd.countDown();
-	}
-	
-	public void collectDomain(CollectContext cctx) {
-		XElement web = OperationContext.get().getSite().getWebsite().getWebConfig();
-		
-		if (web == null) {
-			Logger.error("Unable to import domain, web settings not found");
-			return;
-		}
-		
-		Logger.info("Importing web content for domain: " + OperationContext.get().getTenant().getAlias());
-		
-		// TODO improve collection process
-		
-		// --------- import sub sites ----------
-		
-		for (XElement site : web.selectAll("Site")) {
-			String sname = site.getAttribute("Name");
-			
-			// skip "root", it comes below
-			if ("root".equals(sname))
-				continue;
-			
-			for (XElement chan : FeedIndexer.findChannels(sname)) 
-				this.collectChannel(cctx, sname, chan);
-		}
-		
-		// --------- import root site ----------
-		
-		for (XElement chan : FeedIndexer.findChannels("root")) 
-			this.collectChannel(cctx, "root", chan);
-		
-		Logger.info("File count collected for import: " + this.feedpaths.size());
-	}
-	
 }

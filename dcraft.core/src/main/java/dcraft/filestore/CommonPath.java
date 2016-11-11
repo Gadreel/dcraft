@@ -24,6 +24,10 @@ import dcraft.util.StringUtil;
 // object is to immutable, keep it that way :)
 public class CommonPath implements IDataExposer {
 	static public CommonPath ROOT = new CommonPath("/");
+
+	public static CommonPath from(String path) {
+		return new CommonPath(path);
+	}
 	
     // internal representation
     protected String pathparts[] = null;

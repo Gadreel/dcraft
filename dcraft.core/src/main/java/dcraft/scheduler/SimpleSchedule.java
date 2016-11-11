@@ -16,6 +16,8 @@
 ************************************************************************ */
 package dcraft.scheduler;
 
+import java.lang.ref.WeakReference;
+
 import dcraft.hub.Hub;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationObserver;
@@ -39,11 +41,15 @@ public class SimpleSchedule extends OperationObserver implements ISchedule {
 		
 		OperationContext ctx = v.getContext();
 		
-		if (ctx == null)
+		if (ctx == null) {
 			Logger.error("Missing context on simple schedule");
-		else
+		}
+		else {
 			// only add the observer once per scheduled item
 			ctx.addObserver(this);
+			// use the task's context 
+			this.ctxref = new WeakReference<OperationContext>(ctx);
+		}
 	}
 	
 	public SimpleSchedule() {

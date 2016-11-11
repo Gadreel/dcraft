@@ -51,14 +51,15 @@ public class LocalSession extends ApiSession {
 	
 	@Override
 	public void init(XElement config) {
-		this.init(Hub.instance.getSessions().create("hub:", config.getAttribute("Domain"), "root", null), config);
+		// TODO connect to a specific site- not always root
+		this.init(Hub.instance.getSessions().create(config.getAttribute("Domain"), "root", "hub:"), config);
 	}
 	
 	public void init(Session session, XElement config) {
 		this.session = session;
 		
 		//this.session.setKeep(true);
-		this.session.setAdatper(new LocalSessionAdatper());
+		this.session.withAdatper(new LocalSessionAdatper());
 		
 		this.user = this.session.getUser();
 		
@@ -115,7 +116,7 @@ public class LocalSession extends ApiSession {
 			this.sched = null;
 		}
 		
-		Hub.instance.getSessions().terminate(this.session.getId());		
+		Hub.instance.getSessions().terminate(this.session.getId());	
 		
 		this.replies.forgetReplyAll();		
 	}
@@ -370,7 +371,7 @@ public class LocalSession extends ApiSession {
 	}
 
 	public void startSessionAsRoot() {
-		this.session.setToRoot();
+		this.session.withUser(UserContext.allocateRoot());
 		this.startSession();
 	}
 }

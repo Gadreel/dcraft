@@ -34,33 +34,25 @@ public class FeedInfo {
 	public static FeedInfo recordToInfo(RecordStruct rec) {
 		String channel = rec.getFieldAsString("Channel");
 		String path = rec.getFieldAsString("Path");
-		String site = rec.getFieldAsString("Site");	
 		
-		// default to root
-		if (StringUtil.isEmpty(site))
-			site = "root";
-		
-		return FeedInfo.buildInfo(site, channel, path);
+		return FeedInfo.buildInfo(channel, path);
 	}
 	
-	public static FeedInfo buildInfo(String site, String channel, String path) {
+	// path without channel
+	public static FeedInfo buildInfo(String channel, String path) {
 		if (StringUtil.isEmpty(channel) || StringUtil.isEmpty(path))
 			return null;
 		
-		if (StringUtil.isEmpty(site))
-			site = "root";
+		XElement channelDef = FeedIndexer.findChannel(channel); 
 		
-		XElement channelDef = FeedIndexer.findChannel(site, channel); 
-		
-		// if channelDef is null then it is not allowed for this site or does not exist
+		// if channelDef is null then it does not exist
 		if (channelDef == null)
 			return null;
 		
 		FeedInfo fi = new FeedInfo();
 		
-		fi.site = site;
 		fi.channel = channel;
-		fi.outerpath = path;
+		fi.feedpath = "/" + channel + path;
 		fi.channelDef = channelDef;
 		
 		fi.init();
@@ -68,10 +60,8 @@ public class FeedInfo {
 		return fi;
 	}
 	
-	protected String site = null;
 	protected String channel = null;
-	protected String outerpath = null;
-	protected String innerpath = null;
+	protected String feedpath = null;
 	
 	protected XElement channelDef = null;
 	protected XElement draftDcfContent = null;
@@ -79,17 +69,17 @@ public class FeedInfo {
 	protected Path pubpath = null;
 	protected Path prepath = null;
 
-	// for this work correctly you need to set site, channel and path first
+	// for this work correctly you need to set channel and path first
 	public void init() {
 		if (this.channelDef == null) 
 			return;
 		
-		this.innerpath = this.channelDef.getAttribute("InnerPath", "") + this.outerpath;		// InnerPath or empty string
-		
 		SiteInfo site = OperationContext.get().getSite();
 		
-		this.prepath = site.resolvePath("feed-preview" + this.innerpath + ".dcf.xml").toAbsolutePath().normalize();
-		this.pubpath = site.resolvePath("feed" + this.innerpath + ".dcf.xml").toAbsolutePath().normalize();
+		//this.innerpath = "/" + site.getAlias() + this.feedpath;		
+		
+		this.prepath = site.resolvePath("feed-preview" + this.feedpath + ".dcf.xml").toAbsolutePath().normalize();
+		this.pubpath = site.resolvePath("feed" + this.feedpath + ".dcf.xml").toAbsolutePath().normalize();
 	}
 
 	public List<String> collectExternalFileNames(boolean draft) {
@@ -124,7 +114,7 @@ public class FeedInfo {
 			}
 		}; 
 		
-		// TODO really this should be the Site default locale
+		// the Site default locale
 		String deflocale = dcf.getAttribute("Locale", OperationContext.get().getSite().getDefaultLocale());
 		
 		// check for external parts and move them
@@ -141,20 +131,12 @@ public class FeedInfo {
 		return list;
 	}
 	
-	public String getSite() {
-		return this.site;
-	}
-	
 	public String getChannel() {
 		return this.channel;
 	}
 	
-	public String getInnerPath() {
-		return this.innerpath;
-	}
-	
-	public String getOuterPath() {
-		return this.outerpath;
+	public String getFeedPath() {
+		return this.feedpath;
 	}
 	
 	public XElement getChannelDef() {
@@ -195,7 +177,7 @@ public class FeedInfo {
 		OperationResult op = new OperationResult();
 		
 		FeedAdapter adapt = new FeedAdapter();
-		adapt.init(this.channel, this.outerpath, this.prepath);		// load direct, not cache - cache may not have updated yet
+		adapt.init(this.channel, this.feedpath, this.prepath);		// load direct, not cache - cache may not have updated yet
 		adapt.validate();
 		
 		// if an error occurred during the init or validate, don't use the feed
@@ -209,7 +191,7 @@ public class FeedInfo {
 		OperationResult op = new OperationResult();
 		
 		FeedAdapter adapt = new FeedAdapter();
-		adapt.init(this.channel, this.outerpath, this.pubpath);		// load direct, not cache - cache may not have updated yet
+		adapt.init(this.channel, this.feedpath, this.pubpath);		// load direct, not cache - cache may not have updated yet
 		adapt.validate();
 		
 		// if an error occurred during the init or validate, don't use the feed
@@ -246,7 +228,7 @@ public class FeedInfo {
 			
 			// don't go to www-preview at first, www-preview would only be used by a developer showing an altered page
 			// for first time save, it makes sense to have the dcui file in www
-			Path uisrcpath = site.resolvePath("www" + this.getOuterPath() + ".dcui.xml");		
+			Path uisrcpath = site.resolvePath("www" + this.getFeedPath().substring(6) + ".dcui.xml");		
 			
 			try {
 				Files.createDirectories(uisrcpath.getParent());
@@ -392,7 +374,7 @@ public class FeedInfo {
 		String locale = dcf.getAttribute("Locale");
 		
 		if (StringUtil.isEmpty(locale))
-			dcf.setAttribute("Locale", OperationContext.get().getSite().getDefaultLocale());		// TODO really want from the Site
+			dcf.setAttribute("Locale", OperationContext.get().getSite().getDefaultLocale());		
 		
 		try {
 			if (deletes != null)
@@ -511,15 +493,14 @@ public class FeedInfo {
 				op.error("Unable to delete feed file: " + fpath +  " : " + x);
 			}
 			
-			String channel = this.getChannel();
-			String path = this.getOuterPath();
-			SiteInfo siteinfo = OperationContext.get().getSite();
-			
-			// load Page definitions...
-			if ("Pages".equals(channel) || "Block".equals(channel)) {
+			// delete Page definitions...
+			if ("Pages".equals(channel)) {
+				String path = this.getFeedPath();
+				SiteInfo siteinfo = OperationContext.get().getSite();
+				
 				Path srcpath = draft 
-						? siteinfo.resolvePath("www-preview/" + path + ".dcui.xml")
-						: siteinfo.resolvePath("www/" + path + ".dcui.xml");
+						? siteinfo.resolvePath("www-preview/" + path.substring(6) + ".dcui.xml")
+						: siteinfo.resolvePath("www/" + path.substring(6) + ".dcui.xml");
 				
 				try {
 					Files.deleteIfExists(srcpath);
@@ -534,11 +515,9 @@ public class FeedInfo {
 
 	public void deleteDb(OperationCallback cb) {
 		Hub.instance.getDatabase().submit(
-				new ReplicatedDataRequest("dcmFeedDelete")
+				new ReplicatedDataRequest("dcmFeedDelete2")
 					.withParams(new RecordStruct()
-						// TODO .withField("Site", this.site)
-						.withField("Channel", this.channel)
-						.withField("Path", this.innerpath)
+						.withField("Path", "/" + OperationContext.get().getSite().getAlias() + this.feedpath)
 				), 
 				new ObjectResult() {
 					@Override
@@ -549,12 +528,6 @@ public class FeedInfo {
 	}
 
 	public void updateDb(OperationCallback cb) {
-		// TODO add sub site indexing, and a conversion to rebuild the indexes
-		if (!this.site.equals("root")) {
-			cb.complete();
-			return;
-		}
-		
 		// work through the adapters
 		FeedAdapter pubfeed = this.getPubAdapter();
 		FeedAdapter prefeed = this.getPreAdapter();
@@ -576,10 +549,7 @@ public class FeedInfo {
 		// if at least one xml file then update/add a record for the feed
 		
 		RecordStruct feed = new RecordStruct()
-			// TODO .withField("Site", this.site)
-			.withField("Channel", this.channel)
-			.withField("Path", this.outerpath)
-			.withField("Editable", true);
+			.withField("Path", "/" + OperationContext.get().getSite().getAlias() + this.feedpath);
 		
 		// the "edit" authorization, not the "view" auth
 		String authtags = (pubfeed != null) ? pubfeed.getAttribute("AuthTags") : prefeed.getAttribute("AuthTags");
@@ -646,29 +616,6 @@ public class FeedInfo {
 						.withField("Value", fld.getValue())
 					);
 			}
-	
-			ListStruct pubparts = new ListStruct();
-			feed.withField("PartContent", pubparts);
-			
-			for (XElement fld : pubxml.selectAll("PagePart"))
-				pubparts.addItem(new RecordStruct()
-					.withField("Name", fld.getAttribute("For"))
-					.withField("Format", fld.getAttribute("Format", "md"))
-					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part, this is not an alternate, just the default locale for that part
-					.withField("Value", pubfeed.getPartValue(primelocale, fld, false))
-				);
-			
-			for (XElement afel : pubxml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("PagePart")) 
-					pubparts.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("For"))
-						.withField("Format", fld.getAttribute("Format", "md"))
-						.withField("Locale", alocale)
-						.withField("Value", pubfeed.getPartValue(alocale, fld, false))
-					);
-			}
 		}
 		
 		if (prexml != null) {
@@ -699,33 +646,10 @@ public class FeedInfo {
 						.withField("Value", fld.getValue())
 					);
 			}	
-	
-			ListStruct preparts = new ListStruct();
-			feed.withField("PreviewPartContent", preparts);
-			
-			for (XElement fld : prexml.selectAll("PagePart")) 
-				preparts.addItem(new RecordStruct()
-					.withField("Name", fld.getAttribute("For"))
-					.withField("Format", fld.getAttribute("Format", "md"))
-					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part, this is not an alternate, just the default locale for that part
-					.withField("Value", prefeed.getPartValue(primelocale, fld, true))
-				);
-			
-			for (XElement afel : prexml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("PagePart")) 
-					preparts.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("For"))
-						.withField("Format", fld.getAttribute("Format", "md"))
-						.withField("Locale", alocale)
-						.withField("Value", prefeed.getPartValue(alocale, fld, true))
-					);
-			}
 		}
 		
 		// don't bother checking if it worked in our response to service
-		DataRequest req3b = new ReplicatedDataRequest("dcmFeedUpdate")
+		DataRequest req3b = new ReplicatedDataRequest("dcmFeedUpdate2")
 			.withParams(feed);
 
 		Hub.instance.getDatabase().submit(req3b, new ObjectResult() {

@@ -70,7 +70,7 @@ public class UserContext {
 		return new UserContext(m.deepCopyExclude("OpId", "SessionId", "Origin", "DebugLevel", "Elevated", "Gateway", "OpLocale"));
 	}
 	
-	static public OperationContextBuilder checkCredentials(UserContext ctx, RecordStruct v) {
+	static public OperationContextBuilder checkAddCredentials(UserContext ctx, RecordStruct v) {
 		if (ctx.context.isFieldEmpty("Credentials") && (v == null))
 			return null;
 		

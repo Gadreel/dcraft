@@ -26,7 +26,7 @@ public class HttpBodyRequestDecoder implements IContentDecoder {
 	protected Memory m = new Memory();
 	protected int max = 0;
 	protected IBodyCallback callback = null;
-
+	
 	public HttpBodyRequestDecoder(int max, IBodyCallback cb) {
 		this.callback = cb;
 		this.max = max;

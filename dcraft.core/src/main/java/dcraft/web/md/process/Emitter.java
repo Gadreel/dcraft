@@ -310,8 +310,10 @@ public class Emitter {
             else {
             	UIElement anchr = (UIElement) new UIElement("a")
 	        		.withAttribute("href", link)
-	        		.withAttribute("alt", name);
-            	
+	        		.withAttribute("alt", name)
+	        		.withAttribute("data-dc-tag", "dc.Link")
+	        		.withAttribute("data-dc-enhance", "true");
+
             	parent.add(anchr);
             	
                 if(comment != null)

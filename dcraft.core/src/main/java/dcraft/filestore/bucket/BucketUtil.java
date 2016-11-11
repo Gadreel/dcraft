@@ -55,6 +55,19 @@ public class BucketUtil {
 			b.init(site, bucket, null);
 			return b;
 		}
+		
+		if ("ManagedForm".equals(name)) {
+			XElement bucket = new XElement("Bucket")
+				.withAttribute("Name", "ManagedForm")
+				.withAttribute("UploadToken", "true")
+				.withAttribute("ReadAuthTags", "Admin,Staff")
+				.withAttribute("WriteAuthTags", "Guest,User")
+				.withAttribute("RootFolder", "/buckets/ManagedForm");
+
+			Bucket b = new Bucket();
+			b.init(site, bucket, null);
+			return b;
+		}
 
 		// sub sites may access root Gallery and root Files if integrated mode
 		if (site.isSharedSection("files")) 		// tests both files and galleries

@@ -1,0 +1,22 @@
+<dc.Html Title="Message">
+	<dc.Body>
+		<dc.Panel id="panDcwAlert" Title="Message">
+			<div id="panDcwMessage" />
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load">
+				var entry = this;
+			
+				if (entry.Params.Title)
+					$('#panDcwAlert > div:first-child').html(entry.Params.Title);
+			
+				if (entry.Params.Message)
+					$('#panDcwMessage').html(entry.Params.Message);
+	</dc.Function>
+	<dc.Function Name="onDestroy">
+				var entry = this;
+			
+				if (entry.Params.Callback)
+					entry.Params.Callback.call(entry);
+	</dc.Function>
+</dc.Html>

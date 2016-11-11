@@ -1,0 +1,446 @@
+<Schema>
+	<Database>
+		<Table Id="dcManagedForm">
+			<Field Name="dcmTitle" Type="dcString" />
+			<Field Name="dcmToken" Type="dcSmallString" />
+			<Field Name="dcmSubmitAt" Type="Date" />
+		</Table>
+	</Database>
+
+	<Shared>
+
+	</Shared>
+		
+	<Services>
+		<Service Name="dcmCore">
+			<Secure Tags="Admin,Editor">
+				<Feature Name="Feeds">
+					<!-- 
+					<Op Name="ListPages">
+						<Description>
+							Loads a pages a given folder.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="FileName" Type="dcSmallString" />
+										<Field Name="Size" Type="Integer" />
+										<Field Name="IsPreview" Type="Boolean" />
+										<Field Name="IsFolder" Type="Boolean" />
+										<Field Name="LastModified" Type="dcTinyString" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AddPageFolder">
+						<Description>
+							Adds a folder for pages.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="Params" Type="Any" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="LoadList">
+						<Description>
+							Load a list all page records, no matter how many.  
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="Id" Type="Id" />
+										<Field Name="Title" Type="dcmFeed:dcmFields" /> 
+										<Field Name="Published" Type="dcmFeed:dcmFields" /> 
+										<Field Name="Image" Type="dcmFeed:dcmFields" /> 
+										<Field Name="Description" Type="dcmFeed:dcmFields" /> 
+										<Field Name="Path" Type="dcmFeed:dcmPath" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="LoadFeedsDefinition">
+						<Description>
+							Load all feeds definitions.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="FeedsXml" Type="String" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AddFeedFiles">
+						<Description>
+							Create a new feed file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="Title" Type="dcSmallString" Required="True" />
+									<Field Name="Locale" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="AddPageFiles">
+						<Description>
+							Create a new page feed file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="Template" Type="String" Required="True" />
+									<Field Name="Title" Type="dcSmallString" Required="True" />
+									<Field Name="Locale" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="LoadFeedFiles">
+						<Description>
+							Get all files for a specific Feed record.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="ChannelXml" Type="String" />
+									<Field Name="ContentXml" Type="String" />
+									<Field Name="Files">
+										<List>
+											<Record>
+												<Field Name="Name" Type="dcSmallString" />
+												<Field Name="Content" Type="String" />
+											</Record>
+										</List>
+									</Field>
+									<Field Name="Help" Type="String" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AlterFeedFiles">
+						<Description>
+							Update or add a Feed file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Publish" Type="Boolean" />
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="SetFields">
+										<List>
+											<Record>
+												<Field Name="Name" Type="dcSmallString" Required="True" />
+												<  exclude Value to delete a field  >
+												<Field Name="Value" Type="String" />
+											</Record>
+										</List>
+									</Field>
+									<Field Name="SetTags">
+										<List Type="dcTinyString" />
+									</Field>
+									<Field Name="SetParts">
+										<List>
+											<Record>
+												<Field Name="For" Type="dcSmallString" Required="True" />
+												<Field Name="Format" Type="dcTinyString" Required="True" />
+												<  exclude Value to delete a part  >
+												<Field Name="Value" Type="String" />
+											</Record>
+										</List>
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Id" Type="Id" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="UpdateFeedFiles">
+						<Description>
+							Update or add a Feed file.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="ContentXml" Type="String" />
+									<Field Name="UpdateFiles">
+										<List>
+											<Record>
+												<Field Name="Name" Type="dcSmallString" />
+												<Field Name="Content" Type="String" />
+											</Record>
+										</List>
+									</Field>
+									<Field Name="DeleteFiles">
+										<List Type="dcSmallString" />		<  by file name  >
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Id" Type="Id" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="UpdatePublishFeedFiles">
+						<Description>
+							Update or add a Feed file, with an automatic publish.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+									<Field Name="ContentXml" Type="String" />
+									<Field Name="UpdateFiles">
+										<List>
+											<Record>
+												<Field Name="Name" Type="dcSmallString" />
+												<Field Name="Content" Type="String" />
+											</Record>
+										</List>
+									</Field>
+									<Field Name="DeleteFiles">
+										<List Type="dcSmallString" />		<  by file name  >
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Id" Type="Id" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="DeleteFeedFiles">
+						<Description>
+							Delete all files for a feed.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="PublishFeedFiles">
+						<Description>
+							Get all files for a specific Feed record.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Site" Type="dcTinyString" />
+									<Field Name="Channel" Type="dcTinyString" Required="True" />
+									<Field Name="Path" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="ImportFeedFiles">
+						<Description>
+							Import all files for a specific Feed record.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Path" Type="dcString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					-->
+					
+					<Op Name="LoadFeedPart">
+						<Description>
+							Get content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedAlterPartInfo" />
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body" Type="dcmFeedPartInfo" />
+						</Response>
+					</Op>
+					<Op Name="AlterFeedPart">
+						<Description>
+							Update content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Part" Type="dcmFeedAlterPartInfo" Required="True" />
+									<Field Name="Data" Type="dcmFeedPartInfo" />
+									<Field Name="Publish" Type="Boolean" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="LoadFeedSection">
+						<Description>
+							Get content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedAlterPartInfo">
+									<Field Name="Section" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body" Type="dcmFeedAlterSectionInfo" />
+						</Response>
+					</Op>
+					<Op Name="AlterFeedSection">
+						<Description>
+							Update content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Part" Type="dcmFeedAlterPartInfo" Required="True" />
+									<Field Name="Section" Type="dcmFeedAlterSectionInfo" />
+									<Field Name="Action" Required="True">
+										<Record>
+											<Field Name="Op" Type="dcmFeedAlterSectionOpEnum" Required="True" />
+											<Field Name="TargetSection" Type="dcSmallString" />
+											<Field Name="Publish" Type="Boolean" />
+											<Field Name="Levels" Type="Integer" />
+										</Record>
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+				</Feature>
+			</Secure>
+
+			<Secure Tags="Guest,User">		
+				<Feature Name="ManagedForm">
+					<Op Name="Submit">
+						<Description>
+							Store the data for the form.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Form" Type="dcTinyString" Required="True" />
+									<Field Name="Title" Type="dcString" Required="True" />
+									<Field Name="Data" Type="AnyRecord" Required="True" />
+									<Field Name="Files">
+										<List Type="dcSmallString" />
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Token" Type="dcSmallString" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="Complete">
+						<Description>
+							Trigger the event after uploads.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Form" Type="dcTinyString" Required="True" />
+									<Field Name="Token" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<!-- 
+						TODO list forms
+						
+						TODO load form
+						
+						TODO resubmit form
+					 -->
+				</Feature>
+			</Secure>
+		</Service>		
+	</Services>
+</Schema>

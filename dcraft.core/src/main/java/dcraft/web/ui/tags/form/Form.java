@@ -15,6 +15,10 @@ public class Form extends UIElement {
 		super("dcf.Form");
 	}
 	
+	public Form(String tag) {
+		super(tag);
+	}
+	
 	@Override
 	public void build(WeakReference<UIWork> work) {
 		String name = this.getAttribute("Name");
@@ -51,6 +55,9 @@ public class Form extends UIElement {
 
 		if (this.hasNotEmptyAttribute("AlwaysNew"))
 			this.withAttribute("data-dcf-always-new", this.getAttribute("AlwaysNew").toLowerCase());
+		
+		if (this.hasNotEmptyAttribute("TitleFields"))
+			this.withAttribute("data-dcf-title-fields", this.getAttribute("TitleFields"));
 		
 		super.build(work);
 	}

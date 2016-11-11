@@ -221,7 +221,7 @@ dc.user = {
 			if (response.status === 'connected') {
 				fbsignin(response.authResponse);
 			}
-			else if (page) {
+			else if (page && dc.handler && dc.handler.settings && dc.handler.settings.fbAppId) {
 				window.location = 'https://www.facebook.com/dialog/oauth?state=signin&client_id='
 					+ dc.handler.settings.fbAppId + '&response_type=token&scope=public_profile,email&redirect_uri='
 					+ window.location.origin + page
@@ -290,7 +290,7 @@ dc.user = {
 			if (response.status === 'connected') {
 				fblink(response.authResponse);
 			}
-			else if (page) {
+			else if (page && dc.handler && dc.handler.settings && dc.handler.settings.fbAppId) {
 				window.location = 'https://www.facebook.com/dialog/oauth?state=link&client_id='
 					+ dc.handler.settings.fbAppId + '&response_type=token&scope=public_profile,email&redirect_uri='
 					+ window.location.origin + page

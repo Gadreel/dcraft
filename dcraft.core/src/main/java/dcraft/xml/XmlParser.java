@@ -272,6 +272,15 @@ public class XmlParser {
 						sb.append(cent);
 						sb.append(';');
 					} 
+					else if (c == ' ') {
+						mode = popMode(st);
+						String cent = etag.toString();
+						etag.setLength(0);
+						
+						sb.append('&');
+						sb.append(cent);
+						sb.append(' ');
+					}
 					else {
 						etag.append((char) c);
 					}

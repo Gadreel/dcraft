@@ -16,16 +16,40 @@
 ************************************************************************ */
 package dcraft.cms.service;
 
+import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.filestore.bucket.Bucket;
 import dcraft.hub.SiteInfo;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationContext;
+import dcraft.mod.ExtensionBase;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.work.TaskRun;
 
-public class Buckets {
+public class BucketService extends ExtensionBase implements IService {
+	@Override
+	public void handle(TaskRun request) {
+		Message msg = (Message) request.getTask().getParams();
+		
+		String feature = msg.getFieldAsString("Feature");
+		String op = msg.getFieldAsString("Op");
+		
+		// =========================================================
+		//  custom file store
+		// =========================================================
+		
+		if ("Buckets".equals(feature)) {
+			BucketService.handle(request, op, msg);
+			return;
+		}
+		
+		request.errorTr(441, this.serviceName(), feature, op);
+		request.complete();
+	}
+	
+	// TODO remove legacy
+	// TODO refactor into cleaner service structure
 	
 	static public void handle(TaskRun request, String op, Message msg) {
 		// in order to conserve efforts, check that we have a known operation first

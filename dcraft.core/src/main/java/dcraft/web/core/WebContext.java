@@ -37,6 +37,7 @@ import javax.security.cert.X509Certificate;
 
 import dcraft.bus.Message;
 import dcraft.cms.feed.core.FeedAdapter;
+import dcraft.filestore.CommonPath;
 import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
@@ -59,14 +60,15 @@ public class WebContext extends BaseContext {
 	}
 	
 	protected WeakReference<Channel> chan = null;
-	protected SiteInfo site = null;						// TODO deprecate this, use op ctx
+	protected SiteInfo site = null;						
     
     // used with HTTP only, not WS
 	protected IContentDecoder decoder = null;    	
     protected Request request = null;
     protected Response response = null;
     protected RecordStruct altparams = null;		// TODO remove once legacy email is removed, see DGA or such
-    protected String sessionid = null;					// TODO deprecate this, use op ctx
+    protected String sessionid = null;					
+    protected boolean secure = false;
     
     public Request getRequest() {
 		return this.request;
@@ -92,6 +94,14 @@ public class WebContext extends BaseContext {
 		return this.altparams;
 	}
 	
+	public boolean isSecure() {
+		return this.secure;
+	}
+	
+	public void setSecure(boolean v) {
+		this.secure = v;
+	}
+	
 	@Override
 	public TenantInfo getTenant() {
 		if (this.site != null)
@@ -107,6 +117,11 @@ public class WebContext extends BaseContext {
 	
 	public void setSite(SiteInfo v) {
 		this.site = v;
+	}
+	
+	@Override
+	public CommonPath getPath() {
+		return this.request.getPath();
 	}
 	
 	public XElement getConfig() {
@@ -128,6 +143,10 @@ public class WebContext extends BaseContext {
 		this.decoder = v;
 	}
     
+    public IContentDecoder getDecoder() {
+		return this.decoder;
+	}
+    
 	public void init(ChannelHandlerContext ctx, HttpRequest req) {
 		IContentDecoder d = this.decoder;
 		
@@ -146,6 +165,8 @@ public class WebContext extends BaseContext {
 
 		if (ck != null)
 			this.preview = "true".equals(ck.value().toLowerCase());
+		
+		this.secure = (ctx.channel().pipeline().get("ssl") != null);
 	}
 	
 	public Session getSession() {
@@ -157,7 +178,7 @@ public class WebContext extends BaseContext {
 		Session sess = this.getSession();
 
 		if (sess != null)
-			sess.touch();		// TODO make sure we are in proper context when this is called - as well as any calls to getSession above - then remove this extra reference to current session
+			sess.touch();
 		
 		IContentDecoder d = this.decoder;
 		
@@ -455,7 +476,7 @@ public class WebContext extends BaseContext {
 	}
 	
 	public FeedAdapter getFeedAdapter(String alias, String path) {
-		return this.site.getFeedAdapter(alias, path, this.isPreview());
+		return FeedAdapter.from(alias, path, this.isPreview());
 	}
 	
 	public CompositeStruct getGalleryMeta(String path) {

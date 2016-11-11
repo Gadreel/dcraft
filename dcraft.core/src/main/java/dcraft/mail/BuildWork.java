@@ -55,11 +55,11 @@ public class BuildWork extends StateWork {
 			}
 		}
 		
-		this.ctx = EmailContext.forRequestParams(params, dparams, ddpath);
+		String path = params.getFieldAsString("Template");
 		
-		String path = params.getFieldAsString("Template") + ".groovy";
+		this.ctx = EmailContext.forRequestParams(new CommonPath(path), params, dparams, ddpath);
 		
-		CacheFile cfile = this.ctx.getSite().getWebsite().findSectionFile("email", path, this.ctx.isPreview());
+		CacheFile cfile = this.ctx.getSite().getWebsite().findSectionFile("email", path + ".groovy", this.ctx.isPreview());
 		
 		if (cfile == null) 
 			return WorkStep.NEXT;
@@ -70,12 +70,12 @@ public class BuildWork extends StateWork {
 			this.script = (GroovyObject) groovyClass.newInstance();
 			
 			// run init if present
-			GCompClassLoader.tryExecuteMethod(this.script, "init", this.ctx, trun);
+			GCompClassLoader.tryExecuteMethodCtx(this.script, "init", this.ctx, trun);
 			
 			return WorkStep.NEXT;
 		}
 		catch (Exception x) {
-			trun.error("Unable to prepare email script: " + path);
+			trun.error("Unable to prepare email script: " + path + ".groovy");
 			trun.error("Error: " + x);
 		}		
 		
@@ -100,7 +100,7 @@ public class BuildWork extends StateWork {
 			if (this.script != null) {
 				try {
 					// run beforeMarkdown if present
-					GCompClassLoader.tryExecuteMethod(this.script, "beforeMarkdown", this.ctx, trun, output);
+					GCompClassLoader.tryExecuteMethodCtx(this.script, "beforeMarkdown", this.ctx, trun, output);
 				}
 				catch (Exception x) {
 					trun.error("Unable to run beforeMarkdown email script: " + path);
@@ -141,7 +141,7 @@ public class BuildWork extends StateWork {
 			if (this.script != null) {
 				try {
 					// run beforeMarkdown if present
-					GCompClassLoader.tryExecuteMethod(this.script, "afterMarkdown", this.ctx, trun);
+					GCompClassLoader.tryExecuteMethodCtx(this.script, "afterMarkdown", this.ctx, trun);
 				}
 				catch (Exception x) {
 					trun.error("Unable to run afterMarkdown email script: " + path);
@@ -164,7 +164,7 @@ public class BuildWork extends StateWork {
 			if (this.script != null) {
 				try {
 					// run beforeMarkdown if present
-					GCompClassLoader.tryExecuteMethod(this.script, "beforeHtml", this.ctx, trun, output);
+					GCompClassLoader.tryExecuteMethodCtx(this.script, "beforeHtml", this.ctx, trun, output);
 				}
 				catch (Exception x) {
 					trun.error("Unable to run beforeHtml email script: " + path);
@@ -202,7 +202,7 @@ public class BuildWork extends StateWork {
 		if (this.script != null) {
 			try {
 				// run beforeMarkdown if present
-				GCompClassLoader.tryExecuteMethod(this.script, "afterHtml", this.ctx, trun);
+				GCompClassLoader.tryExecuteMethodCtx(this.script, "afterHtml", this.ctx, trun);
 			}
 			catch (Exception x) {
 				trun.error("Unable to run afterHtml email script: " + path);

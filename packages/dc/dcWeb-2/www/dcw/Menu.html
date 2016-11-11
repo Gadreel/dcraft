@@ -1,0 +1,24 @@
+<dc.Html Title="Message">
+	<dc.Body class="menu" />
+
+	<dc.Function Name="Load"><![CDATA[
+				var entry = this;
+			
+				for (var i = 0; i < entry.Params.Menu.Options.length; i++) {
+					var opt = entry.Params.Menu.Options[i];
+					
+					var btn = $('<a href="#" class="pure-button">' + opt.Title + '</a>');
+							
+					btn.click(opt, function (e) {
+						entry.Layer.back();
+						
+						e.data.Op.call(entry, e);
+						
+						e.preventDefault();
+						return false;
+					});
+									
+					$('#dcuiAlertPane').append(btn);
+				}
+	]]></dc.Function>
+</dc.Html>

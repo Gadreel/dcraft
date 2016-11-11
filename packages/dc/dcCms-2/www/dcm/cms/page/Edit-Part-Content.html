@@ -1,27 +1,27 @@
-<dcui Title="Edit Section Content" AuthTags="Admin,Editor">
-	<RequireLib Path="/dcw/js/ace-1.1.8/ace.js" />
+<dc.Html Title="Edit Part Content" AuthTags="Admin,Editor">
+	<dc.RequireLib Path="/js/vendor/ace-1.1.8/ace.js" />
 	
-	<Skeleton>
+	<dc.Body>
 		<div data-role="header">
 			<div data-role="controlgroup" data-type="horizontal" class="ui-mini" style="padding-right: 12px; text-align: right;">
-				<Button Click="DoSelectImage" Label="Link Image" />
-				<Button Click="DoSelectFile" Label="Link File" />
-				<Button Click="DoSavePublish" Label="Save &amp; Publish" class="ui-btn" /> 
-				<!-- Link Click="DoSave" Label="Save Draft" class="ui-btn" / -->
+				<dc.Button Click="DoSelectImage" Label="Link Image" />
+				<dc.Button Click="DoSelectFile" Label="Link File" />
+				<dc.Button Click="DoSavePublish" Label="Save &amp; Publish" /> 
 		    </div>
 		</div>
 	
-		<div id="sectDepEscEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
-	</Skeleton>
-	<Function Name="Load"><![CDATA[
+		<div id="sectDepEpcEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
+	</dc.Body>
+	
+	<dc.Function Name="Load"><![CDATA[
 			var entry = this;
-			
+
 			if (!entry.Store.Editor) {
 				entry.Store.Changed = false;
 				entry.Store.SetMode = false;
 				entry.Store.PublishFlag = false; 
-			    entry.Store.Editor = ace.edit('sectDepEscEdit');
-			    entry.Store.Params = dc.cms.edit.Loader.getContext().Params;
+			    entry.Store.Editor = ace.edit('sectDepEpcEdit');
+			    entry.Store.Params = dc.pui.App.Context.Params;
 			    
 			    var editor = entry.Store.Editor;
 			    
@@ -37,91 +37,80 @@
 						entry.Store.Changed = true;
 				});	
 				
-				if (dc.cms.edit.Loader.getContext().IsNew) {
+				if (dc.pui.App.Context.IsNew) {
+					entry.Store.Params.Data = {
+						For: entry.Store.Params.For,
+						Locale: 'en',		// TODO
+						Format: entry.Store.Params.Format ? entry.Store.Params.Format : 'md',
+						Value: entry.Store.Params.Content ? entry.Store.Params.Content : ''
+					};
+					
 					entry.Store.SetMode = true;
 					
-					if (entry.Store.Params.Section.Plugin == 'HtmlSection')
+					if (entry.Store.Params.Format == 'html')
 					    editor.getSession().setMode("ace/mode/xml");
 					
-					if (entry.Store.Params.Section.Content)
-						editor.setValue(entry.Store.Params.Section.Content, -1);
+					if (entry.Store.Params.Content)
+						editor.setValue(entry.Store.Params.Content, -1);
 					
 					entry.Store.SetMode = false;
 				}
 				else {			
-					var params = $.extend(true, { }, entry.Store.Params.Part);
-					
-					params.Section = entry.Store.Params.Section.Id;
-					
 					dc.comm.sendMessage({ 
-						Service: 'dcmCms', 
+						Service: 'dcmCore', 
 						Feature: 'Feeds', 
-						Op: 'LoadFeedSection', 
-						Body: params
+						Op: 'LoadFeedPart', 
+						Body: entry.Store.Params.Part
 					}, function(rmsg) {
 						if (rmsg.Result != 0) {
 							dc.pui.Popup.alert(rmsg.Message);
 							return;
 						}
 						
-						entry.Store.Params.Section = rmsg.Body;
+						entry.Store.Params.Data = rmsg.Body;
 						
 						entry.Store.SetMode = true;
 						
-						if (rmsg.Body.Plugin == 'HtmlSection')
-						    editor.getSession().setMode("ace/mode/xml");
-						else if (rmsg.Body.Plugin == 'GallerySection')
+						if (rmsg.Body.Format == 'html')
 						    editor.getSession().setMode("ace/mode/xml");
 						
-						editor.setValue(rmsg.Body.Content, -1);
+						editor.setValue(rmsg.Body.Value, -1);
 						
 						entry.Store.SetMode = false;
 					});
 				}
 			}
-			
+				
 			entry.Store.Editor.focus();
-    ]]></Function>
-	<Function Name="DoSavePublish"><![CDATA[
+    ]]></dc.Function>
+	<dc.Function Name="DoSavePublish"><![CDATA[
 			var entry = this;
 			
 			entry.Store.PublishFlag = true; 
 			entry.callPageFunc('DoSave')
-	]]></Function>
-	<Function Name="DoSave"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoSave"><![CDATA[
 			var entry = this;
-
-			// remember the content					
-			entry.Store.Params.Section.Content = entry.Store.Editor.getValue();
 			
-			// copy the values we loaded about this context and this section
-			var params = $.extend(true, { }, entry.Store.Params);
-			
-			Object.getOwnPropertyNames(params).forEach(function(name) {
-				if (name != 'Action' && name != 'Part' && name != 'Section')
-					delete params[name];
-			});
-			
-			params.Action.Publish = entry.Store.PublishFlag;
+			entry.Store.Params.Data.Value = entry.Store.Editor.getValue();
 			
 			dc.comm.sendMessage({ 
-				Service: 'dcmCms', 
+				Service: 'dcmCore', 
 				Feature: 'Feeds', 
-				Op: 'AlterFeedSection', 
-				Body: params
+				Op: 'AlterFeedPart', 
+				Body: {
+					Part: entry.Store.Params.Part,
+					Data: entry.Store.Params.Data,
+					Publish: entry.Store.PublishFlag
+				}
 			}, function(rmsg) {
 				if (rmsg.Result != 0) 
 					dc.pui.Popup.alert(rmsg.Message);
 				else
 					dc.pui.Popup.alert('Saved');
-					
-				// switch insert actions into edits
-			    entry.Store.Params.Action = {
-			    	Op: 'Edit'
-			    }
 			});
-	]]></Function>
-	<Function Name="DoSelectImage"><![CDATA[			
+	]]></dc.Function>
+	<dc.Function Name="DoSelectImage"><![CDATA[			
 			var entry = this;
 		
 			dc.cms.edit.Loader.loadPane('/dcm/edit/galleries/Chooser', { 
@@ -132,8 +121,8 @@
 					}
 				} 
 			});
-	]]></Function>
-	<Function Name="DoSelectFile"><![CDATA[			
+	]]></dc.Function>
+	<dc.Function Name="DoSelectFile"><![CDATA[			
 			var entry = this;
 		
 			dc.cms.edit.Loader.loadPane('/dcm/edit/files/Chooser', { 
@@ -144,13 +133,13 @@
 					}
 				} 
 			});
-	]]></Function>
-	<Function Name="onDestroy"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="onDestroy"><![CDATA[
 			var entry = this;
 			
 			if (entry.Store.Editor) {
 				entry.Store.Editor.destroy();		
 				delete entry.Store.Editor;
 			}
-	]]></Function>
-</dcui>
+	]]></dc.Function>    
+</dc.Html>

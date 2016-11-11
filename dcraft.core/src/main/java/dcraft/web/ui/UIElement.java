@@ -393,7 +393,8 @@ public class UIElement extends XElement {
 				// params on this tree
 				if (macro.startsWith("val|"))
 					val = this.getParam(macro.substring(4));
-				else
+				
+				if (val == null)
 					val = ctx.expandMacro(macro);
 
 				// if any of these, then replace and check (expand) again
@@ -424,10 +425,10 @@ public class UIElement extends XElement {
 			if ("dc.Function".equals(name))
 				root.add(el);
 			else if ("dc.PagePartDef".equals(name))
-				root.add(el);
+				root.add(0, el);		// before the in page definitions
 			else if ("dc.PagePart".equals(name))
 				root.add(el);
-			else if ("body".equals(name))
+			else if ("dc.Body".equals(name))
 				root.add(el);
 			else if ("dc.ServerScript".equals(name) && includescript)
 				root.add(el);

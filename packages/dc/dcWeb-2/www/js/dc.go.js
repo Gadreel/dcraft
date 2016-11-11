@@ -11,13 +11,13 @@ $(document).ready(function() {
 	
 	dc.pui.Loader.init();
 	
-	if (typeof ga == 'function') {
+	if ((typeof ga == 'function') && dc.handler && dc.handler.settings && dc.handler.settings.ga) {
 		ga('create', dc.handler.settings.ga, 'auto');
 		ga('set', 'forceSSL', true);
 	}
 	
 	dc.comm.init(function() {
-		if (dc.handler.init)
+		if (dc.handler && dc.handler.init)
 			dc.handler.init();
 
 		var info = dc.user.getUserInfo();

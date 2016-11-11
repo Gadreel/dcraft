@@ -1,23 +1,16 @@
-<dcui Title="Edit Feed Properties">
-	<RequireStyle Path="/dcm/cms/css/main.css" />
-	<RequireLib Path="/dcw/js/vkbeautify.0.99.00.beta.js" />
-	<RequireLib Path="/dcw/js/xml2json.min.js" />
+<dc.Html Title="Edit Feed Properties">
+	<!--
+	<dc.RequireStyle Path="/dcm/cms/css/main.css" />
+	<dc.RequireLib Path="/dcw/js/vkbeautify.0.99.00.beta.js" />
+	<dc.RequireLib Path="/dcw/js/xml2json.min.js" />
+	-->
 	
-	<Skeleton>
-		<TitledSection Title="Feed Properties" class="titledform">
-			<Form Name="DepEfpEditPage">
+	<dc.Body>
+		<dc.Panel Title="Feed Properties">
+			<!--
+			<dcf.Form Name="DepEfpEditPage">
 				<div class="formbuttons">
-					<!-- 
-					<Button Click="DoDecorate" Label="DECO" class="ui-btn" /> 
-					
-					TODO preview
-					
-					<Button Click="DoSave" Label="Save Draft" class="ui-btn" />
-					 --> 
-					<Button Click="DoSavePublish" Label="Save &amp; Publish" /> 
-					<!--  
-					<Button Click="DoOpenGallery" Label="Select Image" />
-					-->
+					<dc.Button Click="DoSavePublish" Label="Save &amp; Publish" /> 
 				</div>
 				
 				<FieldContainer Label="Title:">
@@ -44,21 +37,22 @@
 				<FieldContainer Label="Modified:">
 					<TextInput Name="Modified" readonly="true" />
 				</FieldContainer>
-			</Form>
-		</TitledSection>
-	</Skeleton>
-	<Function Name="DoDecorate"><![CDATA[
+			</dcf.Form>
+			-->
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="DoDecorate"><![CDATA[
 			var entry = this;
-    ]]></Function>
-	<Function Name="Load"><![CDATA[
+    ]]></dc.Function>
+	<dc.Function Name="Load"><![CDATA[
 			var entry = this;
 			
 			if (!entry.Params.Channel || !entry.Params.Path)
 				entry.Params = dc.cms.edit.Loader.getContext().Params.Page;
 			
 			entry.Store.PublishFlag = false; 
-    ]]></Function>
-	<Function Name="LoadRecord" Params="e"><![CDATA[
+    ]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
 			var entry = this;
 			
 			e.Message = { 
@@ -70,8 +64,8 @@
 					Path: entry.Params.Path 
 				}
 			};
-	]]></Function>
-	<Function Name="AfterLoadRecord" Params="e"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="AfterLoadRecord" Params="e"><![CDATA[
 			var entry = this;
 
 			entry.Store.Data = e.Data;
@@ -142,21 +136,21 @@
 				});	
 			
 			entry.addFormLayout('DepEfpEditPage', xtralayout);
-	]]></Function>
-	<Function Name="DoSave"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoSave"><![CDATA[
 			$('#frmDepEfpEditPage').submit();   
-	]]></Function>
-	<Function Name="DoSavePublish"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoSavePublish"><![CDATA[
 			this.Store.PublishFlag = true; 
 			$('#frmDepEfpEditPage').submit();   
-	]]></Function>
-	<Function Name="IsRecordChanged" Params="e"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="IsRecordChanged" Params="e"><![CDATA[
 			var entry = this;
 				
 			if (entry.Store.PublishFlag) 
 				e.Changed = true;
-	]]></Function>
-	<Function Name="SaveRecord" Params="e"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
 			var entry = this;
 			
 			var savedata = {
@@ -190,8 +184,8 @@
 				Op: 'AlterFeedFiles',
 				Body: savedata
 			};
-	]]></Function>
-	<Function Name="AfterSave"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
 			var entry = this;
 
 			// TODO review this - add /Pages to path?  only for Pages?
@@ -205,8 +199,8 @@
 			else {
 				dc.pui.Popup.alert('Saved as draft');
 			}
-	]]></Function>
-	<Function Name="DoOpenGallery"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoOpenGallery"><![CDATA[
 			var entry = this;
 			
 			var lf = entry.Store.__LastFocus;
@@ -230,8 +224,8 @@
 					dc.pui.Popup.alert('This section does not accept images, change to a section that does.');
 				}
 			}
-	]]></Function>
-	<Function Name="DoSelectGallery" Params="path,data"><![CDATA[
+	]]></dc.Function>
+	<dc.Function Name="DoSelectGallery" Params="path,data"><![CDATA[
 			var entry = this;
 			
 			var ce = entry.Store.CurrentEditor;
@@ -242,5 +236,5 @@
 			else {
 				dc.pui.Popup.alert('This section does not accept images, change to a section that does.');
 			}
-	]]></Function>
-</dcui>
+	]]></dc.Function>
+</dc.Html>

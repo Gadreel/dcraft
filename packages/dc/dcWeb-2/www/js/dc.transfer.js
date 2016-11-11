@@ -1,7 +1,7 @@
 if (!dc.transfer)
 	dc.transfer = {};
 
-var dcm.transfer = {
+dc.transfer = {
 	// from http://stackoverflow.com/questions/10420352/converting-file-size-in-bytes-to-human-readable#answer-22023833
 	fmtFileSize: function(bytes) {
 		var exp = Math.log(bytes) / Math.log(1024) | 0;
@@ -12,7 +12,7 @@ var dcm.transfer = {
 	
 	Bucket: function(options) {			
 		var defaults = {
-			Service: 'dcmCms',
+			Service: 'dcmBucket',
 			Feature: 'Buckets',
 			Bucket: 'Default',
 			Callback: null,
@@ -94,6 +94,8 @@ var dcm.transfer = {
 			var buck = this;
 			
 			dc.comm.sendMessage(cmsg, function(rmsg) {
+				//console.log('start: ' +  rmsg.Result);
+				
 				if (rmsg.Result == 0) { 
 					console.log(new Date() + ': Streaming');
 					
@@ -112,14 +114,14 @@ var dcm.transfer = {
 	
 		// each chunk (16MB) starts in a fresh call stack - here
 		this.sendNextChunk = function() {
-			var progressBar = $(this.settings.ProgressBar);
-			var progressLabel = $(this.settings.ProgressLabel);
+			//var progressBar = $(this.settings.ProgressBar);
+			//var progressLabel = $(this.settings.ProgressLabel);
 	
 			// we are done uploading so do a verify
 			if ((this.data.famt == this.data.ftotal) && this.data.finalsent) {
 				// don't finish the progress bar until verify is done
-				progressBar.css('width', '98%');
-				progressLabel.text('Finishing...');
+				//progressBar.css('width', '98%');
+				//progressLabel.text('Finishing...');
 				
 				this.verifyFile();
 				return;
@@ -192,6 +194,8 @@ var dcm.transfer = {
 			};	
 			
 			xhr.upload.onprogress = function(e) {
+				//console.log('progress: ' +  e.loaded);
+				
 				if (e.lengthComputable) {
 					buck.data.aamt = buck.data.famt + e.loaded;	 
 				
@@ -200,12 +204,12 @@ var dcm.transfer = {
 					if (p1 > 96)
 						p1 = 96;
 					
-					progressBar.css('width', p1 + '%');
+					//progressBar.css('width', p1 + '%');
 					//progressLabel.text(p1 + '%');
 					//progressLabel.text(numeral(this.data.aamt / 1024).format('0,0') + 'kb of ' 
 					//	+ numeral(ftotal / 1024).format('0,0') + 'kb'));
 					
-					progressLabel.text(dcm.transfer.fmtFileSize(buck.data.aamt) + ' of ' + dcm.transfer.fmtFileSize(buck.data.ftotal));
+					//progressLabel.text(dc.transfer.fmtFileSize(buck.data.aamt) + ' of ' + dc.transfer.fmtFileSize(buck.data.ftotal));
 				}
 			};	
 			
@@ -234,6 +238,8 @@ var dcm.transfer = {
 			var buck = this;
 			
 			dc.comm.sendMessage(tmsg, function(rmsg) {
+				console.log('verify: ' +  rmsg.Result);
+				
 				if (buck.settings.Callback)
 					buck.settings.Callback(buck.data.remotePath);
 			});
@@ -293,6 +299,63 @@ var dcm.transfer = {
 					dc.pui.Popup.alert('Error requesting download channel.');
 				}
 			});
+		}
+	},
+	
+	Util: {
+		uploadFiles: function(files, bucket, token, callback) {
+			var steps = [ ];
+			
+			for (var i = 0; i < files.length; i++) {
+				var file = files[i];
+				
+				if (! file.File) 
+					file = {
+						File: file
+					};
+					
+				if (! file.Name)
+					file.Name = dc.util.File.toCleanFilename(file.File.name);
+				
+				steps.push({
+					Alias: 'UploadFile',
+					Title: 'Upload File',
+					Params: {
+						File: file.File,
+						FileName: file.Name
+					},
+					Func: function(step) {
+						var task = this;
+
+						// TODO support a callback on fail - do task.kill - handle own alerts
+						step.Store.Transfer = new dc.transfer.Bucket({
+							Bucket: bucket,
+							Callback: function(e) {
+								console.log('callback done!');
+								
+								delete step.Store.Transfer;
+
+								task.resume();
+							}
+						});
+						
+						// start/resume upload (basic token service requires that token be in the path)
+						step.Store.Transfer.upload(step.Params.File, 
+								'/' + task.Store.Token + '/' + step.Params.FileName, 
+								task.Store.Token);
+					}
+				});
+			}
+			
+			var uploadtask = new dc.lang.Task(steps, function(res) {
+				callback();
+			});
+			
+			uploadtask.Store = {
+				Token: token
+			};
+			
+			return uploadtask;
 		}
 	}
 }

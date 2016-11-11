@@ -1,5 +1,6 @@
-<dcuip>
-	<Skeleton><MD><![CDATA[
+Title: Markdown Cheetsheet
+Skeleton: /dcw/MarkdownViewer
+
 ## Text Formatting with Markdown
 
 ### Bold
@@ -68,10 +69,8 @@ Produces:
 
 For images you have uploaded to the Gallery, just click the Gallery button above and select the image.  If you need to link an image from another site do it like a Link but with a ! in front.
 
-!\[The W3C Logo\]\(http://www.w3.org/Icons/w3c_home.png\)
+!\[The W3C Logo\]\(https://www.w3.org/Icons/w3c_home.png\)
 
 Produces:
 
-![The W3C Logo](http://www.w3.org/Icons/w3c_home.png)
-    ]]></MD></Skeleton>
-</dcuip>
+![The W3C Logo](https://www.w3.org/Icons/w3c_home.png)

@@ -225,8 +225,10 @@ public class OperationContextBuilder {
 		
 		// changing credentials clears any verification
 		this.withVerified(false)
-			.withAuthToken(null)
 			.withAuthTags("Guest");
+		
+		// .withAuthToken(null)  don't clear the token - HTTP doesn't want token changing 
+		// new sign in can use the token
 		
 		return this;
 	}

@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import org.joda.time.DateTime;
 
 import static dcraft.db.Constants.DB_GLOBAL_TENANT_DB;
-
 import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.db.DataRequest;
@@ -30,7 +29,7 @@ import dcraft.db.update.ReviveRecordRequest;
 import dcraft.db.update.UpdateRecordRequest;
 import dcraft.hub.Hub;
 import dcraft.hub.HubEvents;
-import dcraft.hub.SiteInfo;
+import dcraft.io.LocalFileStore;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationContextBuilder;
@@ -318,12 +317,14 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				db.submit(req, new ObjectResult() {
 					@Override
 					public void process(CompositeStruct result) {
-						SiteInfo site = OperationContext.get().getSite();
+						LocalFileStore fs = Hub.instance.getTenantsFileStore();
 						
+						Path dspath = fs.getFilePath().resolve(rec.getFieldAsString("Alias") + "/");
+													
 						try {
-							Files.createDirectories(site.resolvePath("files"));
-							Files.createDirectories(site.resolvePath("galleries"));
-							Files.createDirectories(site.resolvePath("www"));
+							Files.createDirectories(dspath.resolve("files"));
+							Files.createDirectories(dspath.resolve("galleries"));
+							Files.createDirectories(dspath.resolve("www"));
 						} 
 						catch (IOException x) {
 							request.error("Unable to create directories for new Tenant: " + x);
@@ -331,7 +332,7 @@ public class CoreDataServices extends ExtensionBase implements IService {
 							return;
 						}
 						
-						Path cpath = site.resolvePath("config/settings.xml");
+						Path cpath = dspath.resolve("config/settings.xml");
 
 						XElement tenantsettings = new XElement("Settings",
 								new XElement("Web", 
@@ -360,10 +361,20 @@ public class CoreDataServices extends ExtensionBase implements IService {
 			}
 						
 			if ("ImportTenant".equals(op)) {
-				SiteInfo site = OperationContext.get().getSite();
+				//SiteInfo site = OperationContext.get().getSite();
 				String alias = rec.getFieldAsString("Alias");
 				
-				Path cpath = site.resolvePath("config/settings.xml");
+				LocalFileStore fs = Hub.instance.getTenantsFileStore();
+				
+				if (fs == null)  {
+					request.error("Public file store not enabled.");
+					request.complete();
+					return;
+				}
+				
+				Path dspath = fs.getFilePath().resolve(alias + "/");
+				
+				Path cpath = dspath.resolve("config/settings.xml");
 				
 				if (Files.notExists(cpath)) {
 					request.error("Settings file not present.");

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -52,7 +53,6 @@ import dcraft.util.TimeUtil;
 import dcraft.work.ISynchronousWork;
 import dcraft.work.Task;
 import dcraft.work.TaskRun;
-import dcraft.xml.XElement;
 
 // TODO needs a plan system for what to do when session ends/times out/etc 
 public class Session {
@@ -70,10 +70,10 @@ public class Session {
 	protected String id = null;
 	protected String key = null;
 	protected long lastAccess = 0;
-	protected long lastTetherAccess = System.currentTimeMillis();
 	protected long lastReauthAccess = System.currentTimeMillis();
 	protected UserContext user = null;
     protected AtomicReference<String> authtokenupdate = new AtomicReference<>();
+    protected List<String> pastauthtokens = new ArrayList<>();
 	protected DebugLevel level = null;
 	protected String originalOrigin = null;
 
@@ -207,30 +207,22 @@ Context: {
 	/**
 	 * @param v logging level to use with this session (and all sub tasks)
 	 */
-	public void setLevel(DebugLevel v) {
+	public Session withLevel(DebugLevel v) {
 		this.level = v;
+		return this;
 	}
 	
-	public boolean getKeep() {
+	public boolean isKeep() {
 		return this.keep;
 	}
 	
-	public void setKeep(boolean v) {
+	public Session withKeep(boolean v) {
 		this.keep = v;
+		return this;
 	}
 
 	public UserContext getUser() {
 		return this.user;
-	}
-	
-	// used for changing user context
-	public void setUser(UserContext user) {
-		this.user = user;
-		
-		this.authtokenupdate.set(user.getAuthToken());
-		
-		if (this.adapter != null)
-			this.adapter.UserChanged(Session.this.user);
 	}
 	
 	public String checkTokenUpdate() {
@@ -238,135 +230,72 @@ Context: {
 		return this.authtokenupdate.getAndSet(null);
 	}
 
-	public void setAdatper(ISessionAdapter v) {
+	public Session withAdatper(ISessionAdapter v) {
 		this.adapter = v;
+		return this;
 	}
 	
 	public ISessionAdapter getAdapter() {
 		return this.adapter;
 	}
 	
-	public Session(OperationContextBuilder usrctx) {
-		this.id = OperationContext.getHubId() + "_" + Session.nextSessionId();
-		this.key = StringUtil.buildSecurityCode();
+	public Session withOriginalOrigin(String v) {
+		this.originalOrigin = v;
+		return this;
+	}
+	
+	protected Session(String id, String key) {
+		this.id = id;
+		this.key = key;		
 		this.level = HubLog.getGlobalLevel();
-		this.user = UserContext.allocate(usrctx);
 		this.originalOrigin = "hub:";
-		
-		this.touch();
-	}
-	
-	public Session(String origin, String domainid, String site, String token) {
-		this(new OperationContextBuilder().withGuestUserTemplate().withTenantId(domainid).withSite(site).withAuthToken(token).withVerified(StringUtil.isEmpty(token)));
-		
-		this.originalOrigin = origin;
-	}
-	
-	public Session(OperationContext ctx) {
-		this(ctx.getUserContext().toBuilder());
-		
-		this.level = ctx.getLevel();		
-		this.originalOrigin = ctx.getOrigin();
-	}
-	
-	public void touch() {
 		this.lastAccess = System.currentTimeMillis();
-
-		//System.out.println("Session touched: " + this.id);
-		// keep any tethered sessions alive by pinging them at least once every minute
-		if ((this.lastAccess - this.lastTetherAccess > 59000)		// if tether was last updated a minute or more ago  
-				&& this.user.isAuthenticated()						// if this is an authenticated user
-		) {
-			XElement config = Hub.instance.getConfig();
-			
-			boolean useTether = true;
-			
-			if (config != null) {
-				XElement sessions = config.find("Sessions");
-				
-				if (sessions != null) 
-					useTether = Struct.objectToBooleanOrFalse(sessions.getAttribute("Tether", "True"));
-			}
-			
-			if (useTether && Hub.instance.getResources().isGateway()) {			// if we are a gateway
-				// at least for now, gateways are only ever tethered to 1 hub, so if we find that hub we have the dest
-				String tid = Hub.instance.getBus().getTetherId();
-				
-				if (StringUtil.isNotEmpty(tid)) {
-					OperationContext curr = OperationContext.get();
-					
-					try {
-						// be sure to send the message with the correct context
-						this.useContext();
-						
-						// send and forget the keep alive request
-						Message msg = new Message("Session", "Manager", "Touch",
-								new RecordStruct(new FieldStruct("Id", this.id)));
-	
-						//System.out.println("Session pinging tethered: " + this.id);
-						
-				    	msg.setField("ToHub", tid);
-						
-						Hub.instance.getBus().sendMessage(msg);
-					}
-					finally {
-						OperationContext.set(curr);
-					}
-				}
-			}
-			
-			// keep this up to date whether we are gateway or not, this way fewer checks
-			this.lastTetherAccess = this.lastAccess;
-		}
-
-		// keep auth session alive by pinging them at least once every 25 minutes
-		if ((this.lastAccess - this.lastReauthAccess > (25 * 60000)) && this.user.isAuthenticated()) {
-			if (!Hub.instance.getResources().isGateway()) {			// if we are NOT a gateway
-				OperationContext curr = OperationContext.get();
-				
-				try {
-					// be sure to send the message with the correct context
-					this.useContext();
-					
-					this.verifySession(new FuncCallback<Message>() {				
-						@Override
-						public void callback() {
-							// TODO communicate to session initiator that our context has changed
-						}
-					});
-				}
-				finally {
-					OperationContext.set(curr);
-				}
-			}
-			
-			// keep this up to date whether we are gateway or not, this way fewer checks
-			this.lastReauthAccess = this.lastAccess;
-		}
 	}
 	
-	public void end() {
-		//System.out.println("collab session ended: " + this.collabId);
-		if (!this.user.looksLikeGuest() && !this.user.looksLikeRoot()) {
-			OperationContext curr = OperationContext.get();
-			
-			try {
-				// be sure to send the message with the correct context
-				this.useContext();
-				
-				Message msg = new Message("dcAuth", "Authentication", "SignOut");				
-				Hub.instance.getBus().sendMessage(msg);	
-				
-				this.clearToGuest();
-			}
-			finally {
-				OperationContext.set(curr);
-			}
-		}
+	protected Session() {
+		this.id = OperationContext.getHubId() + "_" + Session.nextSessionId();
+		this.key = StringUtil.buildSecurityCode();		// TODO switch to crypto secure
+		this.level = HubLog.getGlobalLevel();
+		this.originalOrigin = "hub:";
+		this.lastAccess = System.currentTimeMillis();
+	}
+	
+	// used for changing user context
+	public Session withUser(UserContext user) {
+		String oldtoken = (this.user != null) ? this.user.getAuthToken() : null;
 		
-		Logger.info("Ending session: " + this.id);
+		this.user = user;
 		
-		// TODO consider clearing adapter and reply handler too
+		String newtoken = this.user.getAuthToken();
+		
+		if (! Objects.equals(oldtoken, newtoken))
+			this.authtokenupdate.set(newtoken);
+		
+		if (this.adapter != null)
+			this.adapter.UserChanged(Session.this.user);
+		
+		return this;
+	}
+	
+	public void addKnownToken(String token) {
+		if (StringUtil.isNotEmpty(token))
+			this.pastauthtokens.add(token);
+	}
+	
+	public boolean isKnownAuthToken(String token) {
+		if (token == null)
+			return true;
+		
+		String currtoken = this.user.getAuthToken();
+
+		if (Objects.equals(token, currtoken))
+			return true;
+		
+		for (String pasttoken : this.pastauthtokens)
+			if (Objects.equals(token, pasttoken))
+				return true;
+		
+		return false;
 	}
 	
 	public OperationContextBuilder allocateContextBuilder() {
@@ -391,16 +320,64 @@ Context: {
 	}	
 	
 	/*
-	public Task allocateTaskBuilder() {
-		return new Task()
-			.withContext(this.allocateContext(this.originalOrigin));
+	public Session(OperationContextBuilder usrctx) {
+		this.id = OperationContext.getHubId() + "_" + Session.nextSessionId();
+		this.key = StringUtil.buildSecurityCode();		// TODO switch to crypto secure
+		this.level = HubLog.getGlobalLevel();
+		this.user = UserContext.allocate(usrctx);
+		this.originalOrigin = "hub:";
+		
+		this.touch();
 	}
-
-	public Task allocateTaskBuilder(String origin) {
-		return new Task()
-			.withContext(this.allocateContext(origin));
+	
+	public Session(String origin, String domainid, String site, String token) {
+		this(new OperationContextBuilder().withGuestUserTemplate().withTenantId(domainid).withSite(site).withAuthToken(token).withVerified(StringUtil.isEmpty(token)));
+		
+		this.originalOrigin = origin;
+	}
+	
+	public Session(OperationContext ctx) {
+		this(ctx.getUserContext().toBuilder());
+		
+		this.level = ctx.getLevel();		
+		this.originalOrigin = ctx.getOrigin();
 	}
 	*/
+	
+	public void touch() {
+		this.lastAccess = System.currentTimeMillis();
+
+		// keep auth token alive by pinging it at least once every hour - TODO configure
+		if ((this.lastAccess - this.lastReauthAccess > (60 * 60000)) && this.user.isAuthenticated()) {
+			OperationContext curr = OperationContext.get();
+			
+			try {
+				// be sure to send the message with the correct context
+				this.useContext();
+				
+				this.verifySession(new FuncCallback<Message>() {				
+					@Override
+					public void callback() {
+						// TODO communicate to session initiator that our context has changed
+					}
+				});
+			}
+			finally {
+				OperationContext.set(curr);
+			}
+			
+			// keep this up to date whether we are gateway or not, this way fewer checks
+			this.lastReauthAccess = this.lastAccess;
+		}
+	}
+	
+	public void end() {
+		//System.out.println("collab session ended: " + this.collabId);
+		
+		// TODO consider clearing adapter and reply handler too
+		
+		Logger.info("Ending session: " + this.id);
+	}
 	
 	public TaskRun submitTask(Task task, IOperationObserver... observers) {
 		TaskRun run = new TaskRun(task);
@@ -525,6 +502,9 @@ Context: {
 	}
 	
 	public void deliver(Message msg) {
+		// session activity, don't time out
+		this.touch();
+		
 		String serv = msg.getFieldAsString("Service"); 
 		String feat = msg.getFieldAsString("Feature"); 
 		String op = msg.getFieldAsString("Op"); 
@@ -626,30 +606,31 @@ Context: {
 		if (msg.hasField("Credentials")) {
 			// we don't want the creds in the message root on the bus - because they should
 			// travel as part of the context with the message
-			RecordStruct newcreds = msg.getFieldAsRecord("Credentials").deepCopyExclude();
+			RecordStruct newcreds = msg.getFieldAsRecord("Credentials");
 			msg.removeField("Credentials");
 			
-			if (this.adapter != null) {
-				String ckey = this.adapter.getClientKey();
-				
-				if (StringUtil.isNotEmpty(ckey))
-					newcreds.setField("ClientKeyPrint", ckey);
-				else
+			// only do something with the creds if no AuthToken is present
+			if (StringUtil.isEmpty(this.user.getAuthToken())) {
+				if (this.adapter != null) {
+					String ckey = this.adapter.getClientKey();
+					
+					if (StringUtil.isNotEmpty(ckey))
+						newcreds.setField("ClientKeyPrint", ckey);
+					else
+						newcreds.removeField("ClientKeyPrint");
+				}
+				else {
 					newcreds.removeField("ClientKeyPrint");
-			}
-			else {
-				newcreds.removeField("ClientKeyPrint");
-			}
-			
-			// if the sent credentials are different from those already in context then change
-			// (set checks if different)
-			OperationContextBuilder umod = UserContext.checkCredentials(this.user, newcreds);
-
-			// credentials have changed
-			if (umod != null) {
-				this.setUser(umod.toUserContext());
+				}
 				
-				OperationContext.set(OperationContext.allocate(this.user, OperationContext.get().freezeToRecord()));
+				// if the sent credentials are different from those already in context then change
+				// (set checks if different)
+				OperationContextBuilder umod = UserContext.checkAddCredentials(this.user, newcreds);
+	
+				// credentials have changed, change local context but not Session - session should not have creds in it
+				// and it will get updated by any 
+				if (umod != null) 
+					OperationContext.switchUser(OperationContext.get(), umod.toUserContext());
 			}
 		}
 		
@@ -687,8 +668,22 @@ Context: {
 					return;
 				}
 				else if ("Stop".equals(op)) {
+					if (this.user.isAuthenticated()) {
+						Message msg2 = new Message("dcAuth", "Authentication", "SignOut");
+						
+						Hub.instance.getBus().sendMessage(msg2, new ServiceResult() {
+							@Override
+							public void callback() {
+								Hub.instance.getSessions().terminate(Session.this.id);
+							}
+						});
+					}
+					else {
+						Hub.instance.getSessions().terminate(this.id);
+					}
+					
 					Session.this.reply(MessageUtil.success(), msg);
-					Hub.instance.getSessions().terminate(this.id);
+					
 					return;
 				}
 				else if ("Touch".equals(op)) {
@@ -782,30 +777,28 @@ Context: {
 		
 		OperationContext tc = OperationContext.get();
 		
+		boolean nv = tc.needVerify();
+		
+		if (nv)
+			System.out.println("NOVHOATS before verify: " + waslikeguest);
+		
 		tc.verify(new FuncCallback<UserContext>() {				
 			@Override
 			public void callback() {
 				UserContext uc = this.getResult();
 				
 				if (uc != null) {
-					// it would not be ok to store TaskContext here because of elevation
-					// but user context can be stored
-					Session.this.setUser(uc);
-					
-					// although we typically do not change the context of a callback, in this case we should
-					// so the user verify will travel along with the request message 
-					OperationContext.switchUser(this.getContext(), uc);
-					
 					boolean nowlikeguest = uc.looksLikeGuest();
 					
-					if (nowlikeguest && !waslikeguest)
+					if (nowlikeguest && ! waslikeguest)
 						cb.error(1, "User not authenticated!");
 				}
 				
-				if (cb != null) {
-					cb.setResult(this.toLogMessage());
-					cb.complete();
-				}
+				if (nv)
+					System.out.println("NOVHOATS after verify: ");
+				
+				cb.setResult(this.toLogMessage());
+				cb.complete();
 			}
 		});
 	}
@@ -1063,15 +1056,11 @@ Context: {
 	}
 
 	public void clearToGuest() {
-		this.setUser(new OperationContextBuilder()
+		this.withUser(new OperationContextBuilder()
 			.withGuestUserTemplate()
 			.withTenantId(this.user.getTenantId())
 			.withSite(this.user.getSiteAlias())
 			.toUserContext());
-	}
-
-	public void setToRoot() {
-		this.setUser(UserContext.allocateRoot());
 	}
 
 	public boolean reviewPlan(long clearGuest, long clearUser) {

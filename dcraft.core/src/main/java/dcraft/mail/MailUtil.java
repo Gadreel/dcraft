@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import dcraft.cms.util.CatalogUtil;
 import dcraft.filestore.CommonPath;
+import dcraft.filestore.IFileStoreFile;
 import dcraft.hub.Hub;
 import dcraft.lang.op.FuncResult;
 import dcraft.log.Logger;
@@ -85,7 +86,7 @@ public class MailUtil {
 		return MailUtil.createSendBuildTask(sparams);
 	}
 	
-	static public Task createBuildSendEmailTask(String from, String to, String reply, CommonPath template, CommonPath datapath) {
+	static public Task createBuildSendEmailTask(String from, String to, String reply, CommonPath template, IFileStoreFile datapath) {
 		RecordStruct sparams = new RecordStruct(
 				new FieldStruct("From", from),
 				new FieldStruct("To", to),

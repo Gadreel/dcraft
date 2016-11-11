@@ -57,7 +57,8 @@ public class CtpSession extends With {
         
         // if we handle the domain then use local session
         if (di != null) {
-        	Session session = Hub.instance.getSessions().create("hub:", host, "root", null);
+        	// TODO create for a given site?
+        	Session session = Hub.instance.getSessions().create(host, "root", "hub:");
         	sess = new LocalSession();
     		((LocalSession)sess).init(session, stack.getInstruction().getXml());
     		

@@ -1,6 +1,8 @@
 package dcraft.web.core;
 
 import dcraft.hub.TenantInfo;
+
+import dcraft.filestore.CommonPath;
 import dcraft.hub.SiteInfo;
 import dcraft.web.md.ProcessContext;
 
@@ -22,4 +24,5 @@ public interface IOutputContext {
     
 	boolean hasExternalParam(String name);
 	String getExternalParam(String name);
+	CommonPath getPath();
 }

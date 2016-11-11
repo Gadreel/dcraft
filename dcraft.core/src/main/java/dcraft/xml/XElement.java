@@ -318,8 +318,16 @@ public class XElement extends XNode {
 	 * 
 	 */
 	public void clearChildren() {
-		if (children != null)
-			children.clear();
+		if (this.children != null)
+			this.children.clear();
+	}
+	
+	public void clear() {
+		if (this.children != null)
+			this.children.clear();
+		
+		if (this.attributes != null)
+			this.attributes.clear();
 	}
 
 	/**

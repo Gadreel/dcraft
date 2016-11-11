@@ -22,10 +22,6 @@ public class PagePart extends UIElement {
 		
 		this.setAttribute("id", this.getAttribute("For"));
 		
-		this.removeAttribute("For");
-		this.removeAttribute("Format");
-		this.removeAttribute("Locale");
-		
 		super.translate(work, pnodes);
 	}
 }

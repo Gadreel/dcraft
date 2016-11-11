@@ -18,6 +18,5 @@ package dcraft.hub;
 
 public enum HubMode {
 	Private,
-	Public,
-	Gateway;
+	Public;
 }

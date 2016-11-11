@@ -3,7 +3,6 @@ package dcraft.cms.feed.core;
 import java.util.ArrayList;
 import java.util.List;
 
-import dcraft.cms.feed.core.FeedAdapter.MatchResult;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationContext;
 import dcraft.struct.CompositeStruct;
@@ -16,7 +15,7 @@ public class Sections {
 	static public Sections parse(FeedInfo fi, String part) {
 		FeedAdapter fa = fi.getAdapter(true);
 		
-		MatchResult partm = fa.bestMatch("PagePart", "For", part);
+		FeedPartMatchResult partm = fa.bestMatch("PagePart", "For", part);
 		
 		if (partm == null) {
 			OperationContext.get().error("Feed part " + part + " does not exist.");

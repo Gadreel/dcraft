@@ -689,6 +689,10 @@ public class OperationContext implements ITranslationAdapter {
 		return clone;
 	}
 	
+	public boolean needVerify() {
+		return (! this.userctx.isVerified() && ! this.isElevated());
+	}
+	
 	// return an approved/verified user context (guest if nothing else)
 	// verify says - the given auth token, if any, is valid - if there is none then you are a guest and that is valid
 	// 

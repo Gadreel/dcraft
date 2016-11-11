@@ -596,6 +596,20 @@ var dc = {
 					text += possible.charAt(Math.floor(Math.random() * possible.length));
 
 				return text;
+			},
+			makeSimpleHash: function(v) {
+			    var hash = 0;
+			    
+			    if (! v) 
+			    	return hash;
+			    
+			    for (var i = 0; i < v.length; i++) {
+			        char = v.charCodeAt(i);
+			        hash = ((hash<<5)-hash)+char;
+			        hash = hash & hash; // Convert to 32bit integer
+			    }
+			    
+			    return hash;
 			}
 		},
 		Text: {
@@ -736,6 +750,50 @@ var dc = {
 
 				return hex;
 			}			
+		},
+		File: {
+			isLegalFilename: function(name) {
+				if (! name)
+					return false;
+				
+				// TODO
+				
+				//if (name.equals(".") || name.contains("..") || name.contains("*") || name.contains("\"") || name.contains("/") || name.contains("\\")
+				//		 || name.contains("<") || name.contains(">") || name.contains(":") || name.contains("?") || name.contains("|"))
+				//	return false;
+				
+				return true;
+			},			
+			toLegalFilename: function(name) {
+				if (! name)
+					return null;
+				
+				// must escape regex chars - [\^$.|?*+()
+				name = name.replace(new RegExp("\\.\\.", 'g'), "_").replace(new RegExp("\\*", 'g'), "_").replace(new RegExp("\"", 'g'), "_")
+							.replace(new RegExp("\\/", 'g'), "_").replace(new RegExp("\\\\", 'g'), "_").replace(new RegExp("<", 'g'), "(")
+							.replace(new RegExp(">", 'g'), ")").replace(new RegExp(":", 'g'), "_").replace(new RegExp("\\?", 'g'), "_")
+							.replace(new RegExp("\\|", 'g'), "_");
+				
+				return name;
+			},			
+			// allow only these: - _ . ( )
+			toCleanFilename: function(name) {
+				name = dc.util.File.toLegalFilename(name);
+				
+				if (! name)
+					return null;
+				
+				name = name.replace(new RegExp(" ", 'g'), "-").replace(new RegExp("%", 'g'), "_").replace(new RegExp("@", 'g'), "_")
+						.replace(new RegExp("#", 'g'), "_").replace(new RegExp(",", 'g'), "_")
+						.replace(new RegExp("~", 'g'), "_").replace(new RegExp("`", 'g'), "_").replace(new RegExp("!", 'g'), "_")
+						.replace(new RegExp("\\$", 'g'), "_").replace(new RegExp("\\^", 'g'), "_").replace(new RegExp("&", 'g'), "_")
+						.replace(new RegExp("&", 'g'), "_").replace(new RegExp("=", 'g'), "_").replace(new RegExp("\\+", 'g'), "-")
+						.replace(new RegExp("{", 'g'), "(").replace(new RegExp("}", 'g'), ")").replace(new RegExp("\\[", 'g'), "(")
+						.replace(new RegExp("\\]", 'g'), ")").replace(new RegExp(";", 'g'), "_").replace(new RegExp("'", 'g'), "_")
+						.replace(new RegExp("<", 'g'), "(").replace(new RegExp(">", 'g'), ")");
+				
+				return name;
+			}
 		}
 	},
 	lang: {
@@ -921,3 +979,79 @@ var dc = {
 		}
 	}
 }
+
+dc.lang.Task = function(steps, observer) {
+	this.init(steps, observer);
+};  
+
+dc.lang.Task.prototype = new dc.lang.OperationResult();
+
+dc.lang.Task.prototype.init = function(steps, observer) {
+	//dc.lang.OperationResult.prototype.init.call(this, entry, node);
+	
+	this.Steps = steps;
+	this.CurrentStep = 0;
+	this.Observers = [ ];
+	
+	if (observer)
+		this.Observers.push(observer);
+}
+
+dc.lang.Task.prototype.run = function() {
+	if (this.Steps.length <= this.CurrentStep) {
+		this.complete();
+		return;
+	}
+	
+	var step = this.Steps[this.CurrentStep];
+	
+	// TODO if step does not have Alias or Title add
+	
+	if (!step.Params)
+		step.Params = { };
+		
+	if (!step.Store)
+		step.Store = { };
+		
+	step.Func.call(this, step);
+}
+
+dc.lang.Task.prototype.kill = function() {
+	this.error(1, 'Task could not complete');
+	this.complete();
+}
+
+dc.lang.Task.prototype.resume = function() {
+	if (this.hasErrors()) {
+		this.complete();
+		return;
+	}
+	
+	var step = this.Steps[this.CurrentStep];
+
+	if (! step.Repeat)
+		this.CurrentStep++;
+
+	var task = this;
+	
+	window.setTimeout(function() { task.run(); }, 1);	
+}
+
+dc.lang.Task.prototype.resumeNext = function() {
+	if (this.hasErrors()) {
+		this.complete();
+		return;
+	}
+	
+	this.CurrentStep++;
+
+	var task = this;
+	
+	window.setTimeout(function() { task.run(); }, 1);	
+}
+
+dc.lang.Task.prototype.complete = function() {
+	for (var i = 0; i < this.Observers.length; i++) 
+		this.Observers[i](this);
+}
+

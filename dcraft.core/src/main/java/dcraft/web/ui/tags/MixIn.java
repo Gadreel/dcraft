@@ -10,6 +10,7 @@ import dcraft.util.StringUtil;
 import dcraft.web.core.IOutputContext;
 import dcraft.web.core.WebContext;
 import dcraft.web.ui.UIElement;
+import dcraft.web.ui.UIUtil;
 import dcraft.web.ui.UIWork;
 import dcraft.xml.XElement;
 
@@ -38,7 +39,7 @@ public class MixIn extends UIElement {
 				FeedAdapter feed = wctx.getFeedAdapter("Pages", cmspath);
 				
 				if (feed != null)
-					feed.buildHtmlPageUI(work.get().getContext(), this);
+					UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
 			}
 		}
 		
@@ -49,7 +50,7 @@ public class MixIn extends UIElement {
 	public void build(WeakReference<UIWork> work) {
 		OperationContext or = OperationContext.get();
 		
-		XElement skel = this.selectFirst("body");
+		XElement skel = this.selectFirst("dc.Body");
 
 		if (skel == null)
 			skel = this.selectFirst("dc.Fragment");
@@ -92,6 +93,8 @@ public class MixIn extends UIElement {
 				or.error("Missing content to build page element: " + pdef);
 				continue;
 			}
+			
+			this.remove(content);
 			
 			String bop = pdef.getAttribute("BuildOp", "Append");
 			

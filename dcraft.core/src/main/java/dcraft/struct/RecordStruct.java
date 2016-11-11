@@ -405,6 +405,10 @@ public class RecordStruct extends CompositeStruct implements IItemCollection, Gr
 		return f.isEmpty();
 	}
 	
+	public boolean isNotFieldEmpty(String name) {
+		return ! this.isFieldEmpty(name);
+	}
+	
 	/**
 	 * Unlike getField, this returns the value (inner) rather than struct wrapping 
 	 * the value.

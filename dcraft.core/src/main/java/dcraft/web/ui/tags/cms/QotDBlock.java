@@ -10,7 +10,7 @@ import dcraft.xml.XNode;
 
 public class QotDBlock extends UIElement {
 	public QotDBlock() {
-		super("dc.QotDBlock");
+		super("dcm.QotDBlock");
 	}
 	
 	@Override

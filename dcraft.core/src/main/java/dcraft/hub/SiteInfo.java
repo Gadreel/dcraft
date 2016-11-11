@@ -8,14 +8,12 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import dcraft.cms.feed.core.FeedAdapter;
 import dcraft.filestore.bucket.Bucket;
 import dcraft.filestore.bucket.BucketUtil;
 import dcraft.groovy.GCompClassLoader;
 import dcraft.io.CacheFile;
 import dcraft.io.LocalFileStore;
 import dcraft.lang.op.FuncResult;
-import dcraft.lang.op.OperationContext;
 import dcraft.locale.Dictionary;
 import dcraft.locale.ILocaleResource;
 import dcraft.locale.LocaleDefinition;
@@ -433,48 +431,6 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 			return null;
 		
 		return fpath.asString();
-	}
-	
-	public FeedAdapter getFeedAdapter(String alias, String path, boolean preview) {
-		XElement settings = OperationContext.get().getSite().getSettings();
-		
-		if (settings == null) 
-			return null;
-		
-		XElement feed = settings.find("Feed");
-		
-		if (feed == null) 
-			return null;
-		
-		// there are two special channels - Pages and Blocks
-		for (XElement chan : feed.selectAll("Channel")) {
-			String calias = chan.getAttribute("Alias");
-			
-			if (calias == null)
-				calias = chan.getAttribute("Name");
-			
-			if (calias == null)
-				continue;
-			
-			if (calias.equals(alias)) {
-				// TODO support sites
-				
-				String innerpath = chan.getAttribute("Path", chan.getAttribute("InnerPath", "")) + path + ".dcf.xml";
-				//String innerpath = chan.getAttribute("InnerPath", "") + path + ".dcf.xml";		// InnerPath or empty string
-				
-				CacheFile fpath = this.findSectionFile("feed", innerpath, preview);
-				
-				if (fpath != null) {
-					FeedAdapter adapt = new FeedAdapter();
-					adapt.init(calias, path, fpath);		
-					return adapt; 
-				}
-				
-				return null;
-			}
-		}
-		
-		return null;
 	}
 	
 	public CompositeStruct getGalleryMeta(String path, boolean preview) {

@@ -43,6 +43,7 @@ public class EventUtil {
 			
 			// TODO use settings to configure task
 			
+			// use site root, not current user - event actions are tied to System
 			Task task = Task.taskWithSiteRootContext()
 				.withTitle(screl.getAttribute("Title", "Event Script " + name))	
 				.withTopic("Batch")

@@ -27,6 +27,7 @@ public class XText extends XNode {
 	 * The value of the TextElement.
 	 */
 	protected String content = null;
+	protected StringBuilder buffered = null;
 	protected boolean cdata = false;
 	
 	public boolean isCData() {
@@ -35,7 +36,7 @@ public class XText extends XNode {
 	
 	public XText() {
 	}
-
+	
 	/**
 	 * @param string text content to associate with this node
 	 */
@@ -44,15 +45,36 @@ public class XText extends XNode {
 	}
 
 	public void append(char c) {
-		this.content += XNode.quote(c);
+		if (this.content == null)
+			this.content = XNode.quote(c);
+		else
+			this.content += XNode.quote(c);
 	}
 
 	public void append(String s) {
-		this.content += XNode.quote(s);
+		if (this.content == null)
+			this.content = XNode.quote(s);
+		else
+			this.content += XNode.quote(s);
 	}
 
 	public void appendEntity(String s) {
-		this.content += s;
+		if (this.content == null)
+			this.content = s;
+		else
+			this.content += s;
+	}
+
+	public void appendBuffer(CharSequence s) {
+		if (this.buffered == null)
+			this.buffered = new StringBuilder(s);
+		else
+			this.buffered.append(s);
+	}
+	
+	public void closeBuffer() {
+		if (this.buffered != null)
+			this.content = this.buffered.toString();
 	}
 	
 	/**

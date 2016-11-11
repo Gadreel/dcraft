@@ -1,0 +1,53 @@
+
+.dcm-fb-header {
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;
+}
+
+.dcm-fb-icon img {
+	width: 50px;
+}
+
+.dcm-fb-stamp {
+	margin-left: 8px;
+}
+
+.dcm-fb-stamp h3 {
+	margin-top: 0;
+	margin-bottom: 2px;
+}
+
+.dcm-fb-stamp {
+	font-size: 14px;
+}
+
+.dcm-fb-body img {
+	max-width: 100%;
+}
+
+.dcm-ig-listing {
+	text-align: center;
+}
+
+.dcm-ig-entry img {
+	width: 114px;
+	margin-top: 8px;
+	margin-right: 8px;
+	float: right;
+}
+
+.dcm-basic-carousel .dcm-basic-carousel-img {
+	height: 100%;
+}
+
+/*
+.dcm-basic-carousel:not(.dcm-loaded) .dcm-basic-carousel-img {
+	-webkit-filter: opacity(0.15);
+	filter: opacity(0.15);
+}
+*/
+
+.dcm-basic-carousel .dcm-basic-carousel-list {
+	display: none;
+}

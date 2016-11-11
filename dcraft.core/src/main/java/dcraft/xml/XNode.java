@@ -175,6 +175,14 @@ public abstract class XNode {
           inQuote = false;
           quoteBuf.setLength(0);
         }
+        else if (ch == ' ') {
+            sb.append('&');
+            sb.append(quoteBuf);
+            sb.append(' ');
+            
+            inQuote = false;
+            quoteBuf.setLength(0);
+          }
         else {
           quoteBuf.append(ch);
         }

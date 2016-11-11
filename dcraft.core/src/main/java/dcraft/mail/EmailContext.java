@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import dcraft.filestore.CommonPath;
 import dcraft.struct.FieldStruct;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
@@ -12,11 +13,12 @@ import dcraft.util.StringUtil;
 import dcraft.web.core.BaseContext;
 
 public class EmailContext extends BaseContext {
-	static public EmailContext forRequestParams(RecordStruct params, RecordStruct dparams, Path datapath) {
+	static public EmailContext forRequestParams(CommonPath template, RecordStruct params, RecordStruct dparams, Path datapath) {
 		EmailContext ctx = new EmailContext();
 		
 		ctx.data = dparams;
 		ctx.datapath = datapath;
+		ctx.path = template;
 		
 		if (params != null) {
 			if (! params.isFieldEmpty("To")) {
@@ -50,6 +52,7 @@ public class EmailContext extends BaseContext {
 	protected String html = null;
 	protected String text = null;
 	protected Path datapath = null;
+	protected CommonPath path = null;
 	protected RecordStruct data = null;
 	protected List<EmailAttachment> attachments = new ArrayList<EmailAttachment>();
 
@@ -103,6 +106,11 @@ public class EmailContext extends BaseContext {
 	
 	public void setText(String v) {
 		this.text = v;
+	}
+	
+	@Override
+	public CommonPath getPath() {
+		return this.path;
 	}
 	
 	public void addAttachment(EmailAttachment v) {

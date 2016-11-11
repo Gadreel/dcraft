@@ -265,7 +265,7 @@ public class GCompClassLoader extends ClassLoader {
 		
 		GroovyObject script = (GroovyObject) groovyClass.newInstance();
 		
-		GCompClassLoader.tryExecuteMethod(script, method, args);
+		GCompClassLoader.tryExecuteMethodCtx(script, method, args);
 	}
 
 	public void executeClass(String name, String method, Object... args) throws ClassNotFoundException, 
@@ -275,7 +275,23 @@ public class GCompClassLoader extends ClassLoader {
 		
 		GroovyObject script = (GroovyObject) groovyClass.newInstance();
 		
-		GCompClassLoader.tryExecuteMethod(script, method, args);
+		GCompClassLoader.tryExecuteMethodCtx(script, method, args);
+	}
+	
+	static public boolean tryExecuteMethodCtx(GroovyObject script, String name, Object... params) {
+		if (script == null) 
+			return false;
+
+		/*
+		OperationContext oc = OperationContext.get();
+		
+		script.setProperty("_ctx", oc);
+		script.setProperty("_usr", oc.getUserContext());
+		script.setProperty("_ten", oc.getTenant());
+		script.setProperty("_sit", oc.getSite());
+		*/
+		
+		return GCompClassLoader.tryExecuteMethod(script, name, params);
 	}
 	
 	static public boolean tryExecuteMethod(GroovyObject script, String name, Object... params) {
