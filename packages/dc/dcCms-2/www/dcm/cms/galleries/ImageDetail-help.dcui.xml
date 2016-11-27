@@ -1,9 +1,0 @@
-<dcui Title="Help" AuthTags="Admin,Editor">
-	<Skeleton><div class="dcuiHelpViewer" data-dcui-mode="enhance"><MD><![CDATA[
-## Image Details Help
-
-**CMS Feature Under Construction**
-
-Use this form to review the variations of image present.  If you wish to have a copy of the current image variation click Download.  If you wish to remove the image click Delete Image.
-	]]></MD></div></Skeleton>
-</dcui>

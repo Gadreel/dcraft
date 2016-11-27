@@ -1,0 +1,49 @@
+<dc.MixIn Title="Edit Image Properties" AuthTags="Admin,Editor">
+	<dc.Fragment>
+		<dc.Panel Title="Edit Image Properties">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="Cancel" Label="Cancel" />
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+
+				<dc.IncludeParam Name="ExtraProps" />
+			
+				<dcf.TextArea Name="Description" Label="Description" />
+			</dcf.Form>
+		</dc.Fragment>
+	</dc.Body>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			e.Data = { };
+		
+			// copy properties into form
+			Object.getOwnPropertyNames(entry.Params.Image).forEach(function(name) {
+				e.Data[name] = entry.Params.Image[name];
+			});
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			// copy properties into image
+			Object.getOwnPropertyNames(e.Data).forEach(function(name) {
+				entry.Params.Image[name] = e.Data[name];
+			});
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			entry.Params.Gallery.save(function(resp) {
+				if (resp.Result > 0) 
+					dc.pui.Popup.alert(resp.Message);
+				else
+					entry.Layer.back();
+			});
+	]]></dc.Function>
+	<dc.Function Name="Cancel"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
+	]]></dc.Function>
+</dc.MixIn>

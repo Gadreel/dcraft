@@ -221,9 +221,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 				}
 				
 				if (sess == null) {
-					// TODO restore not ideal - tiny trust issue
-					sess = Hub.instance.getSessions().restore(site, origin, sessionid, accesscode, fauthtoken);
-					Logger.info("Restored session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
+					// only restore if the hub id matches that found in the session
+					if (sessionid.subSequence(0, 5).equals(OperationContext.getHubId())) {
+						// TODO restore not ideal - tiny trust issue
+						sess = Hub.instance.getSessions().restore(site, origin, sessionid, accesscode, fauthtoken);
+						Logger.info("Restored session: " + sess.getId() + " on " + req.getPath() + " for " + origin + " agent: " + req.getHeader("User-Agent"));
+					}
 				}
 				else {
 					if (! sess.isKnownAuthToken(fauthtoken)) {
@@ -311,7 +314,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
         	return;
         }
         
-		System.out.println("=========================== NOVHOATS: " + needVerify);
+		//System.out.println("=========================== NOVHOATS: " + needVerify);
 
         // complete the verify before loading the page
 		if (needVerify) {
@@ -356,7 +359,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		
 		String vauthtoken = tc.getUserContext().getAuthToken();
 		
-		System.out.println("NOVHOATS final token: " + vauthtoken);
+		//System.out.println("NOVHOATS final token: " + vauthtoken);
 		
 		if (! Objects.equals(oldauthtoken, vauthtoken)) {
 			Cookie authk = new DefaultCookie("dcAuthToken", (vauthtoken != null) ? vauthtoken : "");

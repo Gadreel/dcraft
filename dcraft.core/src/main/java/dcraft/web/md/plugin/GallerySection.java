@@ -2,6 +2,7 @@ package dcraft.web.md.plugin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 
 import dcraft.lang.op.FuncResult;
@@ -23,28 +24,27 @@ public class GallerySection extends Plugin {
 
 	@Override
 	public void emit(ProcessContext ctx, UIElement parent, List<String> lines, Map<String, String> params) {
-		UIElement cbox = new UIElement("div");
-		
-		cbox
-			.withAttribute("class", "dc-section dc-section-gallery " + (params.containsKey("Class") ? params.get("Class") : ""))
-			.withAttribute("data-dccms-section", "plugin");
+		UIElement pel = new dcraft.web.ui.tags.GallerySection();
 			
 		if (params.containsKey("Id"))
-			cbox.withAttribute("id", params.get("Id"));
+			pel.withAttribute("id", params.get("Id"));
 		
 		if (params.containsKey("Lang"))
-			cbox.withAttribute("lang", params.get("Lang"));
+			pel.withAttribute("lang", params.get("Lang"));
+		
+		if (params.containsKey("Class"))
+			pel.withClass(params.get("Class").split(" "));
 		
 		if (params.containsKey("Path"))
-			cbox.withAttribute("data-path", params.get("Path"));
+			pel.withAttribute("Path", params.get("Path"));
 		
 		if (params.containsKey("Show"))
-			cbox.withAttribute("data-show", params.get("Show"));
-		
-		parent.add(cbox);
+			pel.withAttribute("Show", params.get("Show"));
 		
 		if (params.containsKey("Title"))
-			cbox.add(new UIElement("h2").withText("Title"));
+			pel.add(new UIElement("h2").withText(params.get("Title")));
+		
+		Long maximgs = params.containsKey("Max") ? StringUtil.parseInt(params.get("Max")) : null;
 		
 		// convert the template to one string 
         StringBuilder in = new StringBuilder();
@@ -55,7 +55,7 @@ public class GallerySection extends Plugin {
         String template = in.toString();
 		
         if (StringUtil.isEmpty(template))
-        	template = "<div><img src=\"@path@\" /><MD>@img|Description@</MD></div>";
+        	template = "<a href=\"#\"><img src=\"@path@\" /><dc.MD>@img|Description@</dc.MD></a>";
         
         String ftemplate = template;
         
@@ -64,11 +64,18 @@ public class GallerySection extends Plugin {
 
         out.append("<div>");
 
+        AtomicLong currimg = new AtomicLong();
+        
         ctx.getOutput().getSite().forEachGalleryShowImage(params.get("Path"), params.get("Show"), 
         		ctx.getOutput().isPreview(), new GalleryImageConsumer() 
         {
 			@Override
 			public void accept(RecordStruct meta, RecordStruct show, Struct img) {
+				long cidx = currimg.incrementAndGet();
+				
+				if ((maximgs != null) && (cidx > maximgs))
+					return;
+				
 			  boolean checkmatches = true;
 			  
 			  String value = ftemplate;
@@ -108,16 +115,18 @@ public class GallerySection extends Plugin {
 				if (params.containsKey("ListId"))
 					lbox.withAttribute("id", params.get("ListId"));
 				
-				cbox.add(lbox);
+				pel.add(lbox);
         	}
         	else {
-				cbox.add(new UIElement("div")
+				pel.add(new UIElement("div")
 					.withText("Error parsing section."));
         	}
         }
         catch (Exception x) {
         	Logger.error("Error adding gallery section: " + x);
         }
+		
+		parent.with(pel);
 	}
 
   public String expandMacro(ProcessContext ctx, String path, RecordStruct meta, RecordStruct show, Struct img, String macro) {
@@ -139,8 +148,8 @@ public class GallerySection extends Plugin {
 		  val = meta.getFieldAsString(parts[1]);
 	  }
 	  
-	  if (val == null)
-		  return "";
+	  //if (val == null)
+	  //  return "@" + macro + "@";
 	  
 	  return val;
   }

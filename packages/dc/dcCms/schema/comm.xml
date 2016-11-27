@@ -195,28 +195,6 @@
 				FEED
 		=============================================== -->
 		<Secure Tags="Admin">
-			<Collector Name="dcmFeedScan2" Execute="dcraft.cms.feed.proc.FeedScan" />
-			
-			<Procedure Name="dcmFeedUpdate2" Execute="dcraft.cms.feed.proc.UpdateFeed">
-				<Description>
-					Add/update a feed item.
-				</Description>
-				<Request Inherits="dcmFeedUpdateInfo2" />
-				<Response>
-					<Field Name="Id" Type="Id" />
-				</Response>
-			</Procedure>
-			
-			<Procedure Name="dcmFeedDelete2" Execute="dcraft.cms.feed.proc.DeleteFeed">
-				<Description>
-					Delete a feed item.
-				</Description>
-				<Request>
-					<Field Name="Path" Type="dcmFeed:dcmPath" Required="True" />
-				</Request>
-				<Response />
-			</Procedure>
-			
 			<Collector Name="dcmFeedScan" Execute="dcraft.cms.feed.proc.LegacyFeedScan" />
 			
 			<Procedure Name="dcmFeedUpdate" Execute="dcraft.cms.feed.proc.LegacyUpdateFeed">
@@ -485,22 +463,6 @@
 			</Field>
 			<Field Name="PreviewPartContent">
 				<List Type="dcmFeedPartInfo" /> 
-			</Field>
-		</Record>		
-		
-		<Record Id="dcmFeedUpdateInfo2">
-			<Field Name="Path" Type="dcmFeed:dcmPath" Required="True" />
-			<Field Name="AuthorizationTags">
-				<List Type="dcmFeed:dcmAuthorizationTags" /> 
-			</Field>
-			<Field Name="ContentTags">
-				<List Type="dcmFeed:dcmContentTags" /> 
-			</Field>
-			<Field Name="Fields">
-				<List Type="dcmFeedFieldInfo" /> 
-			</Field>
-			<Field Name="PreviewFields">
-				<List Type="dcmFeedFieldInfo" /> 
 			</Field>
 		</Record>		
 		

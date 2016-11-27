@@ -36,7 +36,6 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
 
 import dcraft.bus.Message;
-import dcraft.cms.feed.core.FeedAdapter;
 import dcraft.filestore.CommonPath;
 import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
@@ -473,10 +472,6 @@ public class WebContext extends BaseContext {
 	// string path is relative to tenants/[alias]/[section]/[path]
 	public String getTextResource(String section, String path) {
 		return this.site.getTextResource(section, path, this.isPreview());
-	}
-	
-	public FeedAdapter getFeedAdapter(String alias, String path) {
-		return FeedAdapter.from(alias, path, this.isPreview());
 	}
 	
 	public CompositeStruct getGalleryMeta(String path) {

@@ -5,9 +5,72 @@
 			<Field Name="dcmToken" Type="dcSmallString" />
 			<Field Name="dcmSubmitAt" Type="Date" />
 		</Table>
+		
+		<Secure Tags="Admin">
+			<Collector Name="dcmFeedScan2" Execute="dcraft.cms.feed.proc.FeedScan" />
+			
+			<Procedure Name="dcmFeedUpdate2" Execute="dcraft.cms.feed.proc.UpdateFeed">
+				<Description>
+					Add/update a feed item.
+				</Description>
+				<Request Inherits="dcmFeedDetail" />
+				<Response>
+					<Field Name="Id" Type="Id" />
+				</Response>
+			</Procedure>
+			
+			<Procedure Name="dcmFeedDelete2" Execute="dcraft.cms.feed.proc.DeleteFeed">
+				<Description>
+					Delete a feed item.
+				</Description>
+				<Request>
+					<Field Name="Path" Type="dcString" Required="True" />
+				</Request>
+				<Response />
+			</Procedure>
+		</Secure>		
 	</Database>
 
 	<Shared>
+		<Record Id="dcmFeedLocator">
+			<Field Name="Channel" Type="dcTinyString" Required="True" />
+			<Field Name="Path" Type="dcString" Required="True" />
+			<Field Name="Locale" Type="dcTinyString" />
+		</Record>
+		
+		<Record Id="dcmFeedPartLocator" Inherits="dcmFeedLocator">
+			<Field Name="Part" Type="dcSmallString" Required="True" />
+		</Record>
+
+		<!-- 
+			Feed Detail represents only one locale
+			PartContent fields has names and such but not value
+		-->		
+		<Record Id="dcmFeedDetail" Inherits="dcmFeedLocator">
+			<Field Name="Site" Type="dcTinyString" />
+			
+			<Field Name="AuthorizationTags">
+				<List Type="dcmFeed:dcmAuthorizationTags" /> 
+			</Field>
+			<Field Name="ContentTags">
+				<List Type="dcmFeed:dcmContentTags" /> 
+			</Field>
+			<Field Name="PreviewContentTags">
+				<List Type="dcmFeed:dcmContentTags" /> 
+			</Field>
+			<Field Name="Fields">
+				<List Type="dcmFeedFieldInfo" /> 
+			</Field>
+			<Field Name="PreviewFields">
+				<List Type="dcmFeedFieldInfo" /> 
+			</Field>
+			<Field Name="PartContent">
+				<List Type="dcmFeedPartInfo" /> 
+			</Field>
+			<Field Name="PreviewPartContent">
+				<List Type="dcmFeedPartInfo" /> 
+			</Field>
+		</Record>		
 
 	</Shared>
 		
@@ -15,6 +78,127 @@
 		<Service Name="dcmCore">
 			<Secure Tags="Admin,Editor">
 				<Feature Name="Feeds">
+					<Op Name="LoadFeedInfo">
+						<Description>
+							Get all fields for a given feed, default feed locale if no locale given.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedLocator" />
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record Inherits="dcmFeedDetail" />
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="AlterFeedInfo">
+						<Description>
+							Update or add a Feed with fields. Default locale for feed if not locale given.
+							In SetFields or SetParts leave out a value to delete the field
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedLocator">
+									<Field Name="Publish" Type="Boolean" />
+									<Field Name="SetTags">
+										<List Type="dcTinyString" />
+									</Field>
+									<Field Name="SetFields">
+										<List>
+											<Record>
+												<Field Name="Name" Type="dcSmallString" Required="True" />
+												<Field Name="Value" Type="String" />
+											</Record>
+										</List>
+									</Field>
+									<Field Name="SetParts">
+										<List>
+											<Record>
+												<Field Name="For" Type="dcSmallString" Required="True" />
+												<Field Name="Format" Type="dcTinyString" Required="True" />
+												<Field Name="Value" Type="String" />
+											</Record>
+										</List>
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Id" Type="Id" />
+								</Record>
+							</Field>
+						</Response>
+					</Op>
+					<Op Name="LoadFeedPart">
+						<Description>
+							Get content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedPartLocator" />
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body" Type="dcmFeedPartInfo" />
+						</Response>
+					</Op>
+					<Op Name="AlterFeedPart">
+						<Description>
+							Update content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Part" Type="dcmFeedPartLocator" Required="True" />
+									<Field Name="Data" Type="dcmFeedPartInfo" />
+									<Field Name="Publish" Type="Boolean" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					<Op Name="LoadFeedSection">
+						<Description>
+							Get content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedPartLocator">
+									<Field Name="Section" Type="dcSmallString" Required="True" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body" Type="dcmFeedAlterSectionInfo" />
+						</Response>
+					</Op>
+					<Op Name="AlterFeedSection">
+						<Description>
+							Update content of a specific section of a specific part.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record>
+									<Field Name="Part" Type="dcmFeedPartLocator" Required="True" />
+									<Field Name="Section" Type="dcmFeedAlterSectionInfo" />
+									<Field Name="Action" Required="True">
+										<Record>
+											<Field Name="Op" Type="dcmFeedAlterSectionOpEnum" Required="True" />
+											<Field Name="TargetSection" Type="dcSmallString" />
+											<Field Name="Publish" Type="Boolean" />
+											<Field Name="Levels" Type="Integer" />
+										</Record>
+									</Field>
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
+					
 					<!-- 
 					<Op Name="ListPages">
 						<Description>
@@ -324,71 +508,6 @@
 					</Op>
 					-->
 					
-					<Op Name="LoadFeedPart">
-						<Description>
-							Get content of a specific section of a specific part.
-						</Description>
-						<Request Inherits="RequestMessage">
-							<Field Name="Body" Required="True">
-								<Record Inherits="dcmFeedAlterPartInfo" />
-							</Field>
-						</Request>
-						<Response Inherits="ResponseMessage">
-							<Field Name="Body" Type="dcmFeedPartInfo" />
-						</Response>
-					</Op>
-					<Op Name="AlterFeedPart">
-						<Description>
-							Update content of a specific section of a specific part.
-						</Description>
-						<Request Inherits="RequestMessage">
-							<Field Name="Body" Required="True">
-								<Record>
-									<Field Name="Part" Type="dcmFeedAlterPartInfo" Required="True" />
-									<Field Name="Data" Type="dcmFeedPartInfo" />
-									<Field Name="Publish" Type="Boolean" />
-								</Record>
-							</Field>
-						</Request>
-						<Response Inherits="ResponseMessage" />
-					</Op>
-					<Op Name="LoadFeedSection">
-						<Description>
-							Get content of a specific section of a specific part.
-						</Description>
-						<Request Inherits="RequestMessage">
-							<Field Name="Body" Required="True">
-								<Record Inherits="dcmFeedAlterPartInfo">
-									<Field Name="Section" Type="dcSmallString" Required="True" />
-								</Record>
-							</Field>
-						</Request>
-						<Response Inherits="ResponseMessage">
-							<Field Name="Body" Type="dcmFeedAlterSectionInfo" />
-						</Response>
-					</Op>
-					<Op Name="AlterFeedSection">
-						<Description>
-							Update content of a specific section of a specific part.
-						</Description>
-						<Request Inherits="RequestMessage">
-							<Field Name="Body" Required="True">
-								<Record>
-									<Field Name="Part" Type="dcmFeedAlterPartInfo" Required="True" />
-									<Field Name="Section" Type="dcmFeedAlterSectionInfo" />
-									<Field Name="Action" Required="True">
-										<Record>
-											<Field Name="Op" Type="dcmFeedAlterSectionOpEnum" Required="True" />
-											<Field Name="TargetSection" Type="dcSmallString" />
-											<Field Name="Publish" Type="Boolean" />
-											<Field Name="Levels" Type="Integer" />
-										</Record>
-									</Field>
-								</Record>
-							</Field>
-						</Request>
-						<Response Inherits="ResponseMessage" />
-					</Op>
 				</Feature>
 			</Secure>
 

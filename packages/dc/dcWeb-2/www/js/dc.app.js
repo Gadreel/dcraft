@@ -137,7 +137,7 @@ dc.pui.layer.Base.prototype = {
 			if (entry.Loaded && entry.FreezeTop)
 				$(layer.Content).scrollTop(entry.FreezeTop);				
 			else if (entry.TargetElement)
-				$(layer.Content).scrollTop($('#' + entry.TargetElement).get(0).getBoundingClientRect().top + window.pageYOffset);
+				$(layer.Content).scrollTop($('#' + entry.TargetElement).get(0).getBoundingClientRect().top + $(layer.Content).scrollTop());
 			else
 				$(layer.Content).scrollTop(0);				
 			
@@ -358,7 +358,7 @@ dc.pui.layer.Main.prototype.enhancePage = function() {
 	}
 	
 	if (page.Title)
-		document.title = page.Title;
+		document.title = dc.util.Web.unescapeHtml(page.Title);
 };
 
 dc.pui.layer.Main.prototype.refreshPage = function() {
@@ -366,12 +366,12 @@ dc.pui.layer.Main.prototype.refreshPage = function() {
 	var loader = dc.pui.Loader;
 	
 	var entry = layer.Current;
-	//var top = $(window).scrollTop();
+	var top = $(layer.Content).scrollTop();
 	
 	loader.clearPageCache(window.location.pathname);
 	
 	layer.loadPage(window.location.pathname, entry.Params, true, function() {
-		// TODO - probably don't need this - $('body').velocity("scroll", { duration: 333, easing: "easeInBack" });				
+		$(layer.Content).scrollTop(top);
 	});
 };
 
@@ -497,7 +497,6 @@ dc.pui.layer.App.prototype.manifestPage = function(entry, frompop) {
 	app.loadMenu();
 };
 
-// area from MenuEnum (or from custom defined)
 dc.pui.layer.App.prototype.loadMenu = function() {
 	var app = this;
 	
@@ -511,7 +510,7 @@ dc.pui.layer.App.prototype.loadMenu = function() {
 		area = app.Context.Menu;
 	
 	if (!area)
-		area = dc.pui.Apps.MenuEnum.SignIn;
+		area = 'dcSignIn';
 	
 	$('#dcuiAppMenu').empty();
 	
@@ -524,16 +523,6 @@ dc.pui.layer.App.prototype.loadMenu = function() {
 	var node1 = $('<a href="#"></a>');
 	node1.append('<i class="fa fa-bars"></i>');
 	node1.addClass('mobile');
-	
-	// the CMS popups don't get officially destroyed since they get erased on page loads
-	// TODO var puid = dc.cms.ui.Loader.addPopupMenu(area);
-	
-	node1.click(function(e) {
-		// TODO $('#' + puid).popup('open', { positionTo: e.currentTarget });
-		
-		e.preventDefault();
-		return false;
-	});
 	
 	mcntrl.append(node1);
 	
@@ -602,10 +591,40 @@ dc.pui.layer.App.prototype.loadMenu = function() {
 		for (var i = 0; i < amenu.Options.length; i++) 
 			addbMenu(amenu.Options[i]);
 	}
+	
+	node1.click(amenu, function(e) {
+		dc.pui.Popup.menu(e.data);
+		
+		e.preventDefault();
+		return false;
+	});
 };
 
 // App feature (singleton)
 dc.pui.App = new dc.pui.layer.App();
+
+
+dc.pui.layer.FullScreen = function() {
+	this.init('#dcuiFullScreen', '#dcuiFullScreen');
+};
+
+dc.pui.layer.FullScreen.prototype = new dc.pui.layer.Base();
+
+dc.pui.layer.FullScreen.prototype.open = function() {
+	var dialog = this;
+	var del = $('#dcuiFullScreen');
+	
+	if (! del.length) {
+		var dbox = $('<div id="dcuiFullScreen" class="dcuiLayer"></div>');
+		
+		$('body').append(dbox);
+	}
+
+	dc.pui.layer.Base.prototype.open.call(this);
+};
+
+// Dialog feature (singleton)
+dc.pui.FullScreen = new dc.pui.layer.FullScreen();
 
 
 // ------------------- end Layer -------------------------------------------------------
@@ -914,9 +933,6 @@ dc.pui.Apps = {
 		return false;
 	},
 	activateCms: function(options) {
-		if (!dc.user.isAuthorized(['Editor','Admin','Developer']))
-			return;
-		
 		dc.pui.Apps.loadCms(function() {
 			dc.cms.Loader.init(options);		
 		});
@@ -924,14 +940,11 @@ dc.pui.Apps = {
 	loadCms: function(cb) {
 		dc.pui.Loader.addExtraStyles([ '/css/dcm.cms.css' ], function() {
 			dc.pui.Loader.addExtraLibs([ '/js/dcm.cms.js' ], function() {
-				cb();
+				if (cb)
+					cb();
 			});
 		});
 	},
-	MenuEnum: {
-		SignIn: 'dcSignIn'
-	},
-	
 	Menus: {
 		dcSignIn: {
 			Options: [
@@ -946,7 +959,7 @@ dc.pui.Apps = {
 					Title: 'Sign In',
 					Kind: 'Option',
 					Op: function(e) {
-						dc.pui.App.loadPage('/dcw/Sign-In');
+						dc.pui.App.loadPage('/dcw/SignIn');
 					}
 				},
 				{
@@ -957,7 +970,15 @@ dc.pui.Apps = {
 					}
 				},
 				{
+					Title: 'My Account',
+					Auth: [ 'User' ],
+					Op: function(e) {
+						dc.pui.Dialog.loadPage('/dcw/EditSelf');
+					}
+				},
+				{
 					Title: 'Sign Out',
+					Auth: [ 'User' ],
 					Kind: 'Option',
 					Op: function(e) {
 						dc.pui.Loader.signout();
@@ -1027,7 +1048,7 @@ dc.pui.PageEntry.prototype = {
 					Idx: i
 				},
 				Func: function(step) {
-					var event = { Wait: false };
+					var event = { Wait: false, Task: this };
 					
 					var func = page.LoadFunctions[step.Params.Idx];
 					
@@ -1046,7 +1067,7 @@ dc.pui.PageEntry.prototype = {
 			Alias: 'MainLoadPage',
 			Title: 'Main load page function',
 			Func: function(step) {
-				var event = { Wait: false };
+				var event = { Wait: false, Task: this };
 
 				entry.callPageFunc('Load', event); 
 				
@@ -1122,7 +1143,7 @@ dc.pui.PageEntry.prototype = {
 		var entry = this;
 		var page = dc.pui.Loader.Pages[entry.Name];
 		
-		entry.FreezeTop = $(window).scrollTop();
+		entry.FreezeTop = $(entry.Layer.Content).scrollTop();
 		
 		entry.callPageFunc('Freeze'); 
 		
@@ -2426,7 +2447,7 @@ dc.pui.Tags = {
 		var page = $(node).attr('data-dc-page');
 		var link = $(node).attr('href');
 		
-		if (link && (link.startsWith('http:') || link.startsWith('https:') || link.startsWith('mailto:') || link.endsWith('.pdf')))
+		if (link && (dc.util.String.startsWith(link, 'http:') || dc.util.String.startsWith(link, 'https:') || dc.util.String.startsWith(link, 'mailto:') || dc.util.String.endsWith(link, '.pdf')))
 			$(node).attr('target', '_blank');
 		
 		if (click || page) {
@@ -2451,79 +2472,29 @@ dc.pui.Tags = {
 		}
 		else if (link && (link.charAt(0) == '/')) {
 			if ((link.length == 1) || (link.charAt(1) != '/')) {
-				$(node).click(link, function(e) {
-					entry.Layer.loadPage(e.data);
-					
-					e.preventDefault();
-					return false;
-				});
+				var dpos = link.lastIndexOf('.');
+				var ext = (dpos == -1) ? '' : link.substr(dpos);
+				var hasext = false;
+				
+				if (ext && ext.indexOf('/') == -1)
+					hasext = true;
+
+				if (! hasext || (ext == '.html')) {
+					$(node).click(link, function(e) {
+						entry.Layer.loadPage(e.data);
+						
+						e.preventDefault();
+						return false;
+					});
+				}
+				else {
+					$(node).attr('target', '_blank');
+				}
 			}
 		}
 	},
 	'dcf.MD': function(entry, node) {
-		/* TODO links should auto enhance in MD processor
-		$(node).find('a').each(function() { 
-			var en = $(this).attr('data-enhance');
-			
-			if (en && (en.toLowerCase() == 'false'))
-				return;
-			
-			var l = $(this).attr('href');
-			
-			if (! l)
-				return;
-			
-			// TODO support others too - docx, xlsx, etc
-			if (l.startsWith('http:') || l.startsWith('https:') || l.startsWith('//') || l.endsWith('.pdf')) {
-				$(this).attr('target', '_blank')
-				return;
-			}
-			
-			// TODO enhance this, should load the help layer
-			if (l.charAt(0) == '?') {
-				$(this).click(l, function(e) {
-					if (! $(this).hasClass('ui-btn')) {
-						dc.pui.dialog.Loader.loadPane(e.data.substr(1));	// TODO for HELP?
-						e.preventDefault();
-						return false;
-					}
-				});
-			}
-			
-			if (l.charAt(0) == '#') {
-				$(this).click(l, function(e) {
-					layer.scrollPage(e.data);
-					e.preventDefault();
-					return false;
-				});
-				return;
-			}
-			
-			// look for a single starting slash
-			if ((l.charAt(0) != '/') || (l.charAt(1) == '/'))
-				return;
-			
-			var name = l.substr(l.lastIndexOf('/') + 1);
-			
-			if (name.indexOf('.') != -1)
-				return;
-			
-			console.log('click x: ' + l);
-				
-			$(this).click(l, function(e) {
-				if (! $(this).hasClass('ui-btn')) {
-					console.log('click a: ' + e.data);
-				
-					layer.loadPage(e.data);
-					
-					console.log('click b: ' + e.data);
-				
-					e.preventDefault();
-					return false;
-				}
-			});
-		});
-		*/
+		/* TODO review	*/
 	},
 	'dcf.ManagedForm': function(entry, node) {
 		dc.pui.Tags['dcf.Form'](entry, node);
@@ -2672,6 +2643,37 @@ dc.pui.Tags = {
 				if (fnode)
 					$(fnode).submit();
 			}
+			
+			e.preventDefault();
+			return false;
+		});
+	},
+	'dc.GallerySection': function(entry, node) {
+		$(node).find('.dc-section-gallery-list a').on("click", function(e) { 
+			//console.log('img: ' + $(this).attr('data-image') + " show: "
+			//	+ $(node).attr('data-show') + " path: " + $(node).attr('data-path'));
+			
+			var show = {
+				Path: $(node).attr('data-path'),
+				Show: $(node).attr('data-show'),
+				StartPos: $(this).index(),
+				Images: []
+			};
+			
+			$(node).find('.dc-section-gallery-list a').each(function() { 
+				show.Images.push($(this).attr('data-image'));
+			});
+			
+			console.log('- ' + JSON.stringify(show, null, '\t'));
+			
+			/*
+			if (! $(node).hasClass('pure-button-disabled') && !dc.pui.Apps.busyCheck()) {
+				var fnode = $(node).closest('form');
+				
+				if (fnode)
+					$(fnode).submit();
+			}
+			*/
 			
 			e.preventDefault();
 			return false;
@@ -3196,9 +3198,14 @@ dc.pui.controls.Uploader.prototype.removeAll = function() {
 };
 
 dc.pui.controls.Uploader.prototype.onAfterSave = function(e) {
-	console.log('onAfterSave: ' + this.Field)
-	
 	var task = e.Task;
+	
+	if (! e.Task.Store.Form.Managed) {
+		task.resume();
+		return;
+	}
+	
+	console.log('onAfterSave: ' + this.Field)
 	
 	// TODO progress bars
 

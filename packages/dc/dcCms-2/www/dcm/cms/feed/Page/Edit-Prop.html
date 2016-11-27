@@ -1,0 +1,99 @@
+<dc.Html Title="Edit Page Properties">
+	<dc.Body>
+		<dc.Panel Title="Page Properties">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Title" Label="Title" />
+				<dcf.Text Name="Keywords" Label="Keywords" />
+				<dcf.Text Name="Image" Label="Image" />
+				<dcf.TextArea Name="Description" Label="Description" />
+			</dcf.Form>
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Params.Channel || !entry.Params.Path)
+				entry.Params = dc.pui.App.Context.Params;
+    ]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			e.Message = { 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'LoadFeedInfo',
+				Body: { 
+					Channel: entry.Params.Channel, 
+					Path: entry.Params.Path 
+				}
+			};
+	]]></dc.Function>
+	<dc.Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+
+			// collect all the content properties into a usable format
+			newdata = {
+				Path: e.Data.Path
+			};
+			
+			var flds = e.Data.PreviewFields;
+			
+			if (! flds)
+				flds = e.Data.Fields;
+			
+			for (var i = 0; i < flds.length; i++) {
+				var fld = flds[i];
+				
+				// support other locales someday
+				if (fld.Locale != 'en')
+					continue;
+				
+				newdata[fld.Name] = fld.Value;
+			}
+			
+			e.Data = newdata;
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			var savedata = {
+				Path: entry.Params.Path,
+				Channel: entry.Params.Channel,
+				Publish: true,
+				SetFields: []
+			};
+			
+			for (var fldname in e.Data) {
+				if (e.Data.hasOwnProperty(fldname) && (fldname != 'Tags')) {
+					var fld = e.Data[fldname];
+
+					if (fldname == 'Published')
+						fld = fld.replace(' ', 'T');
+
+					savedata.SetFields.push({
+						Name: fldname,
+						Value: fld
+					});
+				}
+			}
+			
+			e.Message = { 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'AlterFeedInfo',
+				Body: savedata
+			};
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+
+			// TODO review this
+			//dc.pui.Loader.clearPageCache(entry.Params.Path); 
+			
+			dc.pui.Popup.alert('Properties saved.');
+	]]></dc.Function>
+</dc.Html>

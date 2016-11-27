@@ -347,7 +347,7 @@ public class Html extends MixIn {
 				head
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
-							.withAttribute("src", "/js/vendor/jquery-3.0.0.slim.min.js"))
+							.withAttribute("src", "/js/vendor/jquery-3.1.1.slim.min.js"))
 					.with(new UIElement("script")
 							.withAttribute("defer", "defer")
 							.withAttribute("src", "/js/vendor/moment.min.js"))

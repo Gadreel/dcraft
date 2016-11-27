@@ -3,7 +3,6 @@ package dcraft.cms.feed.core;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import dcraft.hub.Hub;
 import dcraft.io.CacheFile;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
@@ -15,74 +14,39 @@ import dcraft.xml.XElement;
 import dcraft.xml.XmlReader;
 
 public class FeedAdapter {
-	
-	static public FeedAdapter from(String alias, String path, boolean preview) {
-		XElement settings = OperationContext.get().getSite().getSettings();
+	static public FeedAdapter from(String channel, String path, boolean preview) {
+		XElement chan = FeedIndexer.findChannel(channel);
 		
-		if (settings == null) 
+		if (chan == null) 
 			return null;
 		
-		XElement feed = settings.find("Feed");
+		CacheFile cfile = OperationContext.get().getSite().findSectionFile("feed", "/" + channel + path + ".dcf.xml", true);
 		
-		if (feed == null) 
+		if (cfile == null)
 			return null;
 		
-		// there are two special channels - Pages and Blocks
-		for (XElement chan : feed.selectAll("Channel")) {
-			String calias = chan.getAttribute("Alias");
-			
-			if (calias == null)
-				calias = chan.getAttribute("Name");
-			
-			if (calias == null)
-				continue;
-			
-			if (calias.equals(alias)) {
-				String feedpath = "/" + calias + path + ".dcf.xml";
-				
-				// TODO remove legacy
-				if (OperationContext.get().getSite().getWebsite().isLegacySite()) 
-					feedpath = chan.getAttribute("Path", chan.getAttribute("InnerPath", "")) + path + ".dcf.xml";				
-				
-				CacheFile fpath = OperationContext.get().getSite().findSectionFile("feed", feedpath, preview);
-				
-				if (fpath != null) {
-					FeedAdapter adapt = new FeedAdapter();
-					
-					// TODO remove legacy
-					if (OperationContext.get().getSite().getWebsite().isLegacySite()) {
-						adapt = (FeedAdapter) Hub.instance.getInstance("dcraft.cms.feed.FeedAdapter");
-						adapt.init(calias, path, fpath);		
-					}
-					else {
-						adapt.init(calias, "/" + calias + path, fpath);		
-					}
-					
-					return adapt; 
-				}
-				
-				return null;
-			}
-		}
+		FeedAdapter adapt = new FeedAdapter();
 		
-		return null;
+		adapt.init(channel, path, cfile.getFilePath());
+		
+		return adapt; 
 	}
 	
 	protected String channel = null;
-	protected String feedpath = null;
-	protected Path path = null;
+	protected String path = null;
+	protected Path filepath = null;
 	protected XElement xml = null;
 	
 	public String getChannel() {
 		return this.channel;
 	}
 	
-	public String getFeedPath() {
-		return this.feedpath;
+	public String getPath() {
+		return this.path;
 	}
 	
-	public Path getPath() {
-		return this.path;
+	public Path getFilePath() {
+		return this.filepath;
 	}
 	
 	public XElement getXml() {
@@ -90,34 +54,23 @@ public class FeedAdapter {
 	}
 	
 	// best not to use CacheFile always, not if from feed save/feed delete
-	public void init(String channel, String feedpath, Path path) {
-		if (path == null)
+	public void init(String channel, String path, Path filepath) {
+		if (filepath == null)
 			return;
 		
 		this.channel = channel;
-		this.feedpath = feedpath;
 		this.path = path;
+		this.filepath = filepath;
 		
-		if (Files.notExists(path))
+		if (Files.notExists(filepath))
 			return;
 		
-		FuncResult<XElement> res = XmlReader.loadFile(path, false);
+		FuncResult<XElement> res = XmlReader.loadFile(filepath, false);
 		
 		if (res.hasErrors())
 			OperationContext.get().error("Bad feed file - " + this.channel + " | " + path);
 		
 		this.xml = res.getResult();
-	}
-	
-	public void init(String channel, String feedpath, CacheFile file) {
-		if (file == null)
-			return;
-		
-		this.channel = channel;
-		this.feedpath = feedpath;
-		this.path = file.getFilePath();
-		
-		this.xml = file.asXml();
 	}
 	
 	public boolean isFound() {
@@ -131,27 +84,30 @@ public class FeedAdapter {
 		String locale = this.getAttribute("Locale");
 		
 		if (StringUtil.isEmpty(locale))
-			OperationContext.get().error("Missing Locale - " + this.channel + " | " + path);
+			OperationContext.get().error("Missing Locale - " + this.channel + " | " + this.path);
 		
 		String title = this.getDefaultField("Title");
 		
 		if (StringUtil.isEmpty(title))
-			OperationContext.get().error("Missing Title - " + this.channel + " | " + path);
+			OperationContext.get().error("Missing Title - " + this.channel + " | " + this.path);
 		
+		/*
 		String desc = this.getDefaultField("Description");
 		
 		if (StringUtil.isEmpty(desc))
-			OperationContext.get().warn("Missing Description - " + this.channel + " | " + path);
+			OperationContext.get().warn("Missing Description - " + this.channel + " | " + filepath);
 		
 		String key = this.getDefaultField("Keywords");
 		
 		if (StringUtil.isEmpty(key))
-			OperationContext.get().warn("Missing Keywords - " + this.channel + " | " + path);
+			OperationContext.get().warn("Missing Keywords - " + this.channel + " | " + filepath);
 		
 		//String img = this.getField("Image");
 		
 		//if (StringUtil.isEmpty(img))
 		//	OperationContext.get().warn("Missing Image - " + this.key + " | " + path);
+		 * 
+		 */
 	}
 
 	public String getAttribute(String name) {
@@ -402,7 +358,7 @@ public class FeedAdapter {
 			.withAttribute("External", "true");
 		
 		// remove the file if external
-		String fname = this.path.getFileName().toString();
+		String fname = this.filepath.getFileName().toString();
 		int pos = fname.indexOf('.');
 		String spath = (pos != -1) ? fname.substring(0, pos) : fname;
 		
@@ -429,7 +385,7 @@ public class FeedAdapter {
 				return;
 			
 			// remove the file if external
-			String fname = this.path.getFileName().toString();
+			String fname = this.filepath.getFileName().toString();
 			int pos = fname.indexOf('.');
 			String spath = (pos != -1) ? fname.substring(0, pos) : fname;
 						
@@ -460,7 +416,7 @@ public class FeedAdapter {
 			locale = part.getAttribute("Locale");	// use the override locale if present
 		
 		if (StringUtil.isNotEmpty(ex) && "true".equals(ex.toLowerCase())) {
-			String spath = this.feedpath + "." + part.getAttribute("For") + "." + locale + "." + part.getAttribute("Format");
+			String spath = "/" + this.channel + this.path + "." + part.getAttribute("For") + "." + locale + "." + part.getAttribute("Format");
 
 			// TODO connect to file caching system - use resolveCachePath instead ?
 			

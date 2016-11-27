@@ -1,5 +1,7 @@
 package dcraft.filestore.bucket;
 
+import dcraft.cms.bucket.GalleryBucket;
+import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.xml.XElement;
 
@@ -15,6 +17,11 @@ public class BucketUtil {
 				// TODO allow for override classes
 				
 				Bucket b = new Bucket();
+				
+				if (bucket.hasNotEmptyAttribute("Class")) {
+					b = (Bucket) Hub.instance.getInstance(bucket.getAttribute("Class"));
+				}
+				
 				b.init(site, bucket, null);
 				return b;
 			}
@@ -27,7 +34,7 @@ public class BucketUtil {
 				.withAttribute("WriteAuthTags", "Editor,Admin")
 				.withAttribute("RootFolder", "/galleries");
 
-			Bucket b = new Bucket();
+			Bucket b = new GalleryBucket();
 			b.init(site, bucket, null);
 			return b;
 		}

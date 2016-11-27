@@ -322,6 +322,7 @@ dc.transfer = {
 					Title: 'Upload File',
 					Params: {
 						File: file.File,
+						Path: file.Path,
 						FileName: file.Name
 					},
 					Func: function(step) {
@@ -339,9 +340,17 @@ dc.transfer = {
 							}
 						});
 						
+						var path = '';
+						
+						if (task.Store.Token)
+							path = '/' + task.Store.Token;
+						
+						if (step.Params.Path)
+							path += step.Params.Path;
+						
 						// start/resume upload (basic token service requires that token be in the path)
 						step.Store.Transfer.upload(step.Params.File, 
-								'/' + task.Store.Token + '/' + step.Params.FileName, 
+								path + '/' + step.Params.FileName, 
 								task.Store.Token);
 					}
 				});

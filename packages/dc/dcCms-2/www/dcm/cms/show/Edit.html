@@ -1,0 +1,272 @@
+<dc.Html Title="Edit Show" AuthTags="Admin,Editor">
+	<dc.Body>
+		<dc.Panel Title="Edit Show">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="DoSelectImage" Label="Select Image From Gallery" />
+					<dc.Button Click="DoAddImage" Label="Upload New Image" />
+					<dc.Button Click="DoDelete" Label="Delete" />
+					<dc.Button Click="AfterSave" Label="Close" />
+					<dc.Button Click="DoSaveShow" Label="Save" Scope="Primary" /> 
+				</dcf.FormButtons>
+			</dcf.Form>
+			
+			<ul id="imageDesEList" />					
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load" Params="e"><![CDATA[
+			var entry = this;
+			
+			// TODO hide delete if Chooser mode
+			
+			entry.Store.SortTime = null;
+			
+			var list = $('#imageDesEList');		
+
+			// TODO for touch sorting see how dc.ui.js has touch punch in it and review if it makes sense
+			/*
+		    list.sortable();
+		    list.disableSelection();
+		    
+		    list.bind("sortstart", function(event, ui) {
+		    	//console.log('abc');
+		    });					
+		    
+		    list.bind("sortstop", function(event, ui) {
+		    	//console.log('123');
+				//list.listview('refresh');
+				
+				entry.Store.Changed = true;
+							
+				entry.callPageFunc('ReorderImages');
+				
+				entry.Store.SortTime = new Date();
+			});					
+			*/
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+		
+			// if coming from thaw skip loading
+			if (entry.Store.Show) {
+				entry.callPageFunc('RefreshImages');
+				
+				return;
+			}
+		
+			entry.Store.Changed = false;
+			entry.Store.Show = null;			// obj from within Gallery
+			entry.Store.CurrImage = null;		// obj from within show
+			entry.Store.Gallery = entry.Params.Gallery;
+			
+			var prepShow = function() {
+				if (entry.Params.Alias)
+					entry.Store.Show = entry.Store.Gallery.findShow(entry.Params.Alias);
+						
+				if (entry.Store.Show && ! entry.Store.Show.Images)
+					entry.Store.Show.Images = [];
+			
+				entry.callPageFunc('RefreshImages');
+			};
+			
+			if (entry.Store.Gallery) {
+				prepShow();
+				return;
+			}
+			
+			e.Wait = true;
+			
+			// if gallery not present then load it
+			dc.cms.image.Loader.loadGallery(entry.Params.Path, function(gallery, resp) {
+				entry.Store.Gallery = gallery;
+				
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				prepShow();
+				
+				e.Task.resume();
+			});			
+	]]></dc.Function>
+	<dc.Function Name="RefreshImages"><![CDATA[
+			var entry = this;
+			 
+			var list = $('#imageDesEList');
+			list.empty();
+			
+			if (entry.Store.Show) {
+				for (var i = 0; i < entry.Store.Show.Images.length; i++) {
+					var img = entry.Store.Show.Images[i]; 
+				
+					var litm = $('<li></li>');
+					
+					litm.attr('data-img-alias', img.Alias);
+					
+					var anchr = $('<a href="#"><h2>' + dc.util.Web.escapeHtml(img.Alias) + '</h2>'
+							+ '<p>' + dc.util.Web.escapeHtml(img.Description) + '</p>'
+							+ '</a>');
+					
+					anchr.click(img, function(e) {
+					    //	console.log('xyz');
+					    
+					    if (entry.Store.SortTime) {
+					    	if (new Date().getTime() - entry.Store.SortTime.getTime() < 500) {
+						    	entry.Store.SortTime = null;
+						    	return;
+						    }
+					    }
+					    
+						for (var i = 0; i < entry.Store.Show.Images.length; i++) {
+							var img = entry.Store.Show.Images[i];
+							
+							if (img.Alias == e.data.Alias) {
+								var pageurl = entry.Store.Show.PropertyEditor 
+												? entry.Store.Show.PropertyEditor : '/dcm/cms/show/EditImage';
+								
+								dc.pui.Dialog.loadPage(pageurl, { 
+									Image: img,
+									Show: entry.Store.Show,
+									Gallery: entry.Store.Gallery
+								});
+
+								break;
+							}
+						}
+	
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr);
+					
+					// TODO make it so we can delete only one entry if the alias shows up twice
+					
+					var anchr2 = $('<a href="#">Delete</a>')
+					
+					anchr2.click(img, function(e) {
+						dc.pui.Popup.confirm('Are you sure you want to remove ' + dc.util.Web.escapeHtml(e.data.Alias) + '?', function(confirm) {
+							if (! confirm)
+								return;
+								
+							entry.Store.Changed = true;
+							
+							$('#imageDesEList li[data-img-alias="' + e.data.Alias + '"]').remove();
+							
+							entry.callPageFunc('ReorderImages');
+						});
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr2);
+					
+					list.append(litm);
+				}
+			}
+	]]></dc.Function>
+	<dc.Function Name="ReorderImages"><![CDATA[
+			var entry = this;
+			
+			var oldimages = entry.Store.Show.Images;
+			entry.Store.Show.Images = [];
+			
+			$('#imageDesEList li').each(function(i) {
+				var calias = $(this).attr('data-img-alias');
+				
+				//console.log('adding: ' + calias);
+				
+				for (var i = 0; i < oldimages.length; i++) {
+					var img = oldimages[i];
+					
+					if (img.Alias == calias) {
+						entry.Store.Show.Images.push(img);
+						break;
+					}
+				}
+			});			
+	]]></dc.Function>
+	<dc.Function Name="DoSaveShow"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Gallery.updateShow(entry.Store.Show);
+
+			entry.Store.Gallery.save(function(resp) {
+				if (resp.Result > 0) 
+					dc.pui.Popup.alert(resp.Message);
+				else
+					entry.callPageFunc('AfterSave');
+			});		
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
+			
+			if (entry.Params.Callback)
+				entry.Params.Callback(entry.Store.Gallery);
+	]]></dc.Function>
+	<dc.Function Name="DoSelectImage"><![CDATA[			
+			var entry = this;
+		
+			dc.pui.Dialog.loadPage('/dcm/cms/galleries/Chooser', { 
+				Path: entry.Store.Gallery.Path,
+				Chained: true,
+				Variation: entry.Store.Show.Variation,
+				Callback: function(res) {
+					if (res.Images) {
+						for (var i = 0; i < res.Images.length; i++) 
+							entry.Store.Show.Images.splice(i, 0, {
+								Alias: res.Images[i].FileName
+							});
+					}
+					
+					//entry.callPageFunc('RefreshImages');
+				} 
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoAddImage"><![CDATA[			
+			var entry = this;
+		
+			dc.pui.Dialog.loadPage('/dcm/cms/galleries/QuickUpload', { 
+				Gallery: entry.Store.Gallery,
+				Variation: entry.Store.Show.Variation,
+				Callback: function(files) {				// just a list of names
+					if (files) {
+						for (var i = 0; i < files.length; i++) 
+							entry.Store.Show.Images.splice(i, 0, {
+								Alias: files[i].FileName
+							});
+					}
+					
+					//entry.callPageFunc('RefreshImages');
+				} 
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Params.Alias) {
+				entry.callPageFunc('AfterSave');
+				return;
+			}
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this Show?', function(confirm) {
+				if (! confirm)
+					return;
+					
+				entry.Store.Gallery.removeShow(entry.Params.Alias);
+	
+				entry.Store.Gallery.save(function(resp) {
+					if (resp.Result > 0) 
+						dc.pui.Popup.alert(resp.Message, function() {
+							entry.callPageFunc('AfterSave');
+						});
+					else
+						entry.callPageFunc('AfterSave');
+				});		
+			});
+	]]></dc.Function>
+</dc.Html>

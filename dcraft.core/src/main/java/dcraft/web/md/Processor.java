@@ -37,6 +37,8 @@ import dcraft.web.ui.UIElement;
  * this whole thing needs to be rewritten to use one string builder with markers pointing to the blocks, etc
  */
 public class Processor {
+	// TODO cleanup these so that we collect a default Configuration from Site
+	// maybe have a safe and unsafe option?
     public static UIElement process(IOutputContext ctx, Reader reader, Configuration configuration) throws IOException {
     	try {
 	        Processor p = new Processor(ctx, reader, configuration);

@@ -1,0 +1,89 @@
+<dc.Html Title="Edit Variation" AuthTags="Admin,Editor">
+	<dc.Body>
+		<dc.Panel Title="Edit Variation">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="DoDelete" Label="Delete" />
+					<dc.Button Click="AfterSave" Label="Close" />
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Name" Label="Name" Required="true" />
+				<dcf.Text Name="Alias" Label="Alias" Required="true" Pattern="[\w-]+" />
+				<dcf.Text Name="ExactWidth" Label="Exact Width" DataType="Integer" />
+				<dcf.Text Name="MaxWidth" Label="Max Width" DataType="Integer" />
+				<dcf.Text Name="MinWidth" Label="Min Width" DataType="Integer" />
+				<dcf.Text Name="ExactHeight" Label="Exact Height" DataType="Integer" />
+				<dcf.Text Name="MaxHeight" Label="Max Height" DataType="Integer" />
+				<dcf.Text Name="MinHeight" Label="Min Height" DataType="Integer" />
+			</dcf.Form>
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+		
+			entry.Store.Gallery = entry.Params.Gallery;
+			
+			// TODO support load Gallery when missing parameter
+			//dc.cms.image.Loader.loadGallery(entry.Store.Path, function(gallery, resp) {
+			
+			this.form().query('Name').focus();				
+	]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+				
+			e.Data = {};			// we are adding a new vari
+			e.AsNew = true;
+			 
+			if (entry.Params.Alias) 
+				e.Data = entry.Store.Gallery.findVariation(entry.Params.Alias);
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Gallery.updateVariation(e.Data);
+
+			entry.Store.Gallery.save(function(resp) {
+				if (resp.Result > 0) 
+					dc.pui.Popup.alert(resp.Message, function() {
+						e.Task.resume();
+					});
+				else 
+					e.Task.resume();
+			});		
+			
+			e.Wait = true;
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
+			
+			if (entry.Params.Callback)
+				entry.Params.Callback(entry.Store.Gallery);
+	]]></dc.Function>
+	<dc.Function Name="DoDelete"><![CDATA[
+			var entry = this;
+			
+			if (! entry.Params.Alias) {
+				entry.callPageFunc('AfterSave');
+				return;
+			}
+			
+			dc.pui.Popup.confirm('Are you sure you want to delete this Variation?', function(confirm) {
+				if (! confirm)
+					return;
+					
+				entry.Store.Gallery.removeVariation(entry.Params.Alias);
+	
+				entry.Store.Gallery.save(function(resp) {
+					if (resp.Result > 0) 
+						dc.pui.Popup.alert(resp.Message, function() {
+							entry.callPageFunc('AfterSave');
+						});
+					else
+						entry.callPageFunc('AfterSave');
+				});		
+			});
+	]]></dc.Function>
+</dc.Html>

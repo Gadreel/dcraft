@@ -8,7 +8,7 @@ import dcraft.web.md.Plugin;
 import dcraft.web.md.ProcessContext;
 import dcraft.web.md.Processor;
 import dcraft.web.ui.UIElement;
-import dcraft.xml.XElement;
+import dcraft.xml.XNode;
 
 public class StandardSection extends Plugin {
 	public StandardSection() {
@@ -21,23 +21,30 @@ public class StandardSection extends Plugin {
 
         for (String n : lines)
         	in.append(n).append("\n");
-
+        
+		UIElement pel = new dcraft.web.ui.tags.StandardSection();
+		
+		if (params.containsKey("Id"))
+			pel.withAttribute("id", params.get("Id"));
+		
+		if (params.containsKey("Lang"))
+			pel.withAttribute("lang", params.get("Lang"));
+		
+		if (params.containsKey("Class"))
+			pel.withClass(params.get("Class").split(" "));
+	
         try {
-			XElement cbox = Processor.parse(ctx, in.toString())
-				.withAttribute("class", "dc-section dc-section-standard " + (params.containsKey("Class") ? params.get("Class") : ""));
-
-			cbox.setAttribute("data-dccms-section", "plugin");
-				
-			if (params.containsKey("Id"))
-				cbox.withAttribute("id", params.get("Id"));
-			
-			if (params.containsKey("Lang"))
-				cbox.withAttribute("lang", params.get("Lang"));
-			
-			parent.with(cbox);
+			UIElement cbox = Processor.parse(ctx, in.toString());
+ 			
+			// copy all children
+			for (XNode n : cbox.getChildren())
+				pel.add(n);
         }
         catch (Exception x) {
-        	Logger.error("Error adding copy box: " + x);
+			pel.with(new UIElement("InvalidContent"));
+        	Logger.warn("Error adding copy box " + x);
         }
+		
+		parent.with(pel);
 	}
 }

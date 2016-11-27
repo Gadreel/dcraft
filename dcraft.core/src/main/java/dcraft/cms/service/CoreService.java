@@ -35,11 +35,13 @@ import dcraft.filestore.bucket.Bucket;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
+import dcraft.lang.op.OperationResult;
 import dcraft.mod.ExtensionBase;
 import dcraft.struct.CompositeStruct;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.work.TaskRun;
+import dcraft.xml.XElement;
 
 public class CoreService extends ExtensionBase implements IService {	
 	@Override
@@ -125,16 +127,6 @@ public class CoreService extends ExtensionBase implements IService {
 				return;
 			}
 			
-			if ("LoadFeedFiles".equals(op)) {
-				this.handleLoadFeedFiles(request);
-				return;
-			}
-			
-			if ("AlterFeedFiles".equals(op)) {
-				this.handleAlterFeedFiles(request);
-				return;
-			}
-			
 			if ("UpdateFeedFiles".equals(op)) {
 				this.handleUpdateFeedFiles(request);
 				return;
@@ -160,6 +152,16 @@ public class CoreService extends ExtensionBase implements IService {
 				return;
 			}
 			*/
+			
+			if ("LoadFeedInfo".equals(op)) {
+				this.handleLoadFeedInfo(request);
+				return;
+			}
+			
+			if ("AlterFeedInfo".equals(op)) {
+				this.handleAlterFeedInfo(request);
+				return;
+			}
 			
 			if ("LoadFeedPart".equals(op)) {
 				this.handleLoadFeedPart(request);
@@ -214,6 +216,38 @@ public class CoreService extends ExtensionBase implements IService {
 	
 	public void handleManagedFormSubmit(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
+		
+		String form = rec.getFieldAsString("Form");
+		boolean formfnd = false;
+		
+		XElement mforms = OperationContext.get().getSite().getSettings().find("ManagedForms");
+		
+		if (mforms == null) {
+			request.error("ManagedForms not enabled.");
+			request.returnEmpty();
+			return;
+		}
+		
+		for (XElement mf : mforms.selectAll("ManagedForm")) {
+			if (form.equals(mf.getAttribute("Name"))) {
+				formfnd = true;
+				
+				if (mf.hasNotEmptyAttribute("Type")) {
+					OperationResult vor = request.getContext().getSchema().validateType(rec.getField("Data"), mf.getAttribute("Type"));
+					
+					if (vor.hasErrors()) {
+						request.returnEmpty();
+						return;
+					}
+				}
+			}
+		}
+		
+		if (! formfnd) {
+			request.error("Requested Managed Form not enabled.");
+			request.returnEmpty();
+			return;
+		}
 		
 		Bucket mfbucket = OperationContext.get().getSite().getBucket("ManagedForm");
 		
@@ -283,21 +317,44 @@ public class CoreService extends ExtensionBase implements IService {
 	public void handleManagedFormComplete(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
 		
+		String form = rec.getFieldAsString("Form");
+		boolean formfnd = false;
+		
+		XElement mforms = OperationContext.get().getSite().getSettings().find("ManagedForms");
+		
+		if (mforms == null) {
+			request.error("ManagedForms not enabled.");
+			request.returnEmpty();
+			return;
+		}
+		
+		for (XElement mf : mforms.selectAll("ManagedForm")) {
+			if (form.equals(mf.getAttribute("Name"))) 
+				formfnd = true;
+		}
+		
+		if (! formfnd) {
+			request.error("Requested Managed Form not enabled.");
+			request.returnEmpty();
+			return;
+		}
+		
 		Bucket mfbucket = OperationContext.get().getSite().getBucket("ManagedForm");
 		
-		mfbucket.getFileStore().getFileDetail(new CommonPath("/" + rec.getFieldAsString("Token")), new FuncCallback<IFileStoreFile>() {
-			@Override
-			public void callback() {
-				if (! this.hasErrors()) {
-					EventUtil.triggerEvent("ManagedForm-" + rec.getFieldAsString("Form") + "-Submit", null, new RecordStruct()
-							.withField("DataPath", this.getResult())
-							.withField("Token", rec.getFieldAsString("Token"))
-					);
+		mfbucket.getFileStore().getFileDetail(new CommonPath("/" + rec.getFieldAsString("Token")), 
+			new FuncCallback<IFileStoreFile>() {
+				@Override
+				public void callback() {
+					if (! this.hasErrors()) {
+						EventUtil.triggerEvent("ManagedForm-" + rec.getFieldAsString("Form") + "-Submit", null, new RecordStruct()
+								.withField("DataPath", this.getResult())
+								.withField("Token", rec.getFieldAsString("Token"))
+						);
+					}
+					
+					request.returnEmpty();
 				}
-				
-				request.returnEmpty();
-			}
-		});
+			});
 		
 		return;
 	}
@@ -486,19 +543,6 @@ public class CoreService extends ExtensionBase implements IService {
 		});
 	}
 	
-	public void handleAlterFeedFiles(TaskRun request) {
-		RecordStruct rec = MessageUtil.bodyAsRecord(request);
-		
-		FeedInfo fi = FeedInfo.recordToInfo(rec);
-		
-		fi.saveFile(rec.getFieldAsBooleanOrFalse("Publish"), rec.getFieldAsList("SetFields"), rec.getFieldAsList("SetParts"), rec.getFieldAsList("SetTags"), new FuncCallback<CompositeStruct>() {
-			@Override
-			public void callback() {
-				request.complete();
-			}
-		});
-	}
-	
 	public void handleUpdateFeedFiles(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
 		
@@ -541,114 +585,28 @@ public class CoreService extends ExtensionBase implements IService {
 		 
 		request.returnValue(resp);
 	}
+	*/
 		
-	public void handleLoadFeedFiles(TaskRun request) {
+	public void handleLoadFeedInfo(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
 		
 		FeedInfo fi = FeedInfo.recordToInfo(rec);
 		
-		String channel = fi.getChannel();
-		String path = fi.getOuterPath();
-		
-		// copy it because we might alter it
-		XElement definition = (XElement) fi.getChannelDef().deepCopy();
-		
-		String help = null;
-		
-		// load Page definitions...
-		if ("Pages".equals(channel)) {
-			SiteInfo site = OperationContext.get().getSite();
-			---
-			Path srcpath = site.resolvePath("www-preview/" + path + ".dcui.xml");
-			
-			if (Files.notExists(srcpath))
-				srcpath = site.resolvePath("www/" + path + ".dcui.xml");
-			
-			if (Files.notExists(srcpath)) {
-				request.error("Feed page " + path + " does not exist.");
-				request.complete();
-				return;
-			}
-			
-			FuncResult<XElement> res = XmlReader.loadFile(srcpath, false);
-			
-			if (res.hasErrors()) {
-				request.error("Bad page file " + path + ".");
-				request.complete();
-				return;
-			}
-
-			for (XElement ppd : res.getResult().selectAll("PagePartDef"))
-				definition.add(ppd);
-
-			for (XElement cfd : res.getResult().selectAll("CustomFields"))
-				definition.add(cfd);
-
-			for (XElement ppd : res.getResult().selectAll("Help"))
-				definition.add(ppd);
-			
-			XElement hd = res.getResult().find("Help");
-			
-			if (hd != null)
-				help = hd.getValue();
-		}
-		
-		boolean draft = true;
-		Path srcpath = fi.getPrepath();
-		
-		if (Files.notExists(srcpath)) {
-			srcpath = fi.getPubpath();
-			draft = false;
-		}
-		
-		if (Files.notExists(srcpath)) {
-			request.error("Feed file " + path + " does not exist.");
-			request.complete();
-			return;
-		}
-
-		// collect the external file contents
-		ListStruct files = new ListStruct();
-		
-		for (String sname : fi.collectExternalFileNames(draft)) {
-			Path spath = fi.getPrepath().resolveSibling(sname);
-			
-			if (Files.notExists(spath))
-				spath = fi.getPubpath().resolveSibling(sname);
-			
-			FuncResult<CharSequence> mres = IOUtil.readEntireFile(spath);
-			
-			if (mres.isNotEmptyResult()) {
-				RecordStruct fentry = new RecordStruct()
-					.withField("Name", sname)
-					.withField("Content", mres.getResult().toString());
-				
-				files.addItem(fentry);
-			}
-		}
-		
-		// assemble response
-		RecordStruct resp = new RecordStruct()
-			.withField("ChannelXml", definition)
-			.withField("ContentXml", draft ? fi.getDraftDcfContent() : fi.getPubDcfContent())
-			.withField("Files", files);
-		
-		// add help
-		Path hpath = fi.getPubpath().resolveSibling("readme.en.md");		// TODO locale aware
-		
-		if (Files.exists(hpath)) {
-			FuncResult<CharSequence> mres = IOUtil.readEntireFile(hpath);
-			
-			if (mres.isNotEmptyResult()) 
-				resp.withField("Help", StringUtil.isNotEmpty(help) ? help + "\n\n----\n\n" + mres.getResult() : mres.getResult());
-		}
-		else if (StringUtil.isNotEmpty(help)) {
-			resp.withField("Help", help);
-		}
-		
-		request.returnValue(resp);
+		request.returnValue(fi.getDetails());
 	}
-	*/
+
+	public void handleAlterFeedInfo(TaskRun request) {
+		RecordStruct rec = MessageUtil.bodyAsRecord(request);
+		
+		FeedInfo fi = FeedInfo.recordToInfo(rec);
+		
+		fi.saveFile(rec.getFieldAsBooleanOrFalse("Publish"), rec.getFieldAsList("SetFields"), rec.getFieldAsList("SetParts"), rec.getFieldAsList("SetTags"), new FuncCallback<CompositeStruct>() {
+			@Override
+			public void callback() {
+				request.complete();
+			}
+		});
+	}
 	
 	public void handleLoadFeedPart(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);

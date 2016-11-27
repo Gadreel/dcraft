@@ -19,7 +19,7 @@ public class AlignedField extends CoreField {
 	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		if ("dcf.FormButtons".equals(this.getName()))
-			this.withClass("dc-pui-form-buttons");
+			this.withClass("dc-pui-form-buttons", "dc-pui-field-stacked");
 		
 		// TODO if FormButtons add a <noscript> explaining JS needs to be enabled
 		

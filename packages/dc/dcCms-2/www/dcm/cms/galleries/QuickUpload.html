@@ -1,0 +1,114 @@
+<dc.Html Title="Upload Image" AuthTags="Editor,Admin">
+	<dc.RequireLib Path="/js/dc.transfer.js" />
+	
+	<dc.RequireLib Path="/js/dc.image.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-meta.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-orientation.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-exif.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-exif-map.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/canvas-to-blob.min.js" />
+	
+	<dc.Body>
+		<dc.Panel Title="Upload Image">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Label="Close" Click="AfterSave" />
+					<dcf.SubmitButton Label="Upload" />
+				</dcf.FormButtons>
+				
+				<!--  Variation description here -->
+				<div id="lblDepQUsizing" />
+
+				<dcf.Uploader Label="Attachments" Name="Attachments" />
+				
+				<!-- TODO support renaming 
+				<dcf.Text Name="FileName" Label="File Name:" Required="true"  Pattern="[\w-\.]+">
+					<Instructions>Give your file a useful name, no spaces, no file extension.</Instructions>
+				</dcf.Text>
+				-->
+			</dcf.Form>
+		</dc.Panel>
+
+				<!--  TODO	progress
+				<div class="ui-field-contain">
+					<label id="lblTransfer" class="tlabel">Progress</label>		
+					<div class="progress">
+						<div id="fileProgressBar" class="pbar"></div>
+						<div id="fileProgressLabel" class="pbarlabel">0%</div>
+					</div>
+				</div>
+				-->
+				
+	</dc.Body>
+				
+	<dc.Function Name="Load"><![CDATA[	
+				var page = this;
+				
+				page.Store.Gallery = page.Params.Gallery;
+				
+				// TODO load gallery if not passed
+				
+				// set the image description in an instruction block above the file chooser
+				if (page.Params.Variation)
+					$('#lblDepQUsizing').text("Target image size: " + page.Store.Gallery.formatVariation(page.Params.Variation));
+	
+				page.Store.Files = [ ];
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+				var page = this;
+				
+				page.Store.Files = [ ];
+				
+				e.Wait = true;
+	
+				var files = page.form().input('Attachments').Files;
+				var fnames = page.form().input('Attachments').Values;
+
+				for (var i = 0; i < files.length; i++) {
+					var bname = fnames[i];
+					
+					// remove the extension
+					var bpos = bname.lastIndexOf('.');
+					
+					if (bpos)
+						bname = bname.substr(0, bpos);
+						
+					files[i].Name = bname;
+				}
+					
+				var pres = page.Store.Gallery.createProcessUploadTask(files);
+				
+				pres.Result.Observers.push(function(ctask) {
+					for (var i = 0; i < ctask.Result.length; i++) {
+						var fobj = ctask.Result[i];
+						var vari = page.Store.Gallery.topVariation(page.Params.Variation);
+					
+						for (var n = 0; n < fobj.Variants.length; n++) {
+							var vr = fobj.Variants[n];
+
+							if (vr.Alias == vari.Alias) {					
+								page.Store.Files.push({
+									FileName: fobj.Name,
+									FullPath: page.Store.Gallery.Path + '/' + fobj.Name 
+										+ '.v/' + vr.FileName
+								});
+								
+								break;
+							}
+						}
+					}
+
+					e.Task.resume();
+				});
+
+				pres.Result.run();				
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+				var page = this;
+					
+				page.Layer.back();
+				
+				if (page.Params.Callback)
+					page.Params.Callback(page.Store.Files);
+	]]></dc.Function>	
+</dc.Html>

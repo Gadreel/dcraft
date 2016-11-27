@@ -101,7 +101,7 @@ public class IncludeFrag extends UIElement {
 	
 	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
-		if (!"block".equals(this.getAttribute("Mode", "skip").toLowerCase())) {
+		if (! "block".equals(this.getAttribute("Mode", "skip").toLowerCase())) {
 			this.translateSkip(work, pnodes);
 			return;
 		}

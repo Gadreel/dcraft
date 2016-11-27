@@ -221,10 +221,10 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 		$(node).addClass('dcm-loaded');
 
 		$(node).find('.dcm-basic-carousel-img').attr('src', $(fimg).attr('src'));
-
-		imgPlacement();
 		
 		sscurr = idx;
+
+		imgPlacement();
 	};
 	
 	if (! dc.pui.TagCache['dcm.BasicCarousel'])
@@ -255,6 +255,85 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 			// TODO switch slides periodically
 		}
 	});	
+};
+
+dc.pui.Tags['dcmi.PartButton'] = function(entry, node) {
+	$(node).click(function(e) {
+		var pel = $(this).closest('div.dc-part').get(0);
+		
+		if (! pel)
+			return;
+		
+		dc.pui.App.Context = {
+			Menu: 'dcmPageProps',
+			Params: {
+				Part: { 
+					Channel: $(pel).attr('data-dccms-channel'), 
+					Path: $(pel).attr('data-dccms-path'),
+					Part: $(pel).attr('id')
+				}
+			}
+		};
+		
+		if ($(pel).hasClass('dc-part-basic'))
+			dc.pui.App.loadPage('/dcm/cms/feed/Edit-Part-Content');
+			//dc.pui.Popup.menu('dcmPartBasicPopup');
+		else
+			dc.pui.Popup.menu('dcmPartPopup');
+		
+		e.preventDefault();
+		return false;
+	});
+};
+
+dc.pui.Tags['dcmi.SectionButton'] = function(entry, node) {
+	$(node).click(function(e) {
+		var pel = $(this).closest('div.dc-part').get(0);
+		var sel = $(this).closest('div.dc-section').get(0);
+		
+		if (! pel || ! sel)
+			return;
+		
+		dc.pui.App.Context = {
+			Menu: 'dcmPagePartSection',
+			Params: {
+				Part: { 
+					Channel: $(pel).attr('data-dccms-channel'), 
+					Path: $(pel).attr('data-dccms-path'), 
+					Part: $(pel).attr('id')
+				},
+				Section: {
+					Id: $(sel).attr('id'),
+					Plugin:  $(sel).attr('data-dccms-plugin')
+				} 
+			}
+		};
+		
+		dc.pui.Popup.menu('dcmSectionPopup');
+		
+		e.preventDefault();
+		return false;
+	});
+};
+
+dc.pui.Tags['dcmi.GalleryButton'] = function(entry, node) {
+	$(node).click(function(e) {
+		var cel = $(this).closest('div.dcm-basic-carousel').get(0);
+		
+		if (! cel)
+			return;
+
+		dc.pui.Dialog.loadPage('/dcm/cms/show/Edit', { 
+			Path: $(cel).attr('data-dcm-gallery'), 
+			Alias: $(cel).attr('data-dcm-show'), 
+			Callback: function(g) {
+				// TODO refresh ... entry.callPageFunc('LoadMeta');
+			} 
+		});	
+		
+		e.preventDefault();
+		return false;
+	});
 };
 
 // ------------------- end Tags -------------------------------------------------------

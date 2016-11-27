@@ -17,30 +17,31 @@ public class PairedMediaSection extends Plugin {
 
 	@Override
 	public void emit(ProcessContext ctx, UIElement parent, List<String> lines, Map<String, String> params) {
-		XElement div = new XElement("div")
-			.withAttribute("class", "dc-section dc-section-paired-media " + (params.containsKey("Class") ? params.get("Class") : ""));
-
-		div.setAttribute("data-dccms-section", "plugin");
-		
-		if (params.containsKey("Id"))
-			div.withAttribute("id", params.get("Id"));
-		
-		if (params.containsKey("Lang"))
-			div.withAttribute("lang", params.get("Lang"));
-		
         StringBuilder in = new StringBuilder();
 
         for (String n : lines)
         	in.append(n).append("\n");
 
+		UIElement pel = new dcraft.web.ui.tags.PairedMediaSection();
+		
+		if (params.containsKey("Id"))
+			pel.withAttribute("id", params.get("Id"));
+		
+		if (params.containsKey("Lang"))
+			pel.withAttribute("lang", params.get("Lang"));
+		
+		if (params.containsKey("Class"))
+			pel.withClass(params.get("Class").split(" "));
+		
         try {
 			XElement cbox = Processor.parse(ctx, in.toString())
 					.withAttribute("class", "dc-copy-box");
 			
-			div.with(cbox);
+			pel.with(cbox);
         }
         catch (Exception x) {
-        	Logger.error("Error adding copy box" + x);
+			pel.with(new UIElement("InvalidContent"));
+        	Logger.warn("Error adding copy box " + x);
         }
         
 		XElement mbox = new XElement("div");
@@ -93,8 +94,8 @@ public class PairedMediaSection extends Plugin {
 		if (params.containsKey("MediaId"))
 			mbox.withAttribute("id", params.get("MediaId"));
 		
-		div.with(mbox);
+		pel.with(mbox);
 		
-		parent.add(div);
+		parent.with(pel);
 	}
 }

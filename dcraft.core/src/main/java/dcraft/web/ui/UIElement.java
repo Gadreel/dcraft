@@ -113,6 +113,20 @@ public class UIElement extends XElement {
 		return this;
 	}
 	
+	// do more tests on this - TODO make more efficient 
+	public boolean hasClass(String cname) {
+		if (StringUtil.isNotEmpty(cname)) {
+			String currclass = this.getAttribute("class");
+			
+			// TODO check for space or end to make sure it is a pure match
+			if (StringUtil.isNotEmpty(currclass)) {
+				return (currclass.indexOf(cname) != -1);
+			}
+		}
+		
+		return false;
+	}
+	
     public void expand(WeakReference<UIWork> work) {
     	//System.out.println("expand: " + this.toLocalString());
     	

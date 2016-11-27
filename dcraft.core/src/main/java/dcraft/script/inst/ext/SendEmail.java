@@ -34,6 +34,7 @@ public class SendEmail extends Instruction {
 		String from = stack.stringFromSource("From");		// optional
 		String reply = stack.stringFromSource("ReplyTo");		// optional
 		String to = stack.stringFromSource("To");
+		boolean managed = stack.boolFromSource("Managed");
 		
 		// direct send
 		String subject = stack.stringFromSource("Subject");
@@ -56,7 +57,7 @@ public class SendEmail extends Instruction {
 		
 		if (StringUtil.isNotEmpty(template)) {
 			if (datapath != null)
-				task = MailUtil.createBuildSendEmailTask(from, to, reply, new CommonPath(template), (IFileStoreFile) datapath);
+				task = MailUtil.createBuildSendEmailTask(from, to, reply, new CommonPath(template), (IFileStoreFile) datapath, managed);
 			else
 				task = MailUtil.createBuildSendEmailTask(from, to, reply, new CommonPath(template), data);
 		}

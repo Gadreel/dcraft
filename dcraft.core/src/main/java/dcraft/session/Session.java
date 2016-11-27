@@ -33,6 +33,7 @@ import dcraft.bus.Message;
 import dcraft.bus.MessageUtil;
 import dcraft.bus.ServiceResult;
 import dcraft.ctp.CtpAdapter;
+import dcraft.filestore.CommonPath;
 import dcraft.hub.Hub;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.IOperationObserver;
@@ -50,6 +51,7 @@ import dcraft.struct.RecordStruct;
 import dcraft.struct.Struct;
 import dcraft.util.StringUtil;
 import dcraft.util.TimeUtil;
+import dcraft.web.ui.UIElement;
 import dcraft.work.ISynchronousWork;
 import dcraft.work.Task;
 import dcraft.work.TaskRun;
@@ -777,10 +779,10 @@ Context: {
 		
 		OperationContext tc = OperationContext.get();
 		
-		boolean nv = tc.needVerify();
+		//boolean nv = tc.needVerify();
 		
-		if (nv)
-			System.out.println("NOVHOATS before verify: " + waslikeguest);
+		//if (nv)
+		//	System.out.println("NOVHOATS before verify: " + waslikeguest);
 		
 		tc.verify(new FuncCallback<UserContext>() {				
 			@Override
@@ -794,8 +796,8 @@ Context: {
 						cb.error(1, "User not authenticated!");
 				}
 				
-				if (nv)
-					System.out.println("NOVHOATS after verify: ");
+				//if (nv)
+				//	System.out.println("NOVHOATS after verify: ");
 				
 				cb.setResult(this.toLogMessage());
 				cb.complete();
@@ -1159,4 +1161,31 @@ Context: {
 			return (this.started < (System.currentTimeMillis() - 120000));
 		}
  	}
+	
+	protected CommonPath pagecacgepath = null;
+	protected UIElement pagecacgexml = null;
+
+	public void setPageCache(CommonPath webpath, UIElement fsource) {
+		this.pagecacgepath = webpath;
+		this.pagecacgexml = fsource;
+		
+		System.out.println("page cache source set");
+	}
+
+	public UIElement getPageCache(CommonPath webpath) {
+		if (webpath.equals(this.pagecacgepath)) {
+			UIElement cache = this.pagecacgexml;
+			
+			this.pagecacgepath = null;
+			this.pagecacgexml = null;
+			
+			System.out.println("page cache source found");
+			
+			return cache;
+		}
+
+		return null;
+	}
+	
+	
 }

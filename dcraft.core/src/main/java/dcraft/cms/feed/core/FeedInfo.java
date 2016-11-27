@@ -10,10 +10,6 @@ import java.util.function.BiConsumer;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
-import dcraft.db.DataRequest;
-import dcraft.db.ObjectResult;
-import dcraft.db.ReplicatedDataRequest;
-import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.FuncResult;
@@ -52,7 +48,7 @@ public class FeedInfo {
 		FeedInfo fi = new FeedInfo();
 		
 		fi.channel = channel;
-		fi.feedpath = "/" + channel + path;
+		fi.path = path;
 		fi.channelDef = channelDef;
 		
 		fi.init();
@@ -61,7 +57,7 @@ public class FeedInfo {
 	}
 	
 	protected String channel = null;
-	protected String feedpath = null;
+	protected String path = null;
 	
 	protected XElement channelDef = null;
 	protected XElement draftDcfContent = null;
@@ -78,8 +74,8 @@ public class FeedInfo {
 		
 		//this.innerpath = "/" + site.getAlias() + this.feedpath;		
 		
-		this.prepath = site.resolvePath("feed-preview" + this.feedpath + ".dcf.xml").toAbsolutePath().normalize();
-		this.pubpath = site.resolvePath("feed" + this.feedpath + ".dcf.xml").toAbsolutePath().normalize();
+		this.prepath = site.resolvePath("feed-preview/" + this.channel + this.path + ".dcf.xml").toAbsolutePath().normalize();
+		this.pubpath = site.resolvePath("feed/" + this.channel + this.path + ".dcf.xml").toAbsolutePath().normalize();
 	}
 
 	public List<String> collectExternalFileNames(boolean draft) {
@@ -135,8 +131,13 @@ public class FeedInfo {
 		return this.channel;
 	}
 	
-	public String getFeedPath() {
-		return this.feedpath;
+	public String getUrlPath() {
+		if ("Pages".equals(this.channel)) 
+			return this.path;
+		
+		// TODO if this channel has an alternative Url path, lookup here
+		
+		return "/" + this.channel + this.path;
 	}
 	
 	public XElement getChannelDef() {
@@ -173,11 +174,176 @@ public class FeedInfo {
 		return this.prepath;
 	}
 
+	public RecordStruct getDetails() {
+		// work through the adapters
+		FeedAdapter pubfeed = this.getPubAdapter();
+		FeedAdapter prefeed = this.getPreAdapter();
+		
+		if ((pubfeed == null) && (prefeed == null)) 
+			return null;
+		
+		XElement pubxml = (pubfeed != null) ? pubfeed.getXml() : null;
+		XElement prexml = (prefeed != null) ? prefeed.getXml() : null;
+
+		// if no file is present then delete record for feed
+		if ((pubxml == null) && (prexml == null)) 
+			return null;
+		
+		// if at least one xml file then update/add a record for the feed
+		
+		RecordStruct feed = new RecordStruct()
+			.withField("Site", OperationContext.get().getSite().getAlias())
+			.withField("Channel", this.channel)
+			.withField("Path", this.path);
+		
+		// the "edit" authorization, not the "view" auth
+		String authtags = (pubfeed != null) ? pubfeed.getAttribute("AuthTags") : prefeed.getAttribute("AuthTags");
+		
+		if (StringUtil.isEmpty(authtags))
+			feed.withField("AuthorizationTags", new ListStruct());
+		else
+			feed.withField("AuthorizationTags", new ListStruct((Object[]) authtags.split(",")));
+
+		if (pubxml != null) {
+			ListStruct ctags = new ListStruct();
+			
+			for (XElement tag : pubxml.selectAll("Tag")) {
+				String alias = tag.getAttribute("Alias");
+				
+				if (StringUtil.isNotEmpty(alias))
+					ctags.addItem(alias);
+			}
+			
+			feed.withField("ContentTags", ctags);
+		}
+		else if (prexml != null) {
+			ListStruct ctags = new ListStruct();
+			
+			for (XElement tag : prexml.selectAll("Tag")) {
+				String alias = tag.getAttribute("Alias");
+				
+				if (StringUtil.isNotEmpty(alias))
+					ctags.addItem(alias);
+			}
+			
+			feed.withField("ContentTags", ctags);
+		}
+		
+		if (pubxml != null) {
+			// public fields
+			
+			String primelocale = pubxml.getAttribute("Locale"); 
+			
+			if (StringUtil.isEmpty(primelocale))
+				primelocale = OperationContext.get().getWorkingLocaleDefinition().getName();
+			
+			feed.withField("Locale", primelocale);
+	
+			ListStruct pubfields = new ListStruct();
+			feed.withField("Fields", pubfields);
+			
+			for (XElement fld : pubxml.selectAll("Field")) 
+				pubfields.addItem(new RecordStruct()
+					.withField("Name", fld.getAttribute("Name"))
+					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for field, though it means little besides adding to search info
+					.withField("Value", fld.getValue())
+				);
+			
+			for (XElement afel : pubxml.selectAll("Alternate")) {
+				String alocale = afel.getAttribute("Locale", primelocale);
+				
+				for (XElement fld : afel.selectAll("Field")) 
+					pubfields.addItem(new RecordStruct()
+						.withField("Name", fld.getAttribute("Name"))
+						.withField("Locale", alocale)
+						.withField("Value", fld.getValue())
+					);
+			}
+			
+			ListStruct pubparts = new ListStruct();
+			feed.withField("PartContent", pubparts);
+			
+			for (XElement fld : pubxml.selectAll("PagePart"))
+				pubparts.addItem(new RecordStruct()
+					.withField("Name", fld.getAttribute("For"))
+					.withField("Format", fld.getAttribute("Format", "md"))
+					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part, this is not an alternate, just the default locale for that part
+				);
+			
+			for (XElement afel : pubxml.selectAll("Alternate")) {
+				String alocale = afel.getAttribute("Locale", primelocale);
+				
+				for (XElement fld : afel.selectAll("PagePart")) 
+					pubparts.addItem(new RecordStruct()
+						.withField("Name", fld.getAttribute("For"))
+						.withField("Format", fld.getAttribute("Format", "md"))
+						.withField("Locale", alocale)
+					);
+			}
+		}
+		
+		if (prexml != null) {
+			// preview fields
+			
+			String primelocale = prexml.getAttribute("Locale"); 
+			
+			if (StringUtil.isEmpty(primelocale))
+				primelocale = OperationContext.get().getWorkingLocaleDefinition().getName();
+
+			if (! feed.hasField("Locale"))
+				feed.withField("Locale", primelocale);
+
+			ListStruct prefields = new ListStruct();
+			feed.withField("PreviewFields", prefields);
+			
+			for (XElement fld : prexml.selectAll("Field")) 
+				prefields.addItem(new RecordStruct()
+					.withField("Name", fld.getAttribute("Name"))
+					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for field, though it means little besides adding to search info
+					.withField("Value", fld.getValue())
+				);
+			
+			for (XElement afel : prexml.selectAll("Alternate")) {
+				String alocale = afel.getAttribute("Locale", primelocale);
+				
+				for (XElement fld : afel.selectAll("Field")) 
+					prefields.addItem(new RecordStruct()
+						.withField("Name", fld.getAttribute("Name"))
+						.withField("Locale", alocale)
+						.withField("Value", fld.getValue())
+					);
+			}	
+			
+			ListStruct preparts = new ListStruct();
+			feed.withField("PreviewPartContent", preparts);
+			
+			for (XElement fld : prexml.selectAll("PagePart")) 
+				preparts.addItem(new RecordStruct()
+					.withField("Name", fld.getAttribute("For"))
+					.withField("Format", fld.getAttribute("Format", "md"))
+					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part, this is not an alternate, just the default locale for that part
+				);
+			
+			for (XElement afel : prexml.selectAll("Alternate")) {
+				String alocale = afel.getAttribute("Locale", primelocale);
+				
+				for (XElement fld : afel.selectAll("PagePart")) 
+					preparts.addItem(new RecordStruct()
+						.withField("Name", fld.getAttribute("For"))
+						.withField("Format", fld.getAttribute("Format", "md"))
+						.withField("Locale", alocale)
+					);
+			}
+		}
+		
+		return feed;
+	}
+
 	public FeedAdapter getPreAdapter() {
 		OperationResult op = new OperationResult();
 		
 		FeedAdapter adapt = new FeedAdapter();
-		adapt.init(this.channel, this.feedpath, this.prepath);		// load direct, not cache - cache may not have updated yet
+		adapt.init(this.channel, this.path, this.prepath);		// load direct, not cache - cache may not have updated yet
 		adapt.validate();
 		
 		// if an error occurred during the init or validate, don't use the feed
@@ -191,7 +357,7 @@ public class FeedInfo {
 		OperationResult op = new OperationResult();
 		
 		FeedAdapter adapt = new FeedAdapter();
-		adapt.init(this.channel, this.feedpath, this.pubpath);		// load direct, not cache - cache may not have updated yet
+		adapt.init(this.channel, this.path, this.pubpath);		// load direct, not cache - cache may not have updated yet
 		adapt.validate();
 		
 		// if an error occurred during the init or validate, don't use the feed
@@ -228,7 +394,7 @@ public class FeedInfo {
 			
 			// don't go to www-preview at first, www-preview would only be used by a developer showing an altered page
 			// for first time save, it makes sense to have the dcui file in www
-			Path uisrcpath = site.resolvePath("www" + this.getFeedPath().substring(6) + ".dcui.xml");		
+			Path uisrcpath = site.resolvePath("www" + this.path + ".html");		
 			
 			try {
 				Files.createDirectories(uisrcpath.getParent());
@@ -315,7 +481,7 @@ public class FeedInfo {
 			ad.xml = this.getFeedTemplate("[Unknown]", locale);			
 		}
 		
-		// default published, can be overriden in the SetFields collection
+		// default published, can be overridden in the SetFields collection
 		if (publish) {
 			XElement mr = ad.getDefaultFieldX("Published");
 			
@@ -495,12 +661,11 @@ public class FeedInfo {
 			
 			// delete Page definitions...
 			if ("Pages".equals(channel)) {
-				String path = this.getFeedPath();
 				SiteInfo siteinfo = OperationContext.get().getSite();
 				
 				Path srcpath = draft 
-						? siteinfo.resolvePath("www-preview/" + path.substring(6) + ".dcui.xml")
-						: siteinfo.resolvePath("www/" + path.substring(6) + ".dcui.xml");
+						? siteinfo.resolvePath("www-preview/" + this.path + ".dcui.xml")
+						: siteinfo.resolvePath("www/" + this.path + ".dcui.xml");
 				
 				try {
 					Files.deleteIfExists(srcpath);
@@ -514,149 +679,17 @@ public class FeedInfo {
 	}
 
 	public void deleteDb(OperationCallback cb) {
-		Hub.instance.getDatabase().submit(
-				new ReplicatedDataRequest("dcmFeedDelete2")
-					.withParams(new RecordStruct()
-						.withField("Path", "/" + OperationContext.get().getSite().getAlias() + this.feedpath)
-				), 
-				new ObjectResult() {
-					@Override
-					public void process(CompositeStruct result3b) {
-						cb.complete();
-					}
-				});
+		DataStore.deleteFeed("/" + OperationContext.get().getSite().getAlias() + "/" + this.channel + this.path, cb);
 	}
 
 	public void updateDb(OperationCallback cb) {
-		// work through the adapters
-		FeedAdapter pubfeed = this.getPubAdapter();
-		FeedAdapter prefeed = this.getPreAdapter();
-		
-		if ((pubfeed == null) && (prefeed == null)) {
-			cb.complete();
-			return;
-		}
-		
-		XElement pubxml = (pubfeed != null) ? pubfeed.getXml() : null;
-		XElement prexml = (prefeed != null) ? prefeed.getXml() : null;
+		RecordStruct feed = this.getDetails();
 
-		// if no file is present then delete record for feed
-		if ((pubxml == null) && (prexml == null)) {
+		if (feed == null) {
 			this.deleteDb(cb);
 			return;
 		}
 		
-		// if at least one xml file then update/add a record for the feed
-		
-		RecordStruct feed = new RecordStruct()
-			.withField("Path", "/" + OperationContext.get().getSite().getAlias() + this.feedpath);
-		
-		// the "edit" authorization, not the "view" auth
-		String authtags = (pubfeed != null) ? pubfeed.getAttribute("AuthTags") : prefeed.getAttribute("AuthTags");
-		
-		if (StringUtil.isEmpty(authtags))
-			feed.withField("AuthorizationTags", new ListStruct());
-		else
-			feed.withField("AuthorizationTags", new ListStruct((Object[]) authtags.split(",")));
-
-		if (pubxml != null) {
-			ListStruct ctags = new ListStruct();
-			
-			for (XElement tag : pubxml.selectAll("Tag")) {
-				String alias = tag.getAttribute("Alias");
-				
-				if (StringUtil.isNotEmpty(alias))
-					ctags.addItem(alias);
-			}
-			
-			feed.withField("ContentTags", ctags);
-		}
-		else if (prexml != null) {
-			ListStruct ctags = new ListStruct();
-			
-			for (XElement tag : prexml.selectAll("Tag")) {
-				String alias = tag.getAttribute("Alias");
-				
-				if (StringUtil.isNotEmpty(alias))
-					ctags.addItem(alias);
-			}
-			
-			feed.withField("ContentTags", ctags);
-		}
-		
-		// we should always have info in the Preview fields - use the published if no draft
-		if (prexml == null)
-			prexml = pubxml;
-		
-		if (pubxml != null) {
-			// public fields
-			
-			String primelocale = pubxml.getAttribute("Locale"); 
-			
-			if (StringUtil.isEmpty(primelocale))
-				primelocale = OperationContext.get().getWorkingLocaleDefinition().getName();
-	
-			ListStruct pubfields = new ListStruct();
-			feed.withField("Fields", pubfields);
-			
-			for (XElement fld : pubxml.selectAll("Field")) 
-				pubfields.addItem(new RecordStruct()
-					.withField("Name", fld.getAttribute("Name"))
-					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for field, though it means little besides adding to search info
-					.withField("Value", fld.getValue())
-				);
-			
-			for (XElement afel : pubxml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("Field")) 
-					pubfields.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("Name"))
-						.withField("Locale", alocale)
-						.withField("Value", fld.getValue())
-					);
-			}
-		}
-		
-		if (prexml != null) {
-			// preview fields
-			
-			String primelocale = prexml.getAttribute("Locale"); 
-			
-			if (StringUtil.isEmpty(primelocale))
-				primelocale = OperationContext.get().getWorkingLocaleDefinition().getName();
-	
-			ListStruct prefields = new ListStruct();
-			feed.withField("PreviewFields", prefields);
-			
-			for (XElement fld : prexml.selectAll("Field")) 
-				prefields.addItem(new RecordStruct()
-					.withField("Name", fld.getAttribute("Name"))
-					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for field, though it means little besides adding to search info
-					.withField("Value", fld.getValue())
-				);
-			
-			for (XElement afel : prexml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("Field")) 
-					prefields.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("Name"))
-						.withField("Locale", alocale)
-						.withField("Value", fld.getValue())
-					);
-			}	
-		}
-		
-		// don't bother checking if it worked in our response to service
-		DataRequest req3b = new ReplicatedDataRequest("dcmFeedUpdate2")
-			.withParams(feed);
-
-		Hub.instance.getDatabase().submit(req3b, new ObjectResult() {
-			@Override
-			public void process(CompositeStruct result3b) {
-				cb.complete();
-			}
-		});
+		DataStore.updateFeed(feed, cb);
 	}
 }

@@ -137,7 +137,7 @@ public class AuthService extends ExtensionBase implements IService {
 		
 		if ("Authentication".equals(feature)) {
 			
-			System.out.println("=== NOVHOATS Auth: " + op);
+			//System.out.println("=== NOVHOATS Auth: " + op);
 			
 			if ("SignIn".equals(op)) {
 				

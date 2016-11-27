@@ -12,7 +12,7 @@
 							Loads a file listing for a given folder.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -29,7 +29,7 @@
 										<Field Name="Size" Type="Integer" />
 										<Field Name="IsFolder" Type="Boolean" />
 										<Field Name="LastModified" Type="dcTinyString" />
-										<Field Name="Extra" Type="AnyRecord" />
+										<Field Name="Extra" Type="Any" />
 									</Record>
 								</List>
 							</Field>
@@ -40,7 +40,7 @@
 							Get the file details, optionally including a file checksums if a method is provided.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -58,7 +58,7 @@
 									<Field Name="IsFolder" Type="Boolean" />
 									<Field Name="LastModified" Type="dcTinyString" />
 									<Field Name="Hash" Type="dcString" />
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -68,7 +68,7 @@
 							Removes a file.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -80,7 +80,7 @@
 						<Response Inherits="ResponseMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -90,7 +90,7 @@
 							Adds a new folder.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -102,7 +102,7 @@
 						<Response Inherits="ResponseMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -112,7 +112,7 @@
 							Removes a folder and all files under it.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -124,7 +124,7 @@
 						<Response Inherits="ResponseMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -134,11 +134,12 @@
 							Execute a custom command.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
 									<Field Name="Path" Type="dcString" />
+									<Field Name="Command" Type="dcTinyString" Required="True" />
 									<Field Name="Params" Type="AnyRecord" />
 								</Record>
 							</Field>
@@ -146,7 +147,7 @@
 						<Response Inherits="ResponseMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -156,7 +157,7 @@
 							Get an upload token.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Params" Type="AnyRecord" />
@@ -167,7 +168,7 @@
 							<Field Name="Body">
 								<Record>
 									<Field Name="Token" Type="dcSmallString" />
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -181,7 +182,7 @@
 							Channel is added by Session, only add path, size and token.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -207,7 +208,7 @@
 									<Field Name="BestEvidence" Type="dcTinyString" />
 									<Field Name="MinimumEvidence" Type="dcTinyString" />
 									
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -219,7 +220,7 @@
 							Channel is added by Session, only add bucket, path, offset, params and token.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -243,7 +244,7 @@
 									<Field Name="BestEvidence" Type="dcTinyString" />
 									<Field Name="MinimumEvidence" Type="dcTinyString" />
 									
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -253,7 +254,7 @@
 							Give evidence for the upload success.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -269,7 +270,7 @@
 						<Response Inherits="ResponseMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>
@@ -279,7 +280,7 @@
 							Give evidence for the download success.
 						</Description>
 						<Request Inherits="RequestMessage">
-							<Field Name="Body">
+							<Field Name="Body" Required="True">
 								<Record>
 									<Field Name="Bucket" Type="dcTinyString" Required="True" />
 									<Field Name="Token" Type="dcSmallString" />
@@ -295,7 +296,7 @@
 						<Response Inherits="ResponseMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Extra" Type="AnyRecord" />
+									<Field Name="Extra" Type="Any" />
 								</Record>
 							</Field>
 						</Response>

@@ -3,12 +3,15 @@ package dcraft.web.ui.tags;
 import java.lang.ref.WeakReference;
 
 import dcraft.cms.feed.core.FeedAdapter;
+import dcraft.filestore.CommonPath;
+import dcraft.hub.Hub;
 import dcraft.lang.CountDownCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
 import dcraft.util.StringUtil;
 import dcraft.web.core.IOutputContext;
 import dcraft.web.core.WebContext;
+import dcraft.web.ui.IExpandHelper;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIUtil;
 import dcraft.web.ui.UIWork;
@@ -25,21 +28,42 @@ public class MixIn extends UIElement {
 	
 	@Override
 	public void expand(WeakReference<UIWork> work) {
+		if (this.hasNotEmptyAttribute("ExpandClass")) {
+			IExpandHelper exh = (IExpandHelper) Hub.instance.getInstance(this.getAttribute("ExpandClass"));
+			
+			exh.expand(this, work);
+		}
+		
 		// load the CMS if any
 		if ("auto".equals(this.getAttribute("Cms", "false").toLowerCase())) {
 			IOutputContext octx = work.get().getContext();
 			
 			if (octx instanceof WebContext) {
 				WebContext wctx = (WebContext) octx;
+
+				CommonPath path = wctx.getRequest().getPath();
+				int pdepth = path.getNameCount();
 				
-				// possible to override the file path and grab a random Page from `feed`
-				String cmspath = this.getAttribute("CmsPath", wctx.getRequest().getPath().toString());
-				
-				// TODO improve so that we check parent paths too, if this one is too specific (long) to match a feed
-				FeedAdapter feed = wctx.getFeedAdapter("Pages", cmspath);
-				
-				if (feed != null)
-					UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
+				// check file system
+				while (pdepth > 0) {
+					CommonPath ppath = path.subpath(0, pdepth);
+					
+					// possible to override the file path and grab a random Page from `feed`
+					String cmspath = this.getAttribute("CmsPath", ppath.toString());
+					
+					FeedAdapter feed = FeedAdapter.from("Pages", cmspath, wctx.isPreview());
+					
+					if (feed != null) {
+						UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
+						this.withAttribute("data-dccms-path", cmspath);
+						
+						// TODO lookup/set canonical path property - 
+						
+						break;
+					}
+					
+					pdepth--;
+				}
 			}
 		}
 		
@@ -54,6 +78,8 @@ public class MixIn extends UIElement {
 
 		if (skel == null)
 			skel = this.selectFirst("dc.Fragment");
+		
+		skel.withAttribute("data-dccms-path", this.getAttribute("data-dccms-path"));
 		
 		// arrange the parts
 		for (XElement pdef : this.selectAll("dc.PagePartDef")) {

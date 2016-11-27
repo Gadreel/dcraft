@@ -1,8 +1,0 @@
-<dcui Title="More Options">
-	<Skeleton>
-		<p>These are additional options, use back to get to the page menu.</p>
-	</Skeleton>
-	<Function Name="Load"><![CDATA[
-			var entry = this;
-    ]]></Function>
-</dcui>

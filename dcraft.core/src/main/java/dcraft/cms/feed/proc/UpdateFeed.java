@@ -25,16 +25,30 @@ import dcraft.struct.builder.ICompositeBuilder;
 import dcraft.util.StringUtil;
 import dcraft.util.TimeUtil;
 
+// database does not separate preview from published - fields and tags in general 
+// are always published not preview
+// however, when no published content is available, we fall back on the preview
 public class UpdateFeed implements IStoredProc {
 	@Override
 	public void execute(DatabaseInterface conn, DatabaseTask task, OperationResult log) {
 		RecordStruct params = task.getParamsAsRecord();
 		
-		String path = params.getFieldAsString("Path");
+		String path = "/" + params.getFieldAsString("Site") + "/" +
+				params.getFieldAsString("Channel") + params.getFieldAsString("Path");
+		
 		ListStruct atags = params.getFieldAsList("AuthorizationTags");
-		ListStruct ctags = params.getFieldAsList("ContentTags");
-		ListStruct fields = params.getFieldAsList("Fields");
-		ListStruct prefields = params.getFieldAsList("PreviewFields");
+		ListStruct tempctags = params.getFieldAsList("ContentTags");
+		
+		if (tempctags == null)
+			tempctags = params.getFieldAsList("PreviewContentTags");
+		
+		ListStruct tempfields = params.getFieldAsList("Fields");
+		
+		if (tempfields == null)
+			tempfields = params.getFieldAsList("PreviewFields");
+
+		ListStruct ctags = tempctags;
+		ListStruct fields = tempfields;
 		
 		CommonPath cp = CommonPath.from(path);
 		
@@ -57,7 +71,7 @@ public class UpdateFeed implements IStoredProc {
 				/*
 				 * Update index
 				 * 
-				 * ^dcmFeedIndex(did, channel, publish datetime, id)=[content tags]
+				 * ^dcmFeedIndex(did, site/channel, publish datetime, id)=[content tags]
 				 * 
 				 */
 				
@@ -174,31 +188,6 @@ public class UpdateFeed implements IStoredProc {
 						
 						if ("Published".equals(entry.getFieldAsString("Name"))) {
 							DateTime pd = TimeUtil.parseDateTime(entry.getFieldAsString("Value")).withMillisOfSecond(0).withSecondOfMinute(0);
-							updatepub.set(pd);							
-							req.withUpdateField("dcmPublished", pd);
-						}
-						
-						if ("AuthorUsername".equals(entry.getFieldAsString("Name"))) {
-							Object userid = db.firstInIndex("dcUser", "dcUsername", entry.getFieldAsString("Value"), when, false);
-							
-							if (userid != null) {
-								String uid = userid.toString();
-								req.withUpdateField("dcmAuthor", uid, uid);
-							}
-						}
-					}
-				}
-				
-				if (prefields != null) {
-					for (int i = 0; i < prefields.getSize(); i++) {
-						RecordStruct entry = prefields.getItemAsRecord(i);
-						String key = entry.getFieldAsString("Name") + "." + entry.getFieldAsString("Locale");
-						req.withUpdateField("dcmPreviewFields", key, entry.getFieldAsString("Value"));
-						
-						// pre published is used when no published is ready
-						if ("Published".equals(entry.getFieldAsString("Name")) && (updatepub.get() == null)) {
-							DateTime pd = TimeUtil.parseDateTime(entry.getFieldAsString("Value")).withMillisOfSecond(0).withSecondOfMinute(0);
-						
 							updatepub.set(pd);							
 							req.withUpdateField("dcmPublished", pd);
 						}

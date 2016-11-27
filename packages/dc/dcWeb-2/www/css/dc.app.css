@@ -1933,7 +1933,7 @@ div, p {
 	align-items: center;		
 	overflow-x: hidden;
 	overflow-y: auto;
-	z-index: 500;
+	z-index: 700;
 }
 
 #dcuiDialog > a.dcuiCloseButton {
@@ -2079,6 +2079,8 @@ div, p {
 }
 
 #dcuiAppMenuCntrl {
+	background-color: #337ab7;
+	
     display: -ms-flexbox;
     display: -webkit-flex;
     display: flex;
@@ -2104,13 +2106,13 @@ div, p {
     -webkit-flex: 0 0 auto;
     -ms-flex: 0 0 auto;
     flex: 0 0 auto;
-	margin: 12px;
+	margin: 2px 12px;
     font-size: 32px;
 }
 
 #dcuiAppMenuCntrl > a,
 #dcuiAppMenuCntrl > a:visited {
-	color: rgb(0, 120, 231);
+	color: white;
 }
 
 #dcuiAppMenuCntrl > a:focus,
@@ -2132,13 +2134,14 @@ div, p {
 }
 
 #dcuiAppMenu > .pure-button:last-child {
-	display: block;
 	border-bottom: 2px solid #eee;
 }
 
 @media all and (max-width: 959px) {
 	#dcuiAppMenu {
+		background-color: #337ab7;
 		border-right: 3px solid #58595b;
+		padding-top: 40px;
 	}
 	
 	#dcuiAppMenu > .pure-button {
@@ -2170,5 +2173,45 @@ div, p {
 	#dcuiAppMenuCntrl > a.mobile {
 		display: none;		
 	}
+}
+
+
+
+#dcuiFullScreen {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: rgba(90,90,90,0.5);
+	z-index: 500;
+	padding: 0;
+}
+
+
+#panDcwImageViewer {
+	height: 100%;
+	overflow: hidden;
+	
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+}
+
+#panDcwImagePane {
+    -webkit-flex: 1 1 auto;
+    -ms-flex: 1 1 auto;
+	flex: 1 1 auto;
+	object-fit: contain;
+	overflow: hidden;
+	text-align: center;
+}
+
+#panDcwImagePane img {
+	width: 100%;
+	max-height: 100%;
 }
 

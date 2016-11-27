@@ -42,6 +42,7 @@ import dcraft.xml.XmlPrinter;
 public class DynamicOutputAdapter extends SsiOutputAdapter  {
 	protected UIElement source = null;
 	protected String[] auth = null;		
+	protected boolean prebuilt = false;
 	
 	public UIElement getSource() {
 		return this.source;
@@ -56,18 +57,26 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 	public void init(SiteInfo site, CacheFile filepath, CommonPath webpath, boolean isPreview) {
 		super.init(site, filepath, webpath, isPreview);
 		
-		CharSequence xml = this.file.asChars();
+		// one time assist - cache the first page load
+		XElement xr = OperationContext.get().getSession().getPageCache(webpath);
 		
-		FuncResult<XElement> xres = site.getWebsite().parseUI(xml);
-		
-		// don't stop on error
-		if (xres.hasErrors()) {
-			OperationContext.get().clearExitCode();
-			return;
+		if (xr == null) {
+			CharSequence xml = this.file.asChars();
+			
+			FuncResult<XElement> xres = site.getWebsite().parseUI(xml);
+			
+			// don't stop on error
+			if (xres.hasErrors()) {
+				OperationContext.get().clearExitCode();
+				return;
+			}
+			
+			xr = xres.getResult();
+		}
+		else {
+			this.prebuilt = true;
 		}
 		
-		XElement xr = xres.getResult();
-
 		// if we cannot parse then fallback on SSI handler
 		if (xr instanceof UIElement) {
 			this.source = (UIElement) xr;
@@ -120,41 +129,52 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 	
 			UIElement fsource = source;
 			
-			UIWork work = new UIWork();
-			work.setContext(ctx);
-			work.setRoot(source);
-			
-			Task task = Task
-				.taskWithSubContext()
-				.withTitle("Working on web content: " + this.getFile().getFilePath())
-				.withTopic("Web")
-				.withObserver(new OperationObserver() {
-					@Override
-					public void completed(OperationContext octx) {
-						// TODO if errors then create an error document
-						
-						if (wctx.isDynamic()) {
-							wctx.getResponse().setHeader("Content-Type", "application/javascript");
-						}
-						else {
-							wctx.getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
-							wctx.getResponse().setHeader("X-UA-Compatible", "IE=Edge,chrome=1");
-						}
-						
-						PrintStream ps = wctx.getResponse().getPrintStream();
-	
-						XmlPrinter prt = wctx.isDynamic() ? new JsonPrinter(wctx) : new HtmlPrinter(wctx);
-						
-				    	prt.setFormatted(true);
-				    	prt.setOut(ps);
-				    	prt.print(fsource);
-	
-						wctx.send();
+			OperationObserver oo = new OperationObserver() {
+				@Override
+				public void completed(OperationContext octx) {
+					// TODO if errors then create an error document
+					
+					if (wctx.isDynamic()) {
+						wctx.getResponse().setHeader("Content-Type", "application/javascript");
 					}
-				})
-				.withWork(work);
+					else {
+						wctx.getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
+						wctx.getResponse().setHeader("X-UA-Compatible", "IE=Edge,chrome=1");
+					}
+					
+					PrintStream ps = wctx.getResponse().getPrintStream();
+
+					XmlPrinter prt = wctx.isDynamic() ? new JsonPrinter(wctx) : new HtmlPrinter(wctx);
+					
+			    	prt.setFormatted(true);
+			    	prt.setOut(ps);
+			    	prt.print(fsource);
+
+					wctx.send();
+					
+					if (! wctx.isDynamic()) 
+						octx.getSession().setPageCache(DynamicOutputAdapter.this.webpath, fsource);
+				}
+			};
 			
-			Hub.instance.getWorkPool().submit(task);
+			if (this.prebuilt) {
+				System.out.println("using page cache");
+				oo.completed(OperationContext.get());
+			}
+			else {
+				UIWork work = new UIWork();
+				work.setContext(ctx);
+				work.setRoot(source);
+				
+				Task task = Task
+					.taskWithSubContext()
+					.withTitle("Working on web content: " + this.getFile().getFilePath())
+					.withTopic("Web")
+					.withObserver(oo)
+					.withWork(work);
+				
+				Hub.instance.getWorkPool().submit(task);
+			}
 		}
 		else {
 			// TODO some sort of error

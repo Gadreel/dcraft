@@ -1,0 +1,75 @@
+<dc.Html Title="Upload File" AuthTags="Editor,Admin">
+	<dc.RequireLib Path="/js/dc.transfer.js" />
+	
+	<dc.Body>
+		<dc.Panel Title="Upload Files">
+			<dcf.Form Name="UploadFile">
+				<dcf.FormButtons>
+					<dc.Button Label="Close" Click="AfterSave" />
+					<dcf.SubmitButton Label="Upload" />
+				</dcf.FormButtons>
+
+				<dcf.Uploader Label="Attachments" Name="Attachments" />
+			</dcf.Form>
+		</dc.Panel>
+
+				<!-- TODO rename				
+				<dcf.Text Name="Path" Label="Name" Required="true" Pattern="[\w-\/]+" 
+					placeholder="folder name, no spaces - use dash instead of space" />
+				-->
+
+				<!--  TODO	progress
+				<div class="ui-field-contain">
+					<label id="lblTransfer" class="tlabel">Progress</label>		
+					<div class="progress">
+						<div id="fileProgressBar" class="pbar"></div>
+						<div id="fileProgressLabel" class="pbarlabel">0%</div>
+					</div>
+				</div>
+				-->
+				
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[	
+				var page = this;
+				
+				page.Store.Files = [ ];
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+				var page = this;
+				
+				page.Store.Files = [ ];
+				
+				e.Wait = true;
+	
+				var files = page.form('UploadFile').input('Attachments').Files;
+				var fnames = page.form('UploadFile').input('Attachments').Values;
+				var cfiles = [ ];
+				
+				var path = (page.Params.Path && (page.Params.Path != '/')) ? page.Params.Path : '';
+				
+				for (var i = 0; i < files.length; i++) {
+					cfiles.push({
+						File: files[i],
+						Path: path
+					});
+					
+					page.Store.Files.push({
+						FullPath: path + '/' + fnames[i]
+					});
+				}
+	
+				var uploadtask = dc.transfer.Util.uploadFiles(cfiles, 'WebFileStore', null, function() {
+					e.Task.resume();
+				});
+
+				uploadtask.run();
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var page = this;
+				
+			page.Layer.back();
+			
+			if (page.Params.Callback)
+				page.Params.Callback( page.Store.Files );
+	]]></dc.Function>
+</dc.Html>

@@ -48,7 +48,6 @@ public class BucketService extends ExtensionBase implements IService {
 		request.complete();
 	}
 	
-	// TODO remove legacy
 	// TODO refactor into cleaner service structure
 	
 	static public void handle(TaskRun request, String op, Message msg) {

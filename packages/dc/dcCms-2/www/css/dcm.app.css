@@ -51,3 +51,12 @@
 .dcm-basic-carousel .dcm-basic-carousel-list {
 	display: none;
 }
+
+
+
+/* hide internal CMS buttons before CMS is loaded */
+
+.dcm-cms-editable:not(.dcuiCms) .dcuiCmsi {
+	display: none !important;
+}
+

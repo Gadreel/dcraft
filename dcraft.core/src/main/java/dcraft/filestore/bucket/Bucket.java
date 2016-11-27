@@ -478,6 +478,9 @@ public class Bucket {
 						ListStruct files = new ListStruct();
 						
 						for (IFileStoreFile file : this.getResult()) {
+							if (file.getName().equals(".DS_Store"))
+								continue;
+							
 							if (!showHidden && file.getName().startsWith("."))		 
 								continue;
 							

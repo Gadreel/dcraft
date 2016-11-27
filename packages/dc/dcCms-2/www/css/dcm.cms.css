@@ -1,13 +1,14 @@
 
-.dcuiSectionButton,
-.dcuiPartButton {
+.pure-button.dcuiSectionButton,
+.pure-button.dcuiPartButton {
 	position: absolute;
 	top: 0;
 	right: 0;
 	width: 28px;
 	height: 28px;
-	background-color: rgba(255,0,0,0.66);
-	color: black;
+	font-size: 14px !important;
+	background-color: rgba(255,0,0,0.66) !important;
+	color: black !important;
 	z-index: 100;
 	padding: 7px;
 	line-height: 0;
@@ -15,12 +16,12 @@
     border-radius: 8px;
 }
 
-.dcuiPartButton {
+.pure-button.dcuiPartButton {
 	right: 32px;
 }
 
-.dcuiPartButton:hover,
-.dcuiSectionButton:hover {
+.pure-button.dcuiPartButton:hover,
+.pure-button.dcuiSectionButton:hover {
 	color: white;
 	cursor: pointer;
 }

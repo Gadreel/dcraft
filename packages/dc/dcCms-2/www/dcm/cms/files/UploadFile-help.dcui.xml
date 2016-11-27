@@ -1,7 +1,0 @@
-<dcui Title="Help" AuthTags="Admin,Editor">
-	<Skeleton><div class="dcuiHelpViewer" data-dcui-mode="enhance"><MD><![CDATA[
-## Upload File Help
-
-Select the file your wish to upload in the control at the top (may say "Choose File" or similar).  Click `Upload` and wait for the progress bar to complete - once progress is complete you'll be returned to the folder.
-	]]></MD></div></Skeleton>
-</dcui>

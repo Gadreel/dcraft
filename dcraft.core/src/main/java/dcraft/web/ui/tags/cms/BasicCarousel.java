@@ -14,6 +14,7 @@ import dcraft.util.IOUtil;
 import dcraft.util.StringUtil;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIWork;
+import dcraft.web.ui.tags.Button;
 import dcraft.xml.XNode;
 
 public class BasicCarousel extends UIElement {
@@ -27,7 +28,7 @@ public class BasicCarousel extends UIElement {
 		String alias = this.getAttribute("Show");
 
 		this
-			.withClass("dcm-basic-carousel-img", "dc-no-select")
+			.withClass("dc-no-select")
 			.withAttribute("data-dcm-period", this.getAttribute("Period"))
 			.withAttribute("data-dcm-gallery", gallery)
 			.withAttribute("data-dcm-show", alias);
@@ -65,11 +66,13 @@ public class BasicCarousel extends UIElement {
 					CacheFile preload = work.get().getContext().getSite().findSectionFile("galleries", gallery + "/" + 
 							topimg.getFieldAsString("Alias") + ".v/preload.jpg", work.get().getContext().isPreview());
 					
-					Memory mem = IOUtil.readEntireFileToMemory(preload.getFilePath());
-					
-					String data = Base64.encodeToString(mem.toArray(), false);
-					
-					viewer.withAttribute("src", "data:image/jpeg;base64," + data);
+					if (preload != null) {
+						Memory mem = IOUtil.readEntireFileToMemory(preload.getFilePath());
+						
+						String data = Base64.encodeToString(mem.toArray(), false);
+						
+						viewer.withAttribute("src", "data:image/jpeg;base64," + data);
+					}
 				}
 				
 				UIElement list = new UIElement("div").withClass("dcm-basic-carousel-list");
@@ -90,13 +93,19 @@ public class BasicCarousel extends UIElement {
 			}
 		}
 		
+		this.with(new Button("dcmi.GalleryButton")
+				.withClass("dcuiPartButton", "dcuiCmsi")
+				.withAttribute("Icon", "fa-pencil")
+			);
+		
 		super.expand(work);
 	}
 
 	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		this
-			.withClass("dcm-basic-carousel")
+			.withClass("dcm-basic-carousel", "dcm-cms-editable")
+			.withAttribute("data-dccms-edit", this.getAttribute("AuthTags", "Editor,Admin,Developer"))
 			.withAttribute("data-dc-enhance", "true")
 			.withAttribute("data-dc-tag", this.getName());
     	

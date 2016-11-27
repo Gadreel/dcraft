@@ -197,20 +197,20 @@ public class FeedIndexer {
 				
 				// TODO except for Pages?  review
 				
-				sel.add(new XElement("loc", indexurl + fi.getFeedPath().substring(1)));
+				sel.add(new XElement("loc", indexurl + fi.getUrlPath().substring(1)));
 				sel.add(new XElement("lastmod", lmFmt.print(Files.getLastModifiedTime(fi.getPubpath()).toMillis())));
 
 				for (String lname : altlocales)
 					sel.add(new XElement("xhtml:link")
 						.withAttribute("rel", "alternate")
 						.withAttribute("hreflang", lname)
-						.withAttribute("href", indexurl + lname + fi.getFeedPath())
+						.withAttribute("href", indexurl + lname + fi.getUrlPath())
 					);
 				
 				smel.add(sel);
 			}
 			catch (Exception x) {
-				Logger.error("Unable to add " + fi.getFeedPath() + ": " + x);
+				Logger.error("Unable to add " + fi.getUrlPath() + ": " + x);
 			}
 		}
 	}

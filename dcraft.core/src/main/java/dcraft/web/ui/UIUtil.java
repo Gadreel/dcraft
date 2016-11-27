@@ -24,14 +24,18 @@ import dcraft.web.ui.tags.Body;
 import dcraft.web.ui.tags.Button;
 import dcraft.web.ui.tags.Callout;
 import dcraft.web.ui.tags.Html;
+import dcraft.web.ui.tags.HtmlSection;
 import dcraft.web.ui.tags.IncludeFrag;
 import dcraft.web.ui.tags.IncludeParam;
 import dcraft.web.ui.tags.Link;
 import dcraft.web.ui.tags.Markdown;
 import dcraft.web.ui.tags.MixIn;
 import dcraft.web.ui.tags.PagePart;
+import dcraft.web.ui.tags.PairedMediaSection;
 import dcraft.web.ui.tags.Param;
+import dcraft.web.ui.tags.Section;
 import dcraft.web.ui.tags.ServerScript;
+import dcraft.web.ui.tags.StandardSection;
 import dcraft.web.ui.tags.cms.BasicCarousel;
 import dcraft.web.ui.tags.cms.Facebook;
 import dcraft.web.ui.tags.cms.Instagram;
@@ -58,6 +62,7 @@ import dcraft.web.ui.tags.form.TextArea;
 import dcraft.web.ui.tags.form.Uploader;
 import dcraft.web.ui.tags.form.YesNo;
 import dcraft.web.ui.tags.Fragment;
+import dcraft.web.ui.tags.GallerySection;
 import dcraft.web.ui.tags.Panel;
 import dcraft.work.Task;
 import dcraft.xml.XElement;
@@ -77,6 +82,11 @@ public class UIUtil {
 		tagmap.put("dc.Body", Body.class);
 		tagmap.put("dc.Fragment", Fragment.class);
 		tagmap.put("dc.PagePart", PagePart.class);
+		tagmap.put("dc.Section", Section.class);
+		tagmap.put("dc.StandardSection", StandardSection.class);
+		tagmap.put("dc.PairedMediaSection", PairedMediaSection.class);
+		tagmap.put("dc.GallerySection", GallerySection.class);
+		tagmap.put("dc.HtmlSection", HtmlSection.class);
 		tagmap.put("dc.ServerScript", ServerScript.class);
 		tagmap.put("dc.Param", Param.class);
 		tagmap.put("dc.IncludeFrag", IncludeFrag.class);
@@ -196,9 +206,6 @@ public class UIUtil {
 		if (image != null) 
 			frag.setAttribute("Image", image);
 		
-		//frag.withParam("CMS-Channel", adapt.getChannel()); 
-		//frag.withParam("CMS-Path", adapt.getFeedPath()); 
-		
 		for (XElement pdef : frag.selectAll("dc.PagePartDef")) {
 			String forpart = pdef.getAttribute("For");
 			
@@ -210,86 +217,49 @@ public class UIUtil {
 			FeedPartMatchResult mr = adapt.bestMatch(ctx, "PagePart", "For", forpart);
 			
 			if (mr != null) {
-				UIElement content = UIUtil.buildHtmlPartUI(adapt, wctx, ctx, mr, forpart, pdef.getAttribute("BuildClass"));
+				UIElement content = UIUtil.buildHtmlPartUI(adapt, wctx, ctx, mr, forpart);
 				
-				if (content != null) 
+				if (content != null) {
+					if (pdef.hasNotEmptyAttribute("BuildClass"))
+						content.withClass(pdef.getAttribute("BuildClass"));
+					
 					frag.add(content);
+				}
 			}
 		}
 	}
 	
-	static public UIElement buildHtmlPartUI(FeedAdapter adapt, IOutputContext wctx, ITranslationAdapter ctx, FeedPartMatchResult mr, String id, String clss) {
+	static public UIElement buildHtmlPartUI(FeedAdapter adapt, IOutputContext wctx, ITranslationAdapter ctx, FeedPartMatchResult mr, String id) {
 		String lang = mr.locale.getLanguage();
-		
-		String fmt = mr.el.getAttribute("Format", "md");
 		
 		UIElement pel = new PagePart();
 		
 		String chan = adapt.getChannel();
-		String fpath = adapt.getFeedPath().substring(chan.length() + 1);
+		String fpath = adapt.getPath();
 		
 		pel
-			.withClass(clss, "dcm-cms-part")
-			.withAttribute("id", id)
-			.withAttribute("data-dccms-mode", "edit")
-			.withAttribute("data-dccms-channel", chan)
-			.withAttribute("data-dccms-path", fpath)
-			.withAttribute("lang", lang);
+			.withAttribute("Lang", lang)
+			.withAttribute("For", id)
+			.withAttribute("Channel", chan)
+			.withAttribute("Path", fpath);
 		
 		// copy all attributes 
 		for (Entry<String, String> attr : mr.el.getAttributes().entrySet()) 
 			pel.setAttribute(attr.getKey(), attr.getValue());
-		
-		String val = adapt.getPartValue(ctx, mr, wctx.isPreview());
-		
-		if ("image".equals(fmt)) {
-			pel.setName("img");
-			pel.setAttribute("src", "/galleries" + val);
-			pel.setAttribute("data-dccms-editor", "image");
-		}
-		else if ("html".equals(fmt)) {
-			pel.setAttribute("data-dccms-editor", "html");
-			
-			FuncResult<XElement> xres = wctx.getSite().getWebsite().parseUI(val);
-			
-			// don't stop on error
-			if (xres.hasErrors()) {
-				OperationContext.get().clearExitCode();
-				
-				pel.with(new UIElement("InvalidContent"));
-			}
-			else {
-				XElement xr = xres.getResult();
 	
-				// if we cannot parse then fallback on SSI handler
-				if (xr instanceof UIElement) {
-					UIElement html = (UIElement) xr;
-					
-					// copy all children
-					for (XNode n : html.getChildren())
-						pel.add(n);
-				}
-			}
-		}
-		else if ("md".equals(fmt)) {
-			pel.setAttribute("data-dccms-editor", "md");
-
-	        try {
-				// TODO support safe mode?
-				UIElement html = Processor.parse(wctx.getMarkdownContext(), val);
-				
-				// copy all children
-				for (XNode n : html.getChildren())
-					pel.add(n);
-	        }
-	        catch (Exception x) {
-				pel.with(new UIElement("InvalidContent"));
-	        	Logger.warn("Error adding copy box " + x);
-	        }
-		}
-		else {
-			pel.with(new UIElement("InvalidFormat"));
-		}
+        try {
+    		String val = adapt.getPartValue(ctx, mr, wctx.isPreview());
+    		
+			UIElement html = Processor.parse(wctx.getMarkdownContext(), val);
+			
+			// copy all children
+			for (XNode n : html.getChildren())
+				pel.add(n);
+        }
+        catch (Exception x) {
+			pel.with(new UIElement("InvalidContent"));
+        	Logger.warn("Error adding copy box " + x);
+        }
 		
 		return pel;
 	}	

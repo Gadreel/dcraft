@@ -98,7 +98,10 @@
 				return;
 			}
 			
-			dc.pui.Popup.confirm('Are you sure you want to delete this Product?', function() {
+			dc.pui.Popup.confirm('Are you sure you want to delete this Product?', function(confirm) {
+				if (! confirm)
+					return;
+					
 				//console.log('delete');
 				dc.comm.sendMessage({ 
 					Service: 'dcmCms',

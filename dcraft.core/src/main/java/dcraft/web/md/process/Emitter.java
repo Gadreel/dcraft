@@ -125,6 +125,11 @@ public class Emitter {
             
             break;
         }
+        
+        if (root.type == BlockType.PLUGIN) {
+            this.emitPluginLines(target, root.lines, root.meta);
+        	return;
+        }
 
         if(root.hasLines())  {
             switch(root.type)
@@ -134,9 +139,6 @@ public class Emitter {
                 break;
             case FENCED_CODE:
                 this.emitCodeLines(target, root.lines, root.meta, false);
-                break;
-            case PLUGIN:
-                this.emitPluginLines(target, root.lines, root.meta);
                 break;
             case XML:
                 this.emitRawLines(target, root.lines);

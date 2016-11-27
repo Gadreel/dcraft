@@ -18,6 +18,7 @@ package dcraft.mail;
 
 import java.nio.file.Path;
 
+import dcraft.filestore.IFileStoreFile;
 import dcraft.lang.Memory;
 import dcraft.lang.op.OperationContext;
 import dcraft.struct.FieldStruct;
@@ -28,7 +29,7 @@ import dcraft.util.StringUtil;
 
 public class EmailAttachment {
 	static public EmailAttachment forFile(Path file) {
-		return EmailAttachment.forFile(file, null, null);
+		return EmailAttachment.forFile(file, file.getFileName().toString(), null);
 	}
 	
 	static public EmailAttachment forFile(Path file, String name) {
@@ -42,7 +43,31 @@ public class EmailAttachment {
 		if (StringUtil.isEmpty(name))
 			name = file.getFileName().toString();
 		
-		if (StringUtil.isNotEmpty(mime))
+		if (StringUtil.isEmpty(mime))
+			mime = OperationContext.get().getSite().getMimeType(MimeUtil.getMimeTypeForFile(name));
+		
+		return new EmailAttachment()
+			.withFile(file)
+			.withName(name)
+			.withMime(mime);
+	}
+	
+	static public EmailAttachment forFile(IFileStoreFile file) {
+		return EmailAttachment.forFile(file, file.getName(), null);
+	}
+	
+	static public EmailAttachment forFile(IFileStoreFile file, String name) {
+		return EmailAttachment.forFile(file, name, null);
+	}
+	
+	static public EmailAttachment forFile(IFileStoreFile file, String name, String mime) {
+		if (file == null)
+			return null;
+		
+		if (StringUtil.isEmpty(name))
+			name = file.getName();
+		
+		if (StringUtil.isEmpty(mime))
 			mime = OperationContext.get().getSite().getMimeType(MimeUtil.getMimeTypeForFile(name));
 		
 		return new EmailAttachment()
@@ -77,7 +102,7 @@ public class EmailAttachment {
 		if (StringUtil.isEmpty(name))
 			return null;
 		
-		if (StringUtil.isNotEmpty(mime))
+		if (StringUtil.isEmpty(mime))
 			mime = OperationContext.get().getSite().getMimeType(MimeUtil.getMimeTypeForFile(name));
 		
 		return new EmailAttachment()
@@ -89,6 +114,7 @@ public class EmailAttachment {
 	
 	protected String name = null;
 	protected String mime = null;
+	protected IFileStoreFile storefile = null;
 	protected Path file = null;
 	protected Memory mem = null;
 	
@@ -102,6 +128,10 @@ public class EmailAttachment {
 	
 	public Path getFile() {
 		return this.file;
+	}
+	
+	public IFileStoreFile getStoreFile() {
+		return this.storefile;
 	}
 	
 	public Memory getContent() {
@@ -132,6 +162,11 @@ public class EmailAttachment {
 		return this;
 	}
 	
+	public EmailAttachment withFile(IFileStoreFile v) {
+		this.storefile = v;
+		return this;
+	}
+	
 	public EmailAttachment withContent(Memory v) {
 		this.mem = v;
 		return this;
@@ -150,6 +185,13 @@ public class EmailAttachment {
 					new FieldStruct("Name", this.name),
 					new FieldStruct("Mime", this.mime),
 					new FieldStruct("File", this.file.toAbsolutePath().toString())
+			);
+		
+		if (this.storefile != null)
+			return new RecordStruct(
+					new FieldStruct("Name", this.name),
+					new FieldStruct("Mime", this.mime),
+					new FieldStruct("File", this.storefile)
 			);
 		
 		return null;

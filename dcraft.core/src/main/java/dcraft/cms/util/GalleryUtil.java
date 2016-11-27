@@ -37,7 +37,7 @@ public class GalleryUtil {
 		return null;
 	};
 
-	static public RecordStruct findPan(RecordStruct meta, String alias) {
+	static public RecordStruct findPlan(RecordStruct meta, String alias) {
 		if (StringUtil.isEmpty(alias))
 			return null;
 		

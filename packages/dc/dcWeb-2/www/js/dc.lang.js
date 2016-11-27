@@ -245,9 +245,9 @@ var dc = {
 				var lastIndex = subjectString.indexOf(searchString, position);
 				return lastIndex !== -1 && lastIndex === position;
 			},
-			startsWith: function(searchString, searchString, position) {
+			startsWith: function(subjectString, searchString, position) {
 				position = position || 0;
-				return searchString.lastIndexOf(searchString, position) === position;
+				return subjectString.lastIndexOf(searchString, position) === position;
 			},
 			escapeQuotes: function(v) {
 				return v.replace(/'/g,"\\\'").replace(/"/gi,"\\\"");
@@ -518,9 +518,18 @@ var dc = {
 					return '';
 
 				if (!dc.util.String.isString(val))
-					return val + '';
+					val = '' + val;
 					
 				return val.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+			},
+			unescapeHtml: function(val) {
+				if (dc.util.Struct.isEmpty(val))
+					return '';
+
+				if (!dc.util.String.isString(val))
+					val = '' + val;
+					
+				return val.replace(/&amp;/g, '&').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&apos;/g, '\'');
 			},
 			// retrive 
 			getPath : function(offset) {
@@ -553,6 +562,87 @@ var dc = {
 				 return (('ontouchstart' in window)
 				      || (navigator.MaxTouchPoints > 0)
 				      || (navigator.msMaxTouchPoints > 0));
+			},
+			isChrome: function() {
+				return navigator.userAgent.indexOf('Chrome') > -1;
+			},
+			isExplorer: function() {
+				return navigator.userAgent.indexOf('MSIE') > -1;
+			},
+			isFirefox: function() {
+				return navigator.userAgent.indexOf('Firefox') > -1;
+			},
+			isSafari: function() {
+				var is_chrome = navigator.userAgent.indexOf('Chrome') > -1;
+				var is_safari = navigator.userAgent.indexOf("Safari") > -1;
+				
+				if (is_chrome && is_safari) 
+					is_safari = false;
+					
+				return is_safari;
+			},
+			isOpera: function() {
+				return navigator.userAgent.indexOf("Presto") > -1;
+			},
+			isWindows: function() {
+				return navigator.userAgent.toLowerCase().indexOf("windows") > -1;			
+			}
+		},
+		Image: {
+			blobToUrl: function(blob) {
+				return (window.URL || window.webkitURL).createObjectURL(blob);
+			},
+			load: function(url, callback, progcallback) {
+				var thisImg = new Image();
+				var xmlHTTP = new XMLHttpRequest();
+				
+				var completedPercentage = 0;
+				var prevValue = 0;
+				
+				xmlHTTP.open('GET', url , true);
+				xmlHTTP.responseType = 'arraybuffer';
+			
+			    xmlHTTP.onload = function( e ) {
+					var h = xmlHTTP.getAllResponseHeaders();
+					var m = h.match(/^Content-Type\:\s*(.*?)$/mi);
+					var mimeType = m[1] || 'image/png';
+					
+					var blob = new Blob([ this.response ], { type: mimeType });
+					
+					thisImg.src = window.URL.createObjectURL(blob);
+					
+					if (callback) 
+						callback(thisImg);
+			    };
+			
+			    xmlHTTP.onprogress = function(e) {
+			        if (e.lengthComputable) {
+			            completedPercentage = parseInt(( e.loaded / e.total ) * 100);
+			
+				        if (progcallback && (prevValue != completedPercentage)) 
+				        	progcallback(thisImg, completedPercentage);
+			        }
+			    };
+			
+			    xmlHTTP.onloadstart = function() {
+			        // Display your progress bar here, starting at 0
+			        completedPercentage = 0;
+			        
+			        if (progcallback) 
+			        	progcallback(thisImg, completedPercentage);
+			    };
+			
+			    xmlHTTP.onloadend = function() {
+			        // You can also remove your progress bar here, if you like.
+			        completedPercentage = 100;
+			        
+			        if (progcallback) 
+			        	progcallback(thisImg, completedPercentage);
+			    }
+			
+			    xmlHTTP.send();
+			    
+			    return thisImg;
 			}
 		},
 		Uuid: {
@@ -989,6 +1079,7 @@ dc.lang.Task.prototype = new dc.lang.OperationResult();
 dc.lang.Task.prototype.init = function(steps, observer) {
 	//dc.lang.OperationResult.prototype.init.call(this, entry, node);
 	
+	this.Result = null;
 	this.Steps = steps;
 	this.CurrentStep = 0;
 	this.Observers = [ ];

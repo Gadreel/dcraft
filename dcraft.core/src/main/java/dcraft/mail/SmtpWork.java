@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.activation.DataHandler;
@@ -38,44 +39,60 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-import dcraft.bus.Message;
 import dcraft.cms.util.CatalogUtil;
+import dcraft.filestore.IFileStoreFile;
 import dcraft.hub.Hub;
 import dcraft.io.InputWrapper;
 import dcraft.io.OutputWrapper;
 import dcraft.lang.Memory;
+import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
 import dcraft.log.DebugLevel;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.struct.Struct;
+import dcraft.struct.scalar.StringStruct;
 import dcraft.util.HexUtil;
 import dcraft.util.IOUtil;
 import dcraft.util.StringUtil;
-import dcraft.work.IWork;
+import dcraft.work.StateWork;
 import dcraft.work.TaskRun;
+import dcraft.work.WorkStep;
 import dcraft.xml.XElement;
 
-public class SmtpWork implements IWork {
+public class SmtpWork extends StateWork {
+	final public WorkStep PREP_EMAIL = WorkStep.allocate("Prep Email Session", this::prepEmail);
+	final public WorkStep ADD_ATTACH = WorkStep.allocate("Add Attachments", this::addAttach);
+	final public WorkStep SEND_EMAIL = WorkStep.allocate("Send Email", this::sendEmail);
+	
+	protected javax.mail.Message email = null;
+	protected String to = null;
+	protected InternetAddress[] toaddrs = new InternetAddress[0];
+	protected InternetAddress[] dbgaddrs = new InternetAddress[0];
+	protected MimeMultipart content = null;
+	protected int attachcnt = 0;
+	protected int currattach = 0;
+	
 	@Override
-	public void run(TaskRun task) {
+	public void prepSteps(TaskRun trun) {
+		this.withStep(this.INITIALIZE)
+		.withStep(this.PREP_EMAIL)
+		.withStep(this.ADD_ATTACH)
+		.withStep(this.SEND_EMAIL)
+		.withStep(this.FINIALIZE);
+	}	
+	
+	public WorkStep prepEmail(TaskRun task) {
 		XElement settings = CatalogUtil.getSettings("Email");
 		
 		if (settings == null) {
 			task.error("Missing email settings");
-			task.complete();
-			return;
+			return this.FINIALIZE;
 		}
 		
-		String smtpHost = settings.getAttribute("SmtpHost");
-		int smtpPort = (int) StringUtil.parseInt(settings.getAttribute("SmtpPort"), 587);
 		boolean smtpAuth = Struct.objectToBoolean(settings.getAttribute("SmtpAuth", "false"));
 		boolean smtpDebug = Struct.objectToBoolean(settings.getAttribute("SmtpDebug", "false"));
-		String smtpUsername = settings.getAttribute("SmtpUsername");
-		String smtpPassword = settings.hasAttribute("SmtpPassword") 
-				? Hub.instance.getClock().getObfuscator().decryptHexToString(settings.getAttribute("SmtpPassword"))
-				: null;
 		
 		String debugBCC = settings.getAttribute("BccDebug");
 		String skipto = settings.getAttribute("SkipToAddress");
@@ -92,7 +109,7 @@ public class SmtpWork implements IWork {
 			if (StringUtil.isEmpty(reply))
 				reply = settings.getAttribute("DefaultReplyTo");
 			
-			String to = req.getFieldAsString("To");
+			this.to = req.getFieldAsString("To");
 			String subject = req.getFieldAsString("Subject");
 			String body = req.getFieldAsString("Body");
 			String textbody = req.getFieldAsString("TextBody");
@@ -110,21 +127,25 @@ public class SmtpWork implements IWork {
 				props.put("mail.smtp.starttls.enable", "true");
 			}
 			
-	        Session session = Session.getInstance(props);
+	        Session sess = Session.getInstance(props);
 	
 	        // do debug on task with trace level
 	        if (smtpDebug || (OperationContext.get().getLevel() == DebugLevel.Trace)) {
-		        session.setDebugOut(new DebugPrintStream(task));
-		        session.setDebug(true);			        
+	        	sess.setDebugOut(new DebugPrintStream(task));
+	        	sess.setDebug(true);			        
 	        }
 	        
 	        // Create a new Message
-	    	javax.mail.Message email = new MimeMessage(session);
-		        
+	    	this.email = new MimeMessage(sess);
+	    	
 			InternetAddress fromaddr = StringUtil.isEmpty(from) ? null : InternetAddress.parse(from.replace(';', ','))[0];
 			InternetAddress[] rplyaddrs = StringUtil.isEmpty(reply) ? null : InternetAddress.parse(reply.replace(';', ','));
-			InternetAddress[] toaddrs = StringUtil.isEmpty(to) ? new InternetAddress[0] : InternetAddress.parse(to.replace(';', ','));
-			InternetAddress[] dbgaddrs = StringUtil.isEmpty(debugBCC) ? new InternetAddress[0] : InternetAddress.parse(debugBCC.replace(';', ','));
+			
+			if (StringUtil.isNotEmpty(to))
+				this.toaddrs = InternetAddress.parse(to.replace(';', ','));
+			
+			if (StringUtil.isNotEmpty(debugBCC))
+				this.dbgaddrs = InternetAddress.parse(debugBCC.replace(';', ','));
 			
 			if (StringUtil.isNotEmpty(skipto)) {
 				List<InternetAddress> passed = new ArrayList<InternetAddress>();
@@ -140,18 +161,18 @@ public class SmtpWork implements IWork {
 			}
 			
 	        try {				
-				email.setFrom(fromaddr);
+				this.email.setFrom(fromaddr);
 	        	
 	        	if (rplyaddrs != null)
-	        		email.setReplyTo(rplyaddrs);
+	        		this.email.setReplyTo(rplyaddrs);
 	        	
 	        	if (toaddrs != null)
-	        		email.addRecipients(javax.mail.Message.RecipientType.TO, toaddrs);
+	        		this.email.addRecipients(javax.mail.Message.RecipientType.TO, toaddrs);
 	        	
 	        	if (dbgaddrs != null)
-	        		email.addRecipients(javax.mail.Message.RecipientType.BCC, dbgaddrs);
+	        		this.email.addRecipients(javax.mail.Message.RecipientType.BCC, dbgaddrs);
 	        	
-	        	email.setSubject(subject);
+	        	this.email.setSubject(subject);
 	     
 	            // ALTERNATIVE TEXT/HTML CONTENT
 	            MimeMultipart cover = new MimeMultipart((textbody != null) ? "alternative" : "mixed");
@@ -166,131 +187,193 @@ public class SmtpWork implements IWork {
 	            MimeBodyPart html = new MimeBodyPart();
 	            html.setContent(body, "text/html");
 	            cover.addBodyPart(html);
-	     
-	            // add the attachment parts, if any
+	            
 	            ListStruct attachments = req.getFieldAsList("Attachments");
 	            
-	            if ((attachments != null) && (attachments.getSize() > 0)) {
+	            this.attachcnt = (attachments != null) ? attachments.getSize() : 0;
+	            
+	            if (attachcnt > 0) {
 	            	// hints - https://mlyly.wordpress.com/2011/05/13/hello-world/
 		            // COVER WRAP
 		            MimeBodyPart wrap = new MimeBodyPart();
 		            wrap.setContent(cover);
 		            
-		            MimeMultipart content = new MimeMultipart("related");
-		            content.addBodyPart(wrap);	        	
+		            this.content = new MimeMultipart("related");
+		            this.content.addBodyPart(wrap);	        	
 	            	
-	            	for (Struct itm : attachments.getItems()) {
-	            		RecordStruct attachment = (RecordStruct) itm;
-	            	
-	            		String name = attachment.getFieldAsString("Name"); 
-	            		String mime = attachment.getFieldAsString("Mime"); 
-	            		Memory smem = attachment.getFieldAsBinary("Content");
-	            		
-	            		if (attachment.hasField("File"))
-	            			smem = IOUtil.readEntireFileToMemory(Paths.get(attachment.getFieldAsString("File")));
-	            		
-	            		Memory mem = smem;
-	            		mem.setPosition(0);
-	            		
-	            		MimeBodyPart apart = new MimeBodyPart();
-
-			            DataSource source = new DataSource() {								
-							@Override
-							public OutputStream getOutputStream() throws IOException {
-								return new OutputWrapper(mem);		// TODO technically we should reset mem to pos 0
-							}
-							
-							@Override
-							public String getName() {
-								return name;
-							}
-							
-							@Override
-							public InputStream getInputStream() throws IOException {
-								return new InputWrapper(mem);		// TODO technically we should reset mem to pos 0 
-							}
-							
-							@Override
-							public String getContentType() {
-								return mime;
-							}
-						};
-						
-						apart.setDataHandler(new DataHandler(source));
-						apart.setFileName(name);
-			            
-			            content.addBodyPart(apart);
-	            	}
-	            	
-	            	email.setContent(content);
+	            	this.email.setContent(this.content);
 	            }
 	            else {
-	            	email.setContent(cover);
+	            	this.email.setContent(cover);
 	            }
 	            
-	        	email.saveChanges();		        	
 	        } 
 	        catch (Exception x) {
-	        	task.error(1, "dciSendMail unable to send message due to invalid fields.");
+	        	task.error(1, "dcSendMail unable to send message due to invalid fields.");
 	        }
-
-	        InternetAddress[] recip = Stream.concat(Arrays.stream(toaddrs), Arrays.stream(dbgaddrs)).toArray(InternetAddress[]::new);
-	        
-        	if (!task.hasErrors() && (recip.length > 0)) {
-    	    	Transport t = null;
-	        	
-		        try {
-					t = session.getTransport("smtp");
-					
-					t.connect(smtpHost, smtpPort, smtpUsername, smtpPassword);
-					
-	        		t.sendMessage(email, recip);
-					
-		            t.close();
-		        	
-		            // TODO wish we could get INFO: Received successful response: 200, AWS Request ID: b599ca95-bc82-11e0-846a-ab5fa57d84d4
-		        } 
-		        catch (Exception x) {
-		        	task.error(1, "dciSendMail unable to send message due to service problems.  Error: " + x);
-		        }
-		        
-		        if (t != null) {
-		        	if (t.isConnected()) {
-		        		try {
-							t.close();
-						} 
-		        		catch (MessagingException e) {
-						}
-		        	}
-		        }
-        	}
-			
-	        if (task.hasErrors())
-	        	task.info(0, "Unable to send email to: " + to);
-	        else
-	        	task.info(0, "Email sent to: " + to);
 		}
         catch (AddressException x) {
-        	task.error(1, "dciSendMail unable to send message due to addressing problems.  Error: " + x);
+        	task.error(1, "dcSendMail unable to send message due to addressing problems.  Error: " + x);
         }
-		finally {
-			RecordStruct smsg = req.getFieldAsRecord("StatusMessage");		
-			
-			if (smsg != null) {
-				Message smsg2 = task.toLogMessage();
-				smsg2.copyFields(smsg);
-				Hub.instance.getBus().sendMessage(smsg2);
+		
+		return WorkStep.NEXT;
+	}	
+
+	public WorkStep addAttach(TaskRun task) {
+		RecordStruct req = (RecordStruct) task.getTask().getParams();
+
+		if (this.currattach >= this.attachcnt)
+			return WorkStep.NEXT;
+
+		ListStruct attachments = req.getFieldAsList("Attachments");
+
+		RecordStruct attachment = attachments.getItemAsRecord(this.currattach);
+
+		// add the attachment parts, if any
+		String name = attachment.getFieldAsString("Name");
+		String mime = attachment.getFieldAsString("Mime");
+		
+		Consumer<Memory> addAttach = new Consumer<Memory>() {
+			@Override
+			public void accept(Memory mem) {
+				mem.setPosition(0);
+
+				MimeBodyPart apart = new MimeBodyPart();
+
+				DataSource source = new DataSource() {
+					@Override
+					public OutputStream getOutputStream() throws IOException {
+						return new OutputWrapper(mem);
+					}
+
+					@Override
+					public String getName() {
+						return name;
+					}
+
+					@Override
+					public InputStream getInputStream() throws IOException {
+						return new InputWrapper(mem);
+					}
+
+					@Override
+					public String getContentType() {
+						return mime;
+					}
+				};
+
+				try {
+					apart.setDataHandler(new DataHandler(source));
+					apart.setFileName(name);
+
+					SmtpWork.this.content.addBodyPart(apart);
+
+					SmtpWork.this.currattach++;
+				} 
+				catch (Exception x) {
+					task.error(1, "dcSendMail unable to send message due to invalid fields.");
+				}
+				
+				task.resume();
 			}
-			
-			task.complete();
+		};
+
+		Memory smem = attachment.getFieldAsBinary("Content");
+		Struct fobj = attachment.getField("File");
+
+		if (smem != null) {
+			addAttach.accept(smem);
 		}
+		else if (fobj instanceof StringStruct) {
+			addAttach.accept(IOUtil.readEntireFileToMemory(Paths.get(((StringStruct) fobj).getValue())));
+		}
+		else if (fobj instanceof IFileStoreFile) {
+			((IFileStoreFile) fobj).readAllBinary(new FuncCallback<Memory>() {
+				@Override
+				public void callback() {
+					if (this.hasErrors())
+						task.resume();
+					else
+						addAttach.accept(this.getResult());
+				}
+			});
+		}
+
+		return WorkStep.WAIT;
 	}
-	
+
+	public WorkStep sendEmail(TaskRun task) {
+		XElement settings = CatalogUtil.getSettings("Email");
+
+		if (settings == null) {
+			task.error("Missing email settings");
+			return this.FINIALIZE;
+		}
+
+		String smtpHost = settings.getAttribute("SmtpHost");
+		int smtpPort = (int) StringUtil.parseInt(
+				settings.getAttribute("SmtpPort"), 587);
+		String smtpUsername = settings.getAttribute("SmtpUsername");
+		String smtpPassword = settings.hasAttribute("SmtpPassword") 
+				? Hub.instance.getClock().getObfuscator().decryptHexToString(settings.getAttribute("SmtpPassword"))
+				: null;
+
+		InternetAddress[] recip = Stream.concat(Arrays.stream(this.toaddrs),
+				Arrays.stream(this.dbgaddrs)).toArray(InternetAddress[]::new);
+
+		if (!task.hasErrors() && (recip.length > 0)) {
+			Transport t = null;
+
+			try {
+				this.email.saveChanges();
+
+				t = this.email.getSession().getTransport("smtp");
+
+				t.connect(smtpHost, smtpPort, smtpUsername, smtpPassword);
+
+				t.sendMessage(email, recip);
+
+				t.close();
+
+				// TODO wish we could get INFO: Received successful response:
+				// 200, AWS Request ID: b599ca95-bc82-11e0-846a-ab5fa57d84d4
+			} 
+			catch (Exception x) {
+				task.error(1, "dcSendMail unable to send message due to service problems.  Error: " + x);
+			}
+
+			if (t != null) {
+				if (t.isConnected()) {
+					try {
+						t.close();
+					} 
+					catch (MessagingException e) {
+					}
+				}
+			}
+		}
+
+		if (task.hasErrors())
+			task.info(0, "Unable to send email to: " + this.to);
+		else
+			task.info(0, "Email sent to: " + this.to);
+
+		return WorkStep.NEXT;
+	}
+
+	@Override
+	protected void finalize() throws Throwable {
+		this.content = null;
+		this.email = null;
+		
+		super.finalize();
+	}
+
 	public class DebugPrintStream extends PrintStream {
 		protected OperationResult or = null;
-		
+
 		public DebugPrintStream(OperationResult or) {
-			super(new OutputStream() {				
+			super(new OutputStream() {
 				@Override
 				public void write(int b) throws IOException {
 					if (b == 13)
@@ -299,14 +382,13 @@ public class SmtpWork implements IWork {
 						System.out.print(HexUtil.charToHex(b));
 				}
 			});
-			
-			this.or = or;			
+
+			this.or = or;
 		}
-		
+
 		@Override
 		public void println(String msg) {
 			or.trace(0, msg);
 		}
 	}
-
 }

@@ -1,10 +1,11 @@
 package dcraft.mail;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 import dcraft.filestore.CommonPath;
+import dcraft.filestore.IFileStoreFile;
+import dcraft.lang.op.FuncResult;
 import dcraft.struct.FieldStruct;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
@@ -13,7 +14,7 @@ import dcraft.util.StringUtil;
 import dcraft.web.core.BaseContext;
 
 public class EmailContext extends BaseContext {
-	static public EmailContext forRequestParams(CommonPath template, RecordStruct params, RecordStruct dparams, Path datapath) {
+	static public EmailContext forRequestParams(CommonPath template, RecordStruct params, RecordStruct dparams, IFileStoreFile datapath) {
 		EmailContext ctx = new EmailContext();
 		
 		ctx.data = dparams;
@@ -38,6 +39,9 @@ public class EmailContext extends BaseContext {
 		}
 		
 		if (dparams != null) {
+			if (dparams.isNotFieldEmpty("Data"))
+				dparams = dparams.getFieldAsRecord("Data");
+			
 			for (FieldStruct fld : dparams.getFields()) 
 				ctx.putInternalParam(fld.getName(), Struct.objectToString(fld.getValue()));
 		}
@@ -51,7 +55,7 @@ public class EmailContext extends BaseContext {
 	protected String subject = null;
 	protected String html = null;
 	protected String text = null;
-	protected Path datapath = null;
+	protected IFileStoreFile datapath = null;
 	protected CommonPath path = null;
 	protected RecordStruct data = null;
 	protected List<EmailAttachment> attachments = new ArrayList<EmailAttachment>();
@@ -121,6 +125,10 @@ public class EmailContext extends BaseContext {
 		return this.data;
 	}
 	
+	public IFileStoreFile getDataPath() {
+		return this.datapath;
+	}
+	
 	public RecordStruct toParams() {
 		RecordStruct resp = new RecordStruct();
 		
@@ -135,9 +143,6 @@ public class EmailContext extends BaseContext {
 		
 		if (StringUtil.isNotEmpty(this.subject))
 			resp.withField("Subject", this.subject);
-		
-		if (StringUtil.isNotEmpty(this.to))
-			resp.withField("To", this.to);
 		
 		if (StringUtil.isNotEmpty(this.html))
 			resp.withField("Body", this.html);
@@ -157,4 +162,15 @@ public class EmailContext extends BaseContext {
 		return resp;
 	}
 	
+	@Override
+	public String expandMacro(String macro) {
+		if (! macro.startsWith("data|"))
+			return super.expandMacro(macro);
+		
+		String[] parts = macro.split("\\|");
+		
+		FuncResult<Struct> val =  this.data.select(parts[1]);
+
+		return val.isNotEmptyResult() ? Struct.objectToString(val.getResult()) : "";
+	}	
 }

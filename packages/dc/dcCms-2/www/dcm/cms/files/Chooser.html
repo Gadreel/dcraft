@@ -1,0 +1,264 @@
+<dc.Html Title="Files Browser" AuthTags="Editor,Admin">
+	<dc.RequireLib Path="/js/dc.transfer.js" />
+	<dc.RequireLib Path="/js/vendor/jquery.fileDownload.js" />
+	
+	<dc.Body>
+		<dc.Panel Title="Files Browser">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="DoUpload" Label="Upload File" />
+					<dc.Button Click="DoAddFolder" Label="Add Folder" />
+					<dc.Button Click="DoRefresh" Label="Refresh" />
+				</dcf.FormButtons>
+			</dcf.Form>
+			
+			<h4 id="lblDepFcPath" />
+			
+			<!-- TODO stylize listing -->
+			<ul id="lstDepFcFiles" />
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (!this.Store.Path) {
+				if (this.Params.Path)
+					entry.Store.Path = this.Params.Path;
+				else
+					entry.Store.Path = '/';
+			}
+			
+			/* TODO add menu for delete and download */
+			
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="LoadList"><![CDATA[
+			var entry = this;
+			
+			$('#lblDepFcPath').text('Path: ' + entry.Store.Path);
+		
+			$('#lstDepFcFiles').empty();
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmBucket',
+				Feature: 'Buckets',
+				Op: 'ListFiles',
+				Body: { 
+					Bucket: 'WebFileStore',
+					Path: entry.Store.Path
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				var list = $('#lstDepFcFiles');
+				
+				// add parent folder
+				if (entry.Store.Path.length > 1) {
+					var litm = $('<li></li>');
+					
+					litm.append('<i class="fa fa-folder-o"></i> ');
+				
+					var anchr = $('<a href="#">.. [parent]</a>');
+					
+					anchr.click(item, function(e) {
+						var curr = entry.Store.Path;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+						
+						if (!path)
+							path = '/';
+							
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr);
+					
+					list.append(litm);
+				}
+				
+				var items = resp.Body;
+				var sfield = entry.Store.SortField ? entry.Store.SortField : 'FileName';
+				
+				// sort
+				items.sort(dc.util.List.sortObjects(sfield));
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					var litm = $('<li></li>');
+
+					if (item.IsFolder) 					
+						litm.append('<i class="fa fa-folder-o"></i> ');
+					else
+						litm.append('<i class="fa fa-file-o"></i> ');
+						
+					var path = '/files/' + item.FileName;
+				
+					if (entry.Store.Path.length > 1)
+						path = '/files' + entry.Store.Path + '/' + item.FileName;
+					
+					var anchr = $('<a href="' + encodeURI(path) + '">' + dc.util.Web.escapeHtml(item.FileName) + '</a>');
+					
+					anchr.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						if (e.data.IsFolder) {
+							entry.Store.Path = path;
+							entry.callPageFunc('LoadList');
+						}
+						else if (entry.Params.Callback) {
+							entry.Layer.back();
+							
+							entry.Params.Callback( [ {
+								FileName: e.data.FileName,
+								FullPath: path
+							} ] );
+						}
+						else {
+							entry.Store.PopPath = path;
+						
+							// TODO $('#puFileOpts').popup('open', { positionTo: e.currentTarget });
+						}
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					litm.append(anchr);
+					
+					/*
+					if (item.IsFolder) 					
+						litm.append('<td></td>');
+					else
+						litm.append('<td>' + dc.transfer.fmtFileSize(item.Size) + '</td>');
+					
+					if (item.LastModified) 
+						litm.append('<td>' + dc.util.Date.formatZLocalMedium(item.LastModified) + '</td>');
+					else
+						litm.append('<td></td>');
+					*/
+					
+					list.append(litm);
+				}
+			});	
+	]]></dc.Function>
+	<dc.Function Name="DoDownload"><![CDATA[
+			$('#puFileOpts').popup('close');
+			
+			//console.log('dl: ' + this.Store.PopPath);
+		
+			// TODO move all this to dcm.download.FUNC
+			
+			dc.util.Cookies.deleteCookie('fileDownload');
+			
+			var tmsg = { 
+				Service: 'dcmBucket',
+				Feature: 'Buckets',
+				Op: 'StartDownload',
+				Body: {
+					FilePath: this.Store.PopPath
+				}
+			};
+			
+			var cmsg = { 
+				Service: 'Session',
+				Feature: 'DataChannel',
+				Op: 'Establish',
+				Body: {
+					Title: "Downloading " + this.Store.PopPath,
+					StreamRequest: tmsg
+				}
+			};
+			
+			dc.comm.sendMessage(cmsg, function(rmsg) {
+				if (rmsg.Result == 0) { 
+					var binding = rmsg.Body;
+					
+					$.fileDownload('/download/' + binding.ChannelId, {
+						httpMethod: 'GET', 
+						successCallback: function(url) {
+							// only means that it started, not finished
+							console.log('download worked!');
+						},
+						failCallback: function(html, url) {
+							console.log('download failed!');
+						}
+					});
+				}
+				else {			
+					dc.pui.Popup.alert('Error requesting upload channel.');
+				}
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoDelete"><![CDATA[
+			var page = this;
+			
+			$('#puFileOpts').popup('close');
+			
+			console.log('im: ' + page.Store.PopPath);
+			
+			dc.pui.Popup.confirm('Are you sure you want to remove this file?', function(confirm) {
+				if (! confirm)
+					return;
+					
+				dc.comm.sendMessage({ 
+					Service: 'dcmBucket',
+					Feature: 'Buckets',
+					Op: 'DeleteFile',
+					Body: {
+						FilePath: page.Store.PopPath
+					}
+				}, function(resp) {
+					if (resp.Result > 0) 
+						dc.pui.Popup.alert(resp.Message);
+					else
+						page.callPageFunc('LoadList');
+				});	
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoRefresh"><![CDATA[
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="DoAddFolder"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Dialog.loadPage('/dcm/cms/files/AddFolder', { 
+				Path: this.Store.Path,
+				Callback: function(path) {
+					entry.Store.Path = path;
+					
+					entry.callPageFunc('LoadList');
+				}
+			});	
+	]]></dc.Function>
+	<dc.Function Name="DoUpload"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Dialog.loadPage('/dcm/cms/files/UploadFile', { 
+				Path: this.Store.Path,
+				Callback: function(files) {
+					if (entry.Params.Callback) {
+						entry.Layer.back();
+						entry.Params.Callback(files);
+					}
+					else {
+						entry.callPageFunc('LoadList');
+					}
+				}
+			});	
+	]]></dc.Function>
+</dc.Html>

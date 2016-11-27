@@ -1,0 +1,51 @@
+<dc.Html Title="Add Folder" AuthTags="User">
+	<dc.Body>
+		<dc.Panel Title="Add Folder">
+			<dcf.Form Name="AddFolder">
+				<dcf.FormButtons>
+					<dcf.SubmitButton Label="Add" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Path" Label="Name" Required="true" Pattern="[\w-]+" 
+					placeholder="folder name, no spaces - use dash instead of space" />
+			</dcf.Form>
+		</dc.Panel>
+	</dc.Body>
+	
+	<dc.Function Name="Load"><![CDATA[
+			this.form().query('Path').focus();				
+	]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e">
+			e.AsNew = true;
+			e.Data = {
+				Path: ''
+			};
+	</dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			if (e.Data.Path.indexOf('/') != 0)
+				e.Data.Path = '/' + e.Data.Path;
+	
+			if (entry.Params.Path && (entry.Params.Path != '/'))
+				e.Data.Path = entry.Params.Path + e.Data.Path;
+	
+			entry.Params.Path = e.Data.Path;
+			
+			e.Message = { 
+				Service: 'dcmBucket',
+				Feature: 'Buckets',
+				Op: 'AddFolder',
+				Body: {
+					Bucket: 'WebGallery',
+					Path: e.Data.Path
+				}
+			};
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
+			entry.Params.Callback( entry.Params.Path );
+	]]></dc.Function>
+</dc.Html>

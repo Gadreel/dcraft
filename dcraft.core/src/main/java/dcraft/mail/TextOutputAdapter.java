@@ -1,10 +1,13 @@
 package dcraft.mail;
 
+import java.io.BufferedReader;
+import java.io.StringReader;
 import java.util.regex.Matcher;
 
 import dcraft.filestore.CommonPath;
 import dcraft.io.CacheFile;
 import dcraft.lang.op.OperationCallback;
+import dcraft.log.Logger;
 import dcraft.util.StringUtil;
 import dcraft.web.ui.adapter.SsiOutputAdapter;
 
@@ -33,13 +36,53 @@ public class TextOutputAdapter implements IOutputAdapter {
 	
 	@Override
 	public void execute(EmailContext ctx, OperationCallback callback) {
-		String content = this.processContent(ctx, this.content);
+		String md = this.processContent(ctx, this.content);
 		
-		// first line is the subject
-		int pos = content.indexOf('\n');
+		try (BufferedReader bufReader = new BufferedReader(new StringReader(md))) {
+			String line = bufReader.readLine();
+			
+			while (StringUtil.isNotEmpty(line)) {
+				int pos = line.indexOf(':');
+				
+				if (pos == -1)
+					break;
+				
+				String name = line.substring(0, pos).replace("-", "");	// dash is optional (as in Reply-To:)
+				String value = line.substring(pos + 1).trim();
+				
+				if ("Subject".equals(name))
+					ctx.setSubject(value);
+				else if ("Title".equals(name))
+					ctx.setSubject(value);
+				else if ("ReplyTo".equals(name))
+					ctx.setReplyTo(value);
+				else if ("From".equals(name))
+					ctx.setFrom(value);
+				else if ("To".equals(name))
+					ctx.setTo(value);
+	
+				line = bufReader.readLine();
+			}
+			
+			// see if there is more - the body
+			if (line != null) {
+				StringBuilder sb = new StringBuilder();
+				
+				line = bufReader.readLine();
+				
+				while (line != null) {
+					sb.append(line);
+					sb.append("\n");
 		
-		ctx.setSubject(content.substring(0, pos));
-		ctx.setText(StringUtil.stripLeadingWhitespace(content.substring(pos + 1)));
+					line = bufReader.readLine();
+				}
+				
+				ctx.setText(StringUtil.stripLeadingWhitespace(sb.toString()));
+			}		
+		}
+		catch (Exception x) {
+			Logger.error("Problem loading Email template: " + x);
+		}
 		
 		callback.complete();
 	}

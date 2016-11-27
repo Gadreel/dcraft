@@ -1,0 +1,80 @@
+<dc.Html Title="Add Show" AuthTags="Admin,Editor">
+	<dc.Body>
+		<dc.Panel Title="Add Show">
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="AfterSave" Label="Cancel" />
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Title" Label="Title" Required="true" />
+				<dcf.Text Name="Alias" Label="Alias" Required="true" Pattern="[\w-]+" />
+				<dcf.Select Name="Variation" Label="Variation" Required="true">
+					<option data-placeholder="true" value="NULL">Select Variation</option>
+				</dcf.Select>
+			</dcf.Form>
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+		
+			entry.Store.Gallery = entry.Params.Gallery;
+			
+			// TODO support load Gallery when missing parameter
+			//dc.cms.image.Loader.loadGallery(entry.Store.Path, function(gallery, resp) {
+			
+			if (entry.Store.Gallery.Meta.Variations) {
+				var ulist = [ ];
+				
+				for (var i1 = 0; i1 < entry.Store.Gallery.Meta.Variations.length; i1++) {
+					var v = entry.Store.Gallery.Meta.Variations[i1]; 
+					ulist.push({ Value: v.Alias, Label: v.Name });
+				}
+				
+				entry.form().input('Variation').add(ulist);
+			}
+		
+			entry.form().query('Title').focus();				
+	]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+				
+			e.Data = {};			// we are adding a new vari
+			e.AsNew = true;
+			 
+			if (entry.Params.Alias) 
+				e.Data = entry.Store.Gallery.findShow(entry.Params.Alias);
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Gallery.updateShow(e.Data);
+
+			entry.Store.Gallery.save(function(resp) {
+				if (resp.Result > 0) 
+					dc.pui.Popup.alert(resp.Message, function() {
+						e.Task.resume();
+					});
+				else 
+					e.Task.resume();
+			});		
+			
+			e.Wait = true;
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+			var alias = entry.form().input('Alias').getValue();
+			
+			entry.Layer.back();
+			
+			dc.pui.Dialog.loadPage('/dcm/cms/show/Edit', { 
+				Path: entry.Store.Gallery.Path,
+				Gallery: entry.Store.Gallery,
+				Alias: alias,
+				Callback: function(g) {
+					if (entry.Params.Callback)
+						entry.Params.Callback(entry.Store.Gallery);
+				}
+			});	
+	]]></dc.Function>
+</dc.Html>

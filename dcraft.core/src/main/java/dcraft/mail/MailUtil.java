@@ -86,12 +86,13 @@ public class MailUtil {
 		return MailUtil.createSendBuildTask(sparams);
 	}
 	
-	static public Task createBuildSendEmailTask(String from, String to, String reply, CommonPath template, IFileStoreFile datapath) {
+	static public Task createBuildSendEmailTask(String from, String to, String reply, CommonPath template, IFileStoreFile datapath, boolean managed) {
 		RecordStruct sparams = new RecordStruct(
 				new FieldStruct("From", from),
 				new FieldStruct("To", to),
 				new FieldStruct("ReplyTo", reply),
 				new FieldStruct("Template", template),
+				new FieldStruct("Managed", managed),
 				new FieldStruct("DataPath", datapath)
 			);
 			
