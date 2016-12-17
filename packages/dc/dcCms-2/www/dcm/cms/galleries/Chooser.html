@@ -1,10 +1,11 @@
-<dc.Html Title="Gallery Chooser" AuthTags="Editor,Admin">
+<dc.Html Title="Image Chooser" AuthTags="Editor,Admin">
 	<dc.Body>
-		<dc.Panel Title="Gallery Chooser">
+		<dc.Panel Title="Image Chooser">
 			<dcf.Form>
 				<dcf.FormButtons>
 					<dc.Button Click="DoUpload" Label="Quick Upload Image" />
 					<dc.Button Click="DoAddFolder" Label="Add Folder" />
+					<dc.Button Click="DoClose" Label="Close" Scope="Primary" />
 				</dcf.FormButtons>
 			</dcf.Form>
 			
@@ -400,6 +401,11 @@
 					entry.callPageFunc('LoadMeta');
 				} 
 			});	
+	]]></dc.Function>
+	<dc.Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
 	]]></dc.Function>
 	<dc.Function Name="DoEditDataFile"><![CDATA[
 			dc.pui.Dialog.loadPage('/dcm/cms/files/EditFile', { Path: '/galleries' + this.Store.Path + '/data.json', Create: true });	

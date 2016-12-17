@@ -153,6 +153,9 @@ public class InputControl extends UIElement {
 				ic.withAttribute("value", fld.getAttribute("value"));
 		}
 		
+		if (! input.hasNotEmptyAttribute("name") && fld.hasNotEmptyAttribute("name"))
+			ic.withAttribute("name", fld.getAttribute("name"));
+		
 		if (! input.hasNotEmptyAttribute("placeholder") && fld.hasNotEmptyAttribute("placeholder"))
 			ic.withAttribute("placeholder", fld.getAttribute("placeholder"));
 		

@@ -11,17 +11,27 @@
 	-->
 
 	<dc.Body>
-		<div id="panDcwImageViewer">
+		<div id="panDcwImageViewer" style="height: 100%; background-color: rgba(0,0,0,0.66);">
+			<!-- TODO restore
 			<div>Title</div>
-			<!--
-			<div id="panDcwImagePane">
-				<img src="/files/Radiographs/567-114707/Spray-Foaming-Roof-Deck.jpg" />
-			</div>
 			-->
 			
-			<canvas id="panDcwImagePane" />
+			<canvas id="editImageCanvasPresenter" />
 			
+			<!-- TODO restore
 			<div>Caption</div>
+			-->
+			
+			<dc.Link id="panDcwImageViewerClose" Click="onClose" style="position: absolute; top: 24px; right: 24px;">
+				<i class="fa fa-times fa-lg" style="font-size: 32px; background-color: rgba(0,0,0,0.50); color: white; border-radius: 22px; padding: 6px 4px; width: 26px; height: 26px;"></i>
+			</dc.Link>
+			
+			<dc.Link id="panDcwImageViewerLeft" Click="onLeft" style="position: absolute; top: 45%; left: 16px; display: none;">
+				<i class="fa fa-arrow-left" style="font-size: 32px; background-color: rgba(0,0,0,0.50); color: white; border-radius: 22px; padding: 6px 4px; width: 32px; height: 31px;" />
+			</dc.Link>
+			<dc.Link id="panDcwImageViewerRight" Click="onRight" style="position: absolute; top: 45%; right: 16px; display: none;">
+				<i class="fa fa-arrow-right" style="font-size: 32px; background-color: rgba(0,0,0,0.50); color: white; border-radius: 22px; padding: 6px 4px; width: 29px; height: 31px;" />
+			</dc.Link>
 		</div>
 
 		<!--	
@@ -58,33 +68,15 @@
 			
 			//TouchEmulator();
 			
-			//entry.Params.Path = '/galleries/store/product/Awakening/Center.v/original.jpg';  // TODO
+			//if (! entry.Params.Path)
+			//	entry.Params.Path = '/galleries/care-team/group.v/full.png';
+
+			var view = entry.Store.View = entry.Params.View;
 			
-			entry.Params.Path = '/files/Radiographs/567-114707/Spray-Foaming-Roof-Deck.jpg';
-			
-			/*
-			var img = new Image(); //new image in memory
-	
-			img.onload = function(e) {
-				dc.pui.Loader.__cache.SelImg = this;
-				entry.callPageFunc('PrepImage');
-			};
-			*/
-			
-			//img.src = entry.Params.Path;
-			
-			var img = dc.util.Image.load(entry.Params.Path, function(img) {
-				//dc.pui.Loader.__cache.SelImg = img;
-				//entry.callPageFunc('PrepImage');
-				//console.log('amt: done');
-				dc.pui.Loader.__cache.SelImg = this;
-				entry.callPageFunc('PrepImage');
-			}, function(img, amt) {
-				//console.log('amt: ' + amt);
-				
-				entry.Store.Calc.Progress = amt;
-				dc.pui.Loader.requestFrame();
-			});
+			if (dc.handler && dc.handler.tags && dc.handler.tags.ViewImage && dc.handler.tags.ViewImage.init)
+				dc.handler.tags.ViewImage.init(entry, $('#panDcwImageViewer'), entry.Store.View);
+
+			entry.callPageFunc('LoadImage');
 			
 			$('#editImageCanvasPresenter').on('vmouseup', function(e) {
 				entry.Store.Calc.MouseIsDown = false;
@@ -202,6 +194,7 @@
 			});			
 			*/
 			
+			/*
 			$('#editImageZoomRg').change(function(e) {
 				entry.Store.Calc.Zoom = this.value / 100;
 				
@@ -211,6 +204,7 @@
 				e.preventDefault();
 				return false;
 			});
+			*/
 	
 			this.callPageFunc('SetSizes');
 	]]></dc.Function>
@@ -220,7 +214,7 @@
 			var can = $("#editImageCanvasPresenter").get(0);
 			
 			can.width = $(window).width();
-			can.height = $(window).height() - 49;
+			can.height = $(window).height();
 			
 			dc.pui.Loader.requestFrame();
 	]]></dc.Function>
@@ -252,55 +246,111 @@
 			if (entry.Store.Calc.Zoom) {
 				var z = Math.round(entry.Store.Calc.Zoom * 100);
 				
+				/*
 				var cz = $('#editImageZoomRg').val();
 				
 				// prevent infinite calls, only change once per zoom change
 				if (cz != z)
 					$('#editImageZoomRg').val(z).slider("refresh");
+					*/
 			}
 	]]></dc.Function>
-	<dc.Function Name="LoadImage"><![CDATA[
+	<dc.Function Name="LoadImage" Params="idx"><![CDATA[
 			var entry = this;
+
+			$('#panDcwImageViewerLeft,#panDcwImageViewerRight').hide();
+
+			entry.Store.SelImg = null;
+			
+			var view = entry.Store.View;
+			
+			if (dc.handler && dc.handler.tags && dc.handler.tags.ViewImage && dc.handler.tags.ViewImage.switching)
+				dc.handler.tags.ViewImage.switching(entry, $('#panDcwImageViewer'), entry.Store.View);
+			
+			if (view.StartPos > 0)
+				$('#panDcwImageViewerLeft').show();
+
+			if (view.Images.length - 1 > view.StartPos)
+				$('#panDcwImageViewerRight').show();
+			
+			var vname = view.Variant ? view.Variant : 'full';
+			
+			vname += view.Extension ? view.Extension : '.jpg';
+
+			var path = '/galleries' + view.Path + '/' + view.Images[view.StartPos].Alias + '.v/' + vname;
+			
+			dc.util.Image.load(path, 
+				function(img) {
+					entry.Store.SelImg = img;
+					entry.callPageFunc('PrepImage');
+				}, 
+				function(img, amt) {
+					entry.Store.Calc.Progress = amt;
+					dc.pui.Loader.requestFrame();
+				});
+	]]></dc.Function>
+	<dc.Function Name="onLeft"><![CDATA[
+			var entry = this;
+
+			var view = entry.Store.View;
+
+			if (view.StartPos > 0) {
+				view.StartPos--;
+				entry.callPageFunc('LoadImage');
+			}
+	]]></dc.Function>
+	<dc.Function Name="onRight"><![CDATA[
+			var entry = this;
+
+			var view = entry.Store.View;
+
+			if (view.Images.length > view.StartPos) {
+				view.StartPos++;
+				entry.callPageFunc('LoadImage');
+			}
+	]]></dc.Function>
+	<dc.Function Name="onClose"><![CDATA[
+			var entry = this;
+
+			entry.Layer.back();
 	]]></dc.Function>
 	<dc.Function Name="PrepImage"><![CDATA[
 			var entry = this;
 
 			//debugger;
-						
-			var selimg = dc.pui.Loader.__cache.SelImg;
 			
-			entry.Store.Calc.imgWidth = selimg.width;
-			entry.Store.Calc.imgHeight = selimg.height;
+			entry.Store.Calc.imgWidth = entry.Store.SelImg.width;
+			entry.Store.Calc.imgHeight = entry.Store.SelImg.height;
 			
 			// create a buffered 50% and 25% version of the image
 			// this is good for really zoomed out images, as stepping the 
 			// image allows it to keep higher quality for the final zoom
 		    // Draw it at 1/2 size 2 times (step down two times)
 			
-		    dc.pui.Loader.__cache.SelImg50 = document.createElement('canvas');
-		    dc.pui.Loader.__cache.SelImg50.width = entry.Store.Calc.imgWidth / 2;
-		    dc.pui.Loader.__cache.SelImg50.height = entry.Store.Calc.imgHeight / 2;
+		    entry.Store.SelImg50 = document.createElement('canvas');
+		    entry.Store.SelImg50.width = entry.Store.Calc.imgWidth / 2;
+		    entry.Store.SelImg50.height = entry.Store.Calc.imgHeight / 2;
 			
-		    dc.pui.Loader.__cache.SelImg25 = document.createElement('canvas');
-		    dc.pui.Loader.__cache.SelImg25.width = entry.Store.Calc.imgWidth / 4;
-		    dc.pui.Loader.__cache.SelImg25.height = entry.Store.Calc.imgHeight / 4;
+		    entry.Store.SelImg25 = document.createElement('canvas');
+		    entry.Store.SelImg25.width = entry.Store.Calc.imgWidth / 4;
+		    entry.Store.SelImg25.height = entry.Store.Calc.imgHeight / 4;
 			
 			try {
-				var ctx50 = dc.pui.Loader.__cache.SelImg50.getContext('2d');
-				ctx50.drawImage(selimg, 0, 0, entry.Store.Calc.imgWidth / 2, entry.Store.Calc.imgHeight / 2);    
+				var ctx50 = entry.Store.SelImg50.getContext('2d');
+				ctx50.drawImage(entry.Store.SelImg, 0, 0, entry.Store.Calc.imgWidth / 2, entry.Store.Calc.imgHeight / 2);    
 			
 				try {
-					var ctx25 = dc.pui.Loader.__cache.SelImg25.getContext('2d');
-					ctx25.drawImage(dc.pui.Loader.__cache.SelImg50, 0, 0, entry.Store.Calc.imgWidth / 2, entry.Store.Calc.imgHeight / 2, 0, 0, entry.Store.Calc.imgWidth / 4, entry.Store.Calc.imgHeight / 4);
+					var ctx25 = entry.Store.SelImg25.getContext('2d');
+					ctx25.drawImage(entry.Store.SelImg50, 0, 0, entry.Store.Calc.imgWidth / 2, entry.Store.Calc.imgHeight / 2, 0, 0, entry.Store.Calc.imgWidth / 4, entry.Store.Calc.imgHeight / 4);
 				}
 				catch(x) {
 					// if IE barfs then just don't get higher render quality
-					dc.pui.Loader.__cache.SelImg25 = null;
+					entry.Store.SelImg25 = null;
 				}
 			}
 			catch(x) {
 				// if IE barfs then just don't get higher render quality
-				dc.pui.Loader.__cache.SelImg50 = null;
+				entry.Store.SelImg50 = null;
 			}
 			
 			entry.callPageFunc('PrepSettings');
@@ -333,6 +383,9 @@
 			
 			entry.callPageFunc('UpdateZoom');
 			entry.callPageFunc('SetSizes');
+			
+			if (dc.handler && dc.handler.tags && dc.handler.tags.ViewImage && dc.handler.tags.ViewImage.switched)
+				dc.handler.tags.ViewImage.switched(entry, $('#panDcwImageViewer'), entry.Store.View);
 	]]></dc.Function>
 	<dc.Function Name="DoClose"><![CDATA[
 			window.history.back();
@@ -348,15 +401,15 @@
 			
 			ctx.clearRect(0, 0, tcan.width, tcan.height);
 			
-			var src = dc.pui.Loader.__cache.SelImg;
+			var src = entry.Store.SelImg;
 			
 			if (src) {
 				var z = Math.round(entry.Store.Calc.Zoom * 100);
 				
-				if (dc.pui.Loader.__cache.SelImg25 && (z < 25))
-					src = dc.pui.Loader.__cache.SelImg25;
-				else if (dc.pui.Loader.__cache.SelImg50 && (z < 50))
-					src = dc.pui.Loader.__cache.SelImg50;
+				if (entry.Store.SelImg25 && (z < 25))
+					src = entry.Store.SelImg25;
+				else if (entry.Store.SelImg50 && (z < 50))
+					src = entry.Store.SelImg50;
 			
 				if (src) {
 					ctx.drawImage(
@@ -398,5 +451,9 @@
 				entry.Store.Kill();
 				entry.Store.Kill = null;
 			}
+			
+			entry.Store.SelImg25 = null;
+			entry.Store.SelImg50 = null;
+			entry.Store.SelImg = null;
 	]]></dc.Function>
 </dc.Html>

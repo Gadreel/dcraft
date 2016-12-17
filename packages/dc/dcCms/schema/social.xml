@@ -57,6 +57,37 @@
 						</Response>
 					</Op>
 				</Feature>
+				<Feature Name="Twitter">
+					<Op Name="Feed">
+						<Description>
+							Load a Twitter feed.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body">
+								<Record>
+									<Field Name="Alternate" Type="dcTinyString" />
+									<Field Name="Count" Type="Integer" />
+								</Record>
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage">
+							<Field Name="Body">
+								<List>
+									<Record>
+										<Field Name="PostId" Type="dcSmallString" />
+										<Field Name="Posted" Type="dcSmallString" />
+										<Field Name="ScreenName" Type="dcSmallString" />
+										<Field Name="By" Type="dcSmallString" />
+										<Field Name="ById" Type="dcSmallString" />
+										<Field Name="Message" Type="String" />
+										<Field Name="Html" Type="String" />
+										<Field Name="Link" Type="dcSmallString" />
+									</Record>
+								</List>
+							</Field>
+						</Response>
+					</Op>
+				</Feature>
 			</Secure>
 		</Service>
 	</Services>

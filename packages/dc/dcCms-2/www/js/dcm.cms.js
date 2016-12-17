@@ -23,17 +23,28 @@ dc.cms.Loader = {
 	init: function(options) {
 		// TODO lookup options from dc.handler
 		
-		if (! options)
-			options = { 
-				AuthTags: [ 'Editor', 'Admin', 'Developer' ],
-				Page: '/dcm/cms/feed/Page/Edit-Prop',
-				Menu: 'dcmPageProps',
-				Params: {
-					Channel: 'Pages',
-					Path: $('#dcuiMain').attr('data-dccms-path')
-				}
-			};
-	
+		if (! options) {
+			var cmspath = dc.pui.Loader.MainLayer.Current.getDefinition().CmsPath;
+
+			if (cmspath)
+				options = { 
+					AuthTags: [ 'Editor', 'Admin', 'Developer' ],
+					Page: '/dcm/cms/feed/Page/Edit-Prop',
+					Menu: 'dcmPageProps',
+					Params: {
+						Channel: 'Pages',
+						Path: cmspath
+					}
+				};
+			else
+				options = { 
+					AuthTags: [ 'Editor', 'Admin', 'Developer' ],
+					Page: '/dcw/EditSelf',
+					Menu: 'dcmGeneral',
+					Params: { }
+				};
+		}
+		
 		var itab = $('<div id="dcuiAppTab"><i class="fa fa-angle-double-right"></i></div>');
 		
 		itab.click(function (e) {
@@ -57,6 +68,35 @@ dc.cms.Loader = {
 
 dc.pui.Apps.Menus.dcmEmpty = {
 	Options: [
+	]
+};
+
+dc.pui.Apps.Menus.dcmGeneral = {
+	Options: [
+		{
+			Title: 'Galleries',
+			Op: function(e) {
+				dc.pui.App.loadPage('/dcm/cms/galleries/Browser');
+			}
+		},
+		{
+			Title: 'Files',
+			Op: function(e) {
+				dc.pui.App.loadPage('/dcm/cms/files/Browser');
+			}
+		},
+		{
+			Title: 'My Account',
+			Op: function(e) {
+				dc.pui.Dialog.loadPage('/dcw/EditSelf');
+			}
+		},
+		{
+			Title: 'Sign Out',
+			Op: function(e) {
+				dc.pui.Loader.signout();
+			}
+		}
 	]
 };
 
@@ -100,7 +140,6 @@ dc.pui.Apps.Menus.dcmPagePart = {
 	Options: [
 		{
 			Title: 'Content',
-			Auth: [ 'Developer' ],
 			Op: function(e) {
 				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Part-Content');
 			}

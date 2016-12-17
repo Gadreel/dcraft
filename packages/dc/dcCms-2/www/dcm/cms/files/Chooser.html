@@ -1,14 +1,15 @@
-<dc.Html Title="Files Browser" AuthTags="Editor,Admin">
+<dc.Html Title="File Chooser" AuthTags="Editor,Admin">
 	<dc.RequireLib Path="/js/dc.transfer.js" />
 	<dc.RequireLib Path="/js/vendor/jquery.fileDownload.js" />
 	
 	<dc.Body>
-		<dc.Panel Title="Files Browser">
+		<dc.Panel Title="File Chooser">
 			<dcf.Form>
 				<dcf.FormButtons>
 					<dc.Button Click="DoUpload" Label="Upload File" />
 					<dc.Button Click="DoAddFolder" Label="Add Folder" />
 					<dc.Button Click="DoRefresh" Label="Refresh" />
+					<dc.Button Click="DoClose" Label="Close" Scope="Primary" />
 				</dcf.FormButtons>
 			</dcf.Form>
 			
@@ -232,6 +233,11 @@
 	]]></dc.Function>
 	<dc.Function Name="DoRefresh"><![CDATA[
 			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
 	]]></dc.Function>
 	<dc.Function Name="DoAddFolder"><![CDATA[
 			var entry = this;

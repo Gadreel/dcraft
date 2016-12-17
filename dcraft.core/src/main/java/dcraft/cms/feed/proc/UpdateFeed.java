@@ -33,8 +33,10 @@ public class UpdateFeed implements IStoredProc {
 	public void execute(DatabaseInterface conn, DatabaseTask task, OperationResult log) {
 		RecordStruct params = task.getParamsAsRecord();
 		
+		String localpath = params.getFieldAsString("Path");
+		
 		String path = "/" + params.getFieldAsString("Site") + "/" +
-				params.getFieldAsString("Channel") + params.getFieldAsString("Path");
+				params.getFieldAsString("Channel") + localpath;
 		
 		ListStruct atags = params.getFieldAsList("AuthorizationTags");
 		ListStruct tempctags = params.getFieldAsList("ContentTags");
@@ -170,6 +172,9 @@ public class UpdateFeed implements IStoredProc {
 				DbRecordRequest req = (oid == null) ? new InsertRecordRequest() : new UpdateRecordRequest().withId(oid.toString());
 				
 				req.withTable("dcmFeed");
+				
+				if (localpath != null)
+					req.withUpdateField("dcmLocalPath", localpath);
 				
 				if (path != null)
 					req.withUpdateField("dcmPath", path);

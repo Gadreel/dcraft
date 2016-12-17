@@ -1,9 +1,9 @@
-// dc.pui.Loader.addExtraLibs( ['/js/dc/dc.db.js'] );
+// dc.pui.Loader.addExtraLibs( ['/js/dc.db.js'] );
 
 if (!dc.db)
 	dc.db = {};
 
-var dc.db.database = {
+dc.db.database = {
 	Ping: function() {
 		dc.comm.sendMessage({ 
 			Service: 'dcCoreDataServices', 

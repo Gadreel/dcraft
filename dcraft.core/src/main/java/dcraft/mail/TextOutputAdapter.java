@@ -105,7 +105,7 @@ public class TextOutputAdapter implements IOutputAdapter {
 
 				//System.out.println("include v file: " + vfilename);
 				
-				CacheFile sf = ctx.getSite().findSectionFile("email", vfilename, ctx.isPreview());
+				CacheFile sf = ctx.getSite().getWebsite().findSectionFile("email", vfilename, ctx.isPreview());
 				
 				if (sf == null) 
 					continue;

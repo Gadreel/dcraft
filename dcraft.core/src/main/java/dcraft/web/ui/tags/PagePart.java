@@ -21,6 +21,11 @@ public class PagePart extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new PagePart();
+	}
+	
+	@Override
 	public void build(WeakReference<UIWork> work) {
 		if (this.hasNotEmptyAttribute("Channel")) {
 			XElement channelDef = FeedIndexer.findChannel(this.getAttribute("Channel")); 

@@ -22,6 +22,7 @@ import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.bus.MessageUtil;
 import dcraft.cms.feed.core.CollectContext;
+import dcraft.cms.feed.core.DeleteMode;
 import dcraft.cms.feed.core.FeedAdapter;
 import dcraft.cms.feed.core.FeedIndexer;
 import dcraft.cms.feed.core.FeedInfo;
@@ -146,11 +147,6 @@ public class CoreService extends ExtensionBase implements IService {
 				this.handleImportFeedFiles(request);
 				return;
 			}
-			
-			if ("DeleteFeedFiles".equals(op)) {
-				this.handleDeleteFeedFiles(request);
-				return;
-			}
 			*/
 			
 			if ("LoadFeedInfo".equals(op)) {
@@ -160,6 +156,11 @@ public class CoreService extends ExtensionBase implements IService {
 			
 			if ("AlterFeedInfo".equals(op)) {
 				this.handleAlterFeedInfo(request);
+				return;
+			}
+			
+			if ("DeleteFeedInfo".equals(op)) {
+				this.handleDeleteFeedInfo(request);
 				return;
 			}
 			
@@ -608,6 +609,20 @@ public class CoreService extends ExtensionBase implements IService {
 		});
 	}
 	
+	public void handleDeleteFeedInfo(TaskRun request) {
+		RecordStruct rec = MessageUtil.bodyAsRecord(request);
+		
+		FeedInfo fi = FeedInfo.recordToInfo(rec);
+	
+		// delete pub and draft
+		fi.deleteFile(DeleteMode.Both, new OperationCallback() {			
+			@Override
+			public void callback() {
+				request.complete();
+			}
+		});
+	}	
+	
 	public void handleLoadFeedPart(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
 		
@@ -889,20 +904,6 @@ public class CoreService extends ExtensionBase implements IService {
 			}
 		});
 	}
-		
-	public void handleDeleteFeedFiles(TaskRun request) {
-		RecordStruct rec = MessageUtil.bodyAsRecord(request);
-		
-		FeedInfo fi = FeedInfo.recordToInfo(rec);
-
-		// delete pub and draft
-		fi.deleteFile(DeleteMode.Both, new OperationCallback() {			
-			@Override
-			public void callback() {
-				request.complete();
-			}
-		});
-	}	
 	*/
 		
 	/* TODO general cleanup

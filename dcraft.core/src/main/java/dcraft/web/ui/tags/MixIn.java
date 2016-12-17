@@ -27,6 +27,11 @@ public class MixIn extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new MixIn();
+	}
+	
+	@Override
 	public void expand(WeakReference<UIWork> work) {
 		if (this.hasNotEmptyAttribute("ExpandClass")) {
 			IExpandHelper exh = (IExpandHelper) Hub.instance.getInstance(this.getAttribute("ExpandClass"));
@@ -41,28 +46,40 @@ public class MixIn extends UIElement {
 			if (octx instanceof WebContext) {
 				WebContext wctx = (WebContext) octx;
 
-				CommonPath path = wctx.getRequest().getPath();
-				int pdepth = path.getNameCount();
-				
-				// check file system
-				while (pdepth > 0) {
-					CommonPath ppath = path.subpath(0, pdepth);
-					
-					// possible to override the file path and grab a random Page from `feed`
-					String cmspath = this.getAttribute("CmsPath", ppath.toString());
-					
-					FeedAdapter feed = FeedAdapter.from("Pages", cmspath, wctx.isPreview());
+				// possible to override the file path and grab a random Page from `feed`
+				if (this.hasNotEmptyAttribute("CmsPath")) {
+					FeedAdapter feed = FeedAdapter.from("Pages", this.getAttribute("CmsPath"), wctx.isPreview());
 					
 					if (feed != null) {
 						UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
-						this.withAttribute("data-dccms-path", cmspath);
 						
 						// TODO lookup/set canonical path property - 
-						
-						break;
 					}
+				}
+				else {
+					CommonPath path = wctx.getRequest().getPath();
+					int pdepth = path.getNameCount();
 					
-					pdepth--;
+					// check file system
+					while (pdepth > 0) {
+						CommonPath ppath = path.subpath(0, pdepth);
+						
+						// possible to override the file path and grab a random Page from `feed`
+						String cmspath = ppath.toString();
+						
+						FeedAdapter feed = FeedAdapter.from("Pages", cmspath, wctx.isPreview());
+						
+						if (feed != null) {
+							UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
+							this.withAttribute("CmsPath", cmspath);
+							
+							// TODO lookup/set canonical path property - 
+							
+							break;
+						}
+						
+						pdepth--;
+					}
 				}
 			}
 		}
@@ -79,7 +96,7 @@ public class MixIn extends UIElement {
 		if (skel == null)
 			skel = this.selectFirst("dc.Fragment");
 		
-		skel.withAttribute("data-dccms-path", this.getAttribute("data-dccms-path"));
+		//skel.withAttribute("data-dccms-path", this.getAttribute("data-dccms-path"));
 		
 		// arrange the parts
 		for (XElement pdef : this.selectAll("dc.PagePartDef")) {
@@ -154,6 +171,9 @@ public class MixIn extends UIElement {
 						
 				bbparent.add(cpos + 1, content);
 			}
+			
+			// make id available to the server script
+			content.setAttribute("id", forpart);
 		}
     	
 		work.get().incBuild();
@@ -182,7 +202,7 @@ public class MixIn extends UIElement {
 				};
 				
 				try {
-					work.get().getContext().getSite().execute(src, "run", work.get().getContext(), skel, cb);
+					work.get().getContext().getSite().execute(src, "run", work.get().getContext(), MixIn.this, cb);
 				}
 				catch (Exception x) {
 					OperationContext.get().error("Unable to prepare web page server script: " + x);

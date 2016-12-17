@@ -6,4 +6,9 @@ public class ServerScript extends UIElement {
 	public ServerScript() {
 		super("dc.ServerScript");
 	}
+	
+	@Override
+	public UIElement newNode() {
+		return new ServerScript();
+	}
 }

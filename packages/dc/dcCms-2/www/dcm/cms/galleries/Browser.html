@@ -3,7 +3,7 @@
 		<dc.Panel Title="Gallery Browser">
 			<dcf.Form>
 				<dcf.FormButtons>
-					<dc.Button Click="DoUpload" Label="Quick Upload Image" />
+					<dc.Button Click="DoUpload" Label="Upload Image(s)" />
 					<dc.Button Click="DoAddFolder" Label="Add Folder" />
 					<dc.Button id="btnDepBDelete" Click="DoDelete" Label="Delete Folder" />
 					<dc.Button Click="DoRefresh" Label="Refresh" />
@@ -450,6 +450,11 @@
 					entry.callPageFunc('LoadMeta');
 				} 
 			});	
+	]]></dc.Function>
+	<dc.Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
 	]]></dc.Function>
 	<dc.Function Name="DoEditDataFile"><![CDATA[
 			dc.pui.Dialog.loadPage('/dcm/cms/files/EditFile', { Path: '/galleries' + this.Store.Path + '/data.json', Create: true });	

@@ -855,6 +855,69 @@ var dc = {
 			  // Join all the hex strings into one
 			  return hexCodes.join("");
 			}			
+		},
+		File: {
+			isLegalFilename: function(name) {
+				if (! name)
+					return false;
+				
+				// TODO
+				
+				//if (name.equals(".") || name.contains("..") || name.contains("*") || name.contains("\"") || name.contains("/") || name.contains("\\")
+				//		 || name.contains("<") || name.contains(">") || name.contains(":") || name.contains("?") || name.contains("|"))
+				//	return false;
+				
+				return true;
+			},			
+			toLegalFilename: function(name) {
+				if (! name)
+					return null;
+				
+				// must escape regex chars - [\^$.|?*+()
+				name = name.replace(new RegExp("\\.\\.", 'g'), "_").replace(new RegExp("\\*", 'g'), "_").replace(new RegExp("\"", 'g'), "_")
+							.replace(new RegExp("\\/", 'g'), "_").replace(new RegExp("\\\\", 'g'), "_").replace(new RegExp("<", 'g'), "(")
+							.replace(new RegExp(">", 'g'), ")").replace(new RegExp(":", 'g'), "_").replace(new RegExp("\\?", 'g'), "_")
+							.replace(new RegExp("\\|", 'g'), "_");
+				
+				return name;
+			},			
+			// allow only these: - _ . ( )
+			toCleanFilename: function(name) {
+				name = dc.util.File.toLegalFilename(name);
+				
+				if (! name)
+					return null;
+				
+				name = name.replace(new RegExp(" ", 'g'), "-").replace(new RegExp("%", 'g'), "_").replace(new RegExp("@", 'g'), "_")
+						.replace(new RegExp("#", 'g'), "_").replace(new RegExp(",", 'g'), "_")
+						.replace(new RegExp("~", 'g'), "_").replace(new RegExp("`", 'g'), "_").replace(new RegExp("!", 'g'), "_")
+						.replace(new RegExp("\\$", 'g'), "_").replace(new RegExp("\\^", 'g'), "_").replace(new RegExp("&", 'g'), "_")
+						.replace(new RegExp("&", 'g'), "_").replace(new RegExp("=", 'g'), "_").replace(new RegExp("\\+", 'g'), "-")
+						.replace(new RegExp("{", 'g'), "(").replace(new RegExp("}", 'g'), ")").replace(new RegExp("\\[", 'g'), "(")
+						.replace(new RegExp("\\]", 'g'), ")").replace(new RegExp(";", 'g'), "_").replace(new RegExp("'", 'g'), "_")
+						.replace(new RegExp("<", 'g'), "(").replace(new RegExp(">", 'g'), ")");
+				
+				var fname = '';
+				var skipon = false;
+				
+				for (var i = 0; i < name.length; i++) {
+					var c = name.charAt(i);
+					
+					if ((c == '-') || (c =='_')) {
+						if (skipon)
+							continue;
+						
+						skipon = true;
+					}
+					else {
+						skipon = false;
+					}
+					
+					fname += c;
+				}
+				
+				return fname;
+			}
 		}
 	},
 	lang: {

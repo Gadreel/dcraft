@@ -280,7 +280,7 @@ public class DatabaseManager implements IDatabaseManager {
 		String spname = proc.execute;
 		
 		try {
-			Class<?> spclass = Class.forName(spname);				
+			Class<?> spclass = Class.forName(spname);
 			IStoredProc sp = (IStoredProc) spclass.newInstance();
 			
 			cb.touch();		// keep us alive

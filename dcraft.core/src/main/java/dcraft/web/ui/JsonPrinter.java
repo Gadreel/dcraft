@@ -202,10 +202,13 @@ public class JsonPrinter extends XmlToJsonPrinter {
 
 			this.jsb.field("Title", valueMacro(doc.getAttribute("Title"), doc));
 			
-			XElement body = doc.selectFirst("body");
+			XElement body = doc.findId("dcuiMain");   
 			
-			if (body != null) 
+			if ((body != null) && body.hasNotEmptyAttribute("class"))
 				this.jsb.field("PageClass", valueMacro(body.getAttribute("class"), doc));
+			
+			if (doc.hasNotEmptyAttribute("CmsPath"))
+				this.jsb.field("CmsPath", valueMacro(doc.getAttribute("CmsPath"), doc));
 			
 			this.jsb.field("Layout");
 	

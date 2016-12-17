@@ -233,6 +233,11 @@
 	<dc.Function Name="DoRefresh"><![CDATA[
 			this.callPageFunc('LoadList');
 	]]></dc.Function>
+	<dc.Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
+	]]></dc.Function>
 	<dc.Function Name="DoAddFolder"><![CDATA[
 			var entry = this;
 			

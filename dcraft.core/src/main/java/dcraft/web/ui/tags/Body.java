@@ -3,7 +3,6 @@ package dcraft.web.ui.tags;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
-import dcraft.web.core.WebContext;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIWork;
 import dcraft.xml.XNode;
@@ -14,10 +13,15 @@ public class Body extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Body();
+	}
+	
+	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		UIElement bodel = this;
 		
-		if (! ((WebContext) work.get().getContext()).isDynamic()) {
+		//if (! ((WebContext) work.get().getContext()).isDynamic()) {
 			bodel = new UIElement();
 			
 			bodel.replace(this);
@@ -31,7 +35,7 @@ public class Body extends UIElement {
 			this.clear();
 			
 			this.with(bodel);
-		}		
+		//}		
 		
 		// don't change my identity until after the scripts run
 		this.setName("body");

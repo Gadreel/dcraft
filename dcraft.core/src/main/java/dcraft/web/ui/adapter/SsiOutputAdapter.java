@@ -15,7 +15,7 @@ import dcraft.web.core.WebContext;
 public class SsiOutputAdapter implements IOutputAdapter {
 	public static final Pattern SSI_VIRTUAL_PATTERN = Pattern.compile("<!--#include virtual=\"(.*)\" -->");
 	
-	public String processContent(IOutputContext ctx, String content) {
+	public String processIncludes(IOutputContext ctx, String content) {
 		boolean checkmatches = true;
 
 		while (checkmatches) {
@@ -32,7 +32,7 @@ public class SsiOutputAdapter implements IOutputAdapter {
 
 				//System.out.println("include v file: " + vfilename);
 				
-				CacheFile sf = ctx.getSite().findSectionFile("www", vfilename, ctx.isPreview());
+				CacheFile sf = ctx.getSite().getWebsite().findSectionFile("www", vfilename, ctx.isPreview());
 				
 				if (sf == null) 
 					continue;
@@ -46,8 +46,6 @@ public class SsiOutputAdapter implements IOutputAdapter {
 				checkmatches = true;
 			}
 		}	
-		
-		content = ctx.expandMacros(content);
 		
 		return content;
 	}
@@ -85,8 +83,9 @@ public class SsiOutputAdapter implements IOutputAdapter {
 			resp.setHeader("X-UA-Compatible", "IE=Edge,chrome=1");
 			
 			// because of Macro support we need to rebuild this page every time it is requested
-			String content = this.processContent(ctx, this.file.asString());
-
+			String content = this.processIncludes(ctx, this.file.asString());
+			
+			content = ctx.expandMacros(content);
 
 			// TODO add compression
 			//if (asset.getCompressed())

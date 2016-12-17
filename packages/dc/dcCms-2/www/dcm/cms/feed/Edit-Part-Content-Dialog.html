@@ -2,14 +2,18 @@
 	<dc.RequireLib Path="/js/vendor/ace-1.1.8/ace.js" />
 	
 	<dc.Body>
-		<!-- TODO header -->
-		<div style="padding-right: 12px; text-align: right;">
-			<dc.Button Click="DoSelectImage" Label="Link Image" />
-			<dc.Button Click="DoSelectFile" Label="Link File" />
-			<dc.Button Click="DoSavePublish" Label="Save" Scope="Primary" /> 
-	    </div>
-	
-		<div id="sectDepEpcEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
+		<dc.Panel Title="Edit Content" >
+			<div style="padding-right: 12px; text-align: right;">
+				<!-- TODO callbacks not in right order with load
+				<dc.Button Click="DoSelectImage" Label="Link Image" />
+				<dc.Button Click="DoSelectFile" Label="Link File" />
+				-->
+				<dc.Button Click="DoClose" Label="Close" /> 
+				<dc.Button Click="DoSavePublish" Label="Save" Scope="Primary" /> 
+		    </div>
+		
+			<div id="sectDepEpcEdit" style="height: 400px;" />
+		</dc.Panel>
 	</dc.Body>
 	
 	<dc.Function Name="Load"><![CDATA[
@@ -20,7 +24,7 @@
 				entry.Store.SetMode = false;
 				entry.Store.PublishFlag = false; 
 			    entry.Store.Editor = ace.edit('sectDepEpcEdit');
-			    entry.Store.Params = dc.pui.App.Context.Params;
+			    entry.Store.Params = entry.Params;
 			    
 			    var editor = entry.Store.Editor;
 			    
@@ -36,48 +40,28 @@
 						entry.Store.Changed = true;
 				});	
 				
-				if (dc.pui.App.Context.IsNew) {
-					entry.Store.Params.Data = {
-						For: entry.Store.Params.For,
-						Locale: 'en',		// TODO
-						Format: entry.Store.Params.Format ? entry.Store.Params.Format : 'md',
-						Value: entry.Store.Params.Content ? entry.Store.Params.Content : ''
-					};
+				dc.comm.sendMessage({ 
+					Service: 'dcmCore', 
+					Feature: 'Feeds', 
+					Op: 'LoadFeedPart', 
+					Body: entry.Store.Params.Part
+				}, function(rmsg) {
+					if (rmsg.Result != 0) {
+						dc.pui.Popup.alert(rmsg.Message);
+						return;
+					}
+					
+					entry.Store.Params.Data = rmsg.Body;
 					
 					entry.Store.SetMode = true;
 					
-					if (entry.Store.Params.Format == 'html')
+					if (rmsg.Body.Format == 'html')
 					    editor.getSession().setMode("ace/mode/xml");
 					
-					if (entry.Store.Params.Content)
-						editor.setValue(entry.Store.Params.Content, -1);
+					editor.setValue(rmsg.Body.Value, -1);
 					
 					entry.Store.SetMode = false;
-				}
-				else {			
-					dc.comm.sendMessage({ 
-						Service: 'dcmCore', 
-						Feature: 'Feeds', 
-						Op: 'LoadFeedPart', 
-						Body: entry.Store.Params.Part
-					}, function(rmsg) {
-						if (rmsg.Result != 0) {
-							dc.pui.Popup.alert(rmsg.Message);
-							return;
-						}
-						
-						entry.Store.Params.Data = rmsg.Body;
-						
-						entry.Store.SetMode = true;
-						
-						if (rmsg.Body.Format == 'html')
-						    editor.getSession().setMode("ace/mode/xml");
-						
-						editor.setValue(rmsg.Body.Value, -1);
-						
-						entry.Store.SetMode = false;
-					});
-				}
+				});
 			}
 				
 			entry.Store.Editor.focus();
@@ -135,6 +119,11 @@
 					}
 				} 
 			});
+	]]></dc.Function>
+	<dc.Function Name="DoClose"><![CDATA[
+			var page = this;
+			
+			page.Layer.back();
 	]]></dc.Function>
 	<dc.Function Name="onDestroy"><![CDATA[
 			var entry = this;

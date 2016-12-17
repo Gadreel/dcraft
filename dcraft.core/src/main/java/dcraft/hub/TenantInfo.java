@@ -21,6 +21,8 @@ import groovy.lang.GroovyObject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +36,7 @@ import org.joda.time.DateTime;
 import dcraft.bus.IService;
 import dcraft.bus.ServiceRouter;
 import dcraft.io.CacheFile;
-import dcraft.io.FileStoreEvent;
+import dcraft.io.IFileWatcher;
 import dcraft.io.LocalFileStore;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
@@ -58,7 +60,7 @@ import dcraft.xml.XAttribute;
 import dcraft.xml.XElement;
 import dcraft.xml.XmlReader;
 
-public class TenantInfo extends CommonInfo {
+public class TenantInfo extends CommonInfo implements IFileWatcher {
 	public static TenantInfo from(RecordStruct drec) {
 		TenantInfo ten = new TenantInfo();
 		ten.info = drec;
@@ -82,6 +84,8 @@ public class TenantInfo extends CommonInfo {
 
 	protected Map<String, SiteInfo> sites = new HashMap<>();
 	protected Map<String, SiteInfo> domainsites = new HashMap<>();
+	
+	protected List<WatchKey> watchkeys = new ArrayList<>();
 	
 	public String getId() {
 		return this.info.getFieldAsString("Id");
@@ -230,10 +234,30 @@ public class TenantInfo extends CommonInfo {
 	 * 
 	 */
 	
+	public void watchSettingsChange(Path path) {
+		WatchKey key = Hub.instance.registerFileWatcher(this, path);
+
+		if (key != null)
+			this.watchkeys.add(key);
+	}
+
+	@Override
+	public void fireFolderEvent(Path fname, WatchEvent.Kind<Path> kind) {
+		this.reloadSettings();
+	}
+	
 	public void reloadSettings() {
 		// =====================================
 		// clear old settings
 		// =====================================
+		
+		// cancel and remove any previous watchers
+		if (this.watchkeys.size() > 0) {
+			Logger.info("Cancelling watchers for " + this.getAlias());
+			
+			for (WatchKey key : this.watchkeys) 
+				Hub.instance.unregisterFileWatcher(key);
+		}
 		
 		// cancel and remove any previous schedules 
 		if (this.schedulenodes.size() > 0) {
@@ -255,6 +279,7 @@ public class TenantInfo extends CommonInfo {
 		this.schema = null;
 		this.watcher = null;		
 		
+		this.watchkeys.clear();
 		this.schedulenodes.clear();
 		this.registered.clear();
 		this.routers.clear();
@@ -311,11 +336,15 @@ public class TenantInfo extends CommonInfo {
 		Path spath = this.resolvePath("/services");
 
 		if (Files.exists(spath)) {
+			this.watchSettingsChange(spath);
+			
 			try (Stream<Path> str = Files.list(spath)) {
 				str.forEach(path -> {
 					// only directories are services - files in dir are features
-					if (!Files.isDirectory(path))
+					if (! Files.isDirectory(path))
 						return;
+					
+					TenantInfo.this.watchSettingsChange(path);
 					
 					String name = path.getFileName().toString();
 					
@@ -447,10 +476,6 @@ public class TenantInfo extends CommonInfo {
 
 	public void authEvent(String op, String result, UserContext uctx) {
 		this.watcher.tryExecuteMethod("AuthEvent", op, result, uctx);
-	}
-
-	public void fileChanged(FileStoreEvent result) {
-		this.watcher.tryExecuteMethod("FileChanged", result);
 	}
 
 	public void fireAfterReindex() {

@@ -55,7 +55,7 @@ public class GallerySection extends Plugin {
         String template = in.toString();
 		
         if (StringUtil.isEmpty(template))
-        	template = "<a href=\"#\"><img src=\"@path@\" /><dc.MD>@img|Description@</dc.MD></a>";
+	    	template = "<a href=\"#\" data-image=\"@img|Alias@\"><img src=\"@path@\" data-dc-img=\"@imgdata@\" /></a>";
         
         String ftemplate = template;
         
@@ -140,6 +140,9 @@ public class GallerySection extends Plugin {
 	  }
 	  else if ("img".equals(parts[0]) && (parts.length > 1) && (img instanceof RecordStruct)) {
 		  val = ((RecordStruct) img).getFieldAsString(parts[1]);
+	  }
+	  else if ("imgdata".equals(parts[0])) {
+		  val = ((RecordStruct) img).toString();
 	  }
 	  else if ("show".equals(parts[0]) && (parts.length > 1)) {
 		  val = show.getFieldAsString(parts[1]);

@@ -133,6 +133,17 @@
 							</Field>
 						</Response>
 					</Op>
+					<Op Name="DeleteFeedInfo">
+						<Description>
+							Delete all files for a feed.
+						</Description>
+						<Request Inherits="RequestMessage">
+							<Field Name="Body" Required="True">
+								<Record Inherits="dcmFeedLocator" />
+							</Field>
+						</Request>
+						<Response Inherits="ResponseMessage" />
+					</Op>
 					<Op Name="LoadFeedPart">
 						<Description>
 							Get content of a specific section of a specific part.
@@ -462,21 +473,6 @@
 								</Record>
 							</Field>
 						</Response>
-					</Op>
-					<Op Name="DeleteFeedFiles">
-						<Description>
-							Delete all files for a feed.
-						</Description>
-						<Request Inherits="RequestMessage">
-							<Field Name="Body" Required="True">
-								<Record>
-									<Field Name="Site" Type="dcTinyString" />
-									<Field Name="Channel" Type="dcTinyString" Required="True" />
-									<Field Name="Path" Type="dcString" Required="True" />
-								</Record>
-							</Field>
-						</Request>
-						<Response Inherits="ResponseMessage" />
 					</Op>
 					<Op Name="PublishFeedFiles">
 						<Description>

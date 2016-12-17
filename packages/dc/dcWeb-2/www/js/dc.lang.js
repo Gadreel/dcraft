@@ -593,11 +593,17 @@ var dc = {
 				return (window.URL || window.webkitURL).createObjectURL(blob);
 			},
 			load: function(url, callback, progcallback) {
-				var thisImg = new Image();
-				var xmlHTTP = new XMLHttpRequest();
-				
 				var completedPercentage = 0;
 				var prevValue = 0;
+				
+				var thisImg = new Image();
+				
+				thisImg.onload = function(e) {
+					if (callback) 
+						callback(thisImg);
+				};
+
+				var xmlHTTP = new XMLHttpRequest();
 				
 				xmlHTTP.open('GET', url , true);
 				xmlHTTP.responseType = 'arraybuffer';
@@ -609,10 +615,7 @@ var dc = {
 					
 					var blob = new Blob([ this.response ], { type: mimeType });
 					
-					thisImg.src = window.URL.createObjectURL(blob);
-					
-					if (callback) 
-						callback(thisImg);
+					thisImg.src = dc.util.Image.blobToUrl(blob);
 			    };
 			
 			    xmlHTTP.onprogress = function(e) {
@@ -882,7 +885,26 @@ var dc = {
 						.replace(new RegExp("\\]", 'g'), ")").replace(new RegExp(";", 'g'), "_").replace(new RegExp("'", 'g'), "_")
 						.replace(new RegExp("<", 'g'), "(").replace(new RegExp(">", 'g'), ")");
 				
-				return name;
+				var fname = '';
+				var skipon = false;
+				
+				for (var i = 0; i < name.length; i++) {
+					var c = name.charAt(i);
+					
+					if ((c == '-') || (c =='_')) {
+						if (skipon)
+							continue;
+						
+						skipon = true;
+					}
+					else {
+						skipon = false;
+					}
+					
+					fname += c;
+				}
+				
+				return fname;
 			}
 		}
 	},

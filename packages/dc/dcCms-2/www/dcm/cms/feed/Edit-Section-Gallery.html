@@ -1,10 +1,12 @@
 <dc.Html Title="Edit Show" AuthTags="Admin,Editor">
+	<dc.RequireLib Path="/js/vendor/Sortable.min.js" />
+	
 	<dc.Body>
 		<dc.Panel Title="Edit Show">
 			<div class="formbuttons">
 				<dc.Button Click="DoSelectImage" Label="Select Image From Gallery" />
 				<dc.Button Click="DoAddImage" Label="Upload New Image" />
-				<dc.Button Click="DoSaveShow" Label="Save" /> 
+				<dc.Button Click="DoSaveShow" Label="Save" Scope="Primary" /> 
 			</div>
 			
 			<ul id="imageDesEList" data-role="listview" data-inset="true" data-count-theme="a" data-split-icon="delete" />					
@@ -13,35 +15,18 @@
 	<dc.Function Name="Load"><![CDATA[
 			var entry = this;
 			
-			entry.Store.SortTime = null;
-			
 			var list = $('#imageDesEList');		
 
-			// TODO for touch sorting see how dc.ui.js has touch punch in it and review if it makes sense
-			/*
-		    list.sortable();
-		    list.disableSelection();
-		    
-		    list.bind("sortstart", function(event, ui) {
-		    	//console.log('abc');
-		    });					
-		    
-		    list.bind("sortstop", function(event, ui) {
-		    	//console.log('123');
-				list.listview('refresh');
-				
-				entry.Store.Changed = true;
-							
-				entry.callPageFunc('ReorderImages');
-				
-				entry.Store.SortTime = new Date();
-			});					
-			*/
+			var sortable = Sortable.create(list.get(0), {
+			    onEnd: function (evt) {
+			        entry.Store.Changed = true; 
+			               
+			        entry.callPageFunc('ReorderImages'); 
+			    }
+		    });
 	
 			list.empty();
 			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
-				
-			//list.listview('refresh');
 			
 			// first time load
 			if (!entry.Params.Path) {
@@ -103,15 +88,6 @@
 							+ '</a>');
 					
 					anchr.click(img, function(e) {
-					    //	console.log('xyz');
-					    
-					    if (entry.Store.SortTime) {
-					    	if (new Date().getTime() - entry.Store.SortTime.getTime() < 500) {
-						    	entry.Store.SortTime = null;
-						    	return;
-						    }
-					    }
-					    
 						for (var i = 0; i < entry.Store.Show.Images.length; i++) {
 							var img = entry.Store.Show.Images[i];
 							
@@ -202,10 +178,8 @@
 				Callback: function(res) {
 					if (res.Images) {
 						for (var i = 0; i < res.Images.length; i++) {
-							var fh = res.Images[i];
-							
-							entry.Store.Show.Images.push({
-								Alias: fh.FileName
+							entry.Store.Show.Images.splice(i, 0, {
+								Alias: res.Images[i].FileName
 							});
 						}
 					}
@@ -223,7 +197,7 @@
 				Callback: function(files) {				// just a list of names
 					if (files) {
 						for (var i = 0; i < files.length; i++) 
-							entry.Store.Show.Images.push({
+							entry.Store.Show.Images.splice(i, 0, {
 								Alias: files[i].FileName
 							});
 					}

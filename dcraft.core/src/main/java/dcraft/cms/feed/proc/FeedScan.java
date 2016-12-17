@@ -8,6 +8,7 @@ import dcraft.db.DatabaseInterface;
 import dcraft.db.DatabaseTask;
 import dcraft.db.ICollector;
 import dcraft.db.util.ByteUtil;
+import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
 import dcraft.struct.RecordStruct;
 
@@ -18,7 +19,7 @@ public class FeedScan implements ICollector {
 		
 		// TODO verify fields
 		
-		String chan = extras.getFieldAsString("Channel");
+		String chan = "/" + OperationContext.get().getSite().getAlias() + "/" + extras.getFieldAsString("Channel");
 		DateTime fromdate = extras.getFieldAsDateTime("FromDate");
 		Object lasttime = null;
 		

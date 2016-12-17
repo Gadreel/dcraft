@@ -4,6 +4,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 
 import dcraft.cms.util.GalleryUtil;
+import dcraft.filestore.CommonPath;
 import dcraft.io.CacheFile;
 import dcraft.lang.Memory;
 import dcraft.struct.ListStruct;
@@ -23,9 +24,23 @@ public class BasicCarousel extends UIElement {
 	}
 	
 	@Override
-	public void expand(WeakReference<UIWork> work) {
+	public void build(WeakReference<UIWork> work) {
 		String gallery = this.getAttribute("Gallery");
 		String alias = this.getAttribute("Show");
+		Long pathpart = Struct.objectToInteger(this.getAttribute("PathPart"));
+		
+		if (pathpart != null) {
+			CommonPath fpath = work.get().getContext().getPath();
+			
+			if (! fpath.isRoot()) {
+				String name = fpath.getName(pathpart.intValue() - 1);
+				
+				if (StringUtil.isNotEmpty(name))
+					alias = name;
+			}
+		}
+		
+		System.out.println("using show: " + alias);
 
 		this
 			.withClass("dc-no-select")
@@ -41,7 +56,7 @@ public class BasicCarousel extends UIElement {
 			this
 				.withAttribute("data-dcm-centering", showmeta.getFieldAsString("Centering"));
 			
-			boolean defpreload = showmeta.getFieldAsBoolean("Preload");
+			boolean defpreload = showmeta.getFieldAsBooleanOrFalse("Preload");
 			boolean preloadenabled = this.hasNotEmptyAttribute("Preload") 
 					? "true".equals(this.getAttribute("Preload").toLowerCase())
 					: defpreload;
@@ -54,6 +69,12 @@ public class BasicCarousel extends UIElement {
 				
 				viewer
 					.withClass("dcm-basic-carousel-img");
+				
+				UIElement fader = new UIElement("img");
+				
+				fader
+					.withClass("dcm-basic-carousel-fader");
+				
 				
 				// TODO add a randomize option
 				
@@ -80,23 +101,25 @@ public class BasicCarousel extends UIElement {
 				for (Struct simg : images.getItems()) {
 					RecordStruct img = (RecordStruct) simg;
 					
+					String extrapath = img.isNotFieldEmpty("Path") ? img.getFieldAsString("Path") + "/" : "";
+					
 					UIElement iel = new UIElement("img");
 					
 					iel
-						.withAttribute("src", "/galleries" + gallery + "/" + img.getFieldAsString("Alias") + ".v/" + variname + ".jpg")
+						.withAttribute("src", "/galleries" + gallery + "/" + extrapath + img.getFieldAsString("Alias") + ".v/" + variname + ".jpg")
 						.withAttribute("data-dcm-img", img.toString());
 					
 					list.with(iel);
 				}
 				
-				this.with(viewer).with(list);
+				this.with(fader).with(viewer).with(list);
 			}
+			
+			this.with(new Button("dcmi.GalleryButton")
+					.withClass("dcuiPartButton", "dcuiCmsi")
+					.withAttribute("Icon", "fa-pencil")
+				);
 		}
-		
-		this.with(new Button("dcmi.GalleryButton")
-				.withClass("dcuiPartButton", "dcuiCmsi")
-				.withAttribute("Icon", "fa-pencil")
-			);
 		
 		super.expand(work);
 	}

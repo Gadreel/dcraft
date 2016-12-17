@@ -13,6 +13,11 @@ public class Fragment extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Fragment();
+	}
+	
+	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		// don't change my identity until after the scripts run
 		this.setName("div");

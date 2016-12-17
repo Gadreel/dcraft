@@ -188,8 +188,20 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 				this.dictionary.setParent(Hub.instance.getResources().getDictionary());
 				this.dictionary.load(dicpath);
 			}		
+			
+			this.getTenant().watchSettingsChange(cpath);
 		}
 
+		Path bpath = this.resolvePath("/buckets");
+		
+		if ((bpath != null) && Files.exists(bpath)) 
+			this.getTenant().watchSettingsChange(bpath);
+
+		Path gpath = this.resolvePath("/glib");
+		
+		if ((gpath != null) && Files.exists(gpath)) 
+			this.getTenant().watchSettingsChange(gpath);
+		
 		if (settings != null) {
 			for (XElement del : settings.selectAll("Domain")) {
 				String dname = del.getAttribute("Name");					// TODO check Use attribute		

@@ -209,21 +209,6 @@ public class HubPackages {
 			config = new XElement("PackageFileStore");
 		
 		this.packagefilestore = new LocalFileStore();
-		this.packagefilestore.start(or, config);
-		
-		/*
-		this.packagefilestore.register(new FuncCallback<FileStoreEvent>() {
-			@Override
-			public void callback() {
-				// --- TODO 
-				//System.out.println("TODO tell all domains to reload");
-			}
-		});
-		*/
-	}
-
-	public void stop(OperationResult or) {
-		if (this.packagefilestore != null)
-			this.packagefilestore.stop(or);		
+		this.packagefilestore.init(or, config);
 	}
 }

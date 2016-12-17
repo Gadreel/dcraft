@@ -43,7 +43,10 @@
 
 		<Table Id="dcmFeed">
 			<Field Name="dcmChannel" Type="dcTinyString" Indexed="True" /> 
+			<!-- dcmPath includes the site and channel to be truly unique -->
 			<Field Name="dcmPath" Type="dcString" Indexed="True" Required="True" Unique="True" />
+			<!-- dcmLocalPath is only the path within the channel, handy in results -->
+			<Field Name="dcmLocalPath" Type="dcString" />
 			<Field Name="dcmModified" Type="DateTime" />
 			<Field Name="dcmImported" Type="DateTime" />
 			

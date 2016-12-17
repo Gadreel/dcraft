@@ -41,6 +41,8 @@ abstract public class CoreField extends UIElement {
 		else 
 			this.fieldid = "gen" + Session.nextUUId();
 		
+		boolean usespacer = ! this.getAttributeAsBooleanOrFalse("NoSpacer");
+		
 		if (this.hasNotEmptyAttribute("Label"))
 			this.with(new UIElement("div")
 				.withClass("dc-pui-label")
@@ -50,7 +52,7 @@ abstract public class CoreField extends UIElement {
 				)
 			)
 			.withAttribute("data-dcf-label", this.getAttribute("Label"));
-		else
+		else if (usespacer)
 			this.with(new UIElement("div").withClass("dc-pui-spacer"));
 		
 		String cmpt = Struct.objectToBooleanOrFalse(this.fieldinfo.getAttribute("ValidateButton")) ? "dc-pui-compact" : null;
@@ -73,13 +75,15 @@ abstract public class CoreField extends UIElement {
 			);
 			
 			// add spacer before input
-			this.with(new UIElement("div").withClass("dc-pui-spacer").withClass(cmpt));
+			if (usespacer)
+				this.with(new UIElement("div").withClass("dc-pui-spacer").withClass(cmpt));
 		}
 		
 		this.addControl();
 		
 		// add spacer before error message 
-		this.with(new UIElement("div").withClass("dc-pui-spacer", "dc-pui-valid-hidden").withClass(cmpt));
+		if (usespacer)
+			this.with(new UIElement("div").withClass("dc-pui-spacer", "dc-pui-valid-hidden").withClass(cmpt));
 		
 		UIElement inst = (UIElement) new UIElement("div")
 				.withClass("dc-pui-message", "dc-pui-message-danger");

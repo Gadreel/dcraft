@@ -37,8 +37,18 @@
 	float: right;
 }
 
+.dcm-basic-carousel .dcm-basic-carousel-fader,
 .dcm-basic-carousel .dcm-basic-carousel-img {
 	height: 100%;
+    position: absolute;
+}
+
+.dcm-basic-carousel .dcm-basic-carousel-fader {
+	z-index: 0;
+}
+
+.dcm-basic-carousel .dcm-basic-carousel-img {
+	z-index: 4;
 }
 
 /*

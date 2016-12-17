@@ -378,7 +378,14 @@ public class Emitter {
             if (pos != -1) {
                 String link = temp.toString();
                 
-                parent.add(new UIElement("a").withAttribute("href", link).withText(link));
+                parent.add(
+                		new UIElement("a")
+                			.withAttribute("href", link)
+			        		.withAttribute("data-dc-tag", "dc.Link")
+			        		.withAttribute("data-dc-enhance", "true")
+                			.withText(link)
+                );
+                
                 return pos;
             }
         }
@@ -395,6 +402,10 @@ public class Emitter {
                 
                 UIElement xml = new UIElement("a");
                 
+                xml
+	        		.withAttribute("data-dc-tag", "dc.Link")
+	        		.withAttribute("data-dc-enhance", "true");
+               
                 parent.add(xml);
                 
                 //address auto links

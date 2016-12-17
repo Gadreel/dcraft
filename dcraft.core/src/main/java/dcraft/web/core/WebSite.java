@@ -92,6 +92,7 @@ public class WebSite {
 		return new CommonPath("/Not-Found.html");
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void init(XElement settings) {
 		this.webconfig = settings;
 		this.tagmap = UIUtil.allocateCoreMap();
@@ -126,6 +127,19 @@ public class WebSite {
 				this.specialExtensions = WebSite.EXTENSIONS_LEGACY;
 			
 			// TODO load tag addons (tagmap)
+			
+			for (XElement tagel : settings.selectAll("Tag")) {
+				String name = tagel.getAttribute("Name");
+				String cname = tagel.getAttribute("Class");
+				
+				try {
+					if (StringUtil.isNotEmpty(name) && StringUtil.isNotEmpty(cname))
+						this.tagmap.put(name, (Class<? extends XElement>) Class.forName(cname));
+				}
+				catch (ClassNotFoundException x) {
+					Logger.error("Unable to load tag class: " + cname);
+				}
+			}
 			
 			// collect packages - if not in the domain, then go look in the packages 
 			for (XElement pel :  settings.selectAll("Package")) 

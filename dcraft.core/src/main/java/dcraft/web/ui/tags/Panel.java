@@ -16,6 +16,11 @@ public class Panel extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Panel();
+	}
+	
+	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		// the children will move into the body, so clear out our child list
 		List<XNode> hiddenchildren = this.children;

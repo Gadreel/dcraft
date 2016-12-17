@@ -1,7 +1,7 @@
-Title: Edit Section Help Help
+Title: Edit Section Help 
 Skeleton: /dcw/MarkdownViewer
 AuthTags: Admin,Editor
 
 Edit the content for a section of the page using the Markdown codes to add formatting.
 
-<dc.IncludePart Path="/dcm/cms/Markdown-help" />
+<!--#include virtual="/dcm/cms/Markdown-help-include.md" -->

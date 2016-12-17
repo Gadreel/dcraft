@@ -3,13 +3,15 @@ package dcraft.cms.feed.core;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import dcraft.filestore.CommonPath;
 import dcraft.io.CacheFile;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.locale.ITranslationAdapter;
+import dcraft.struct.RecordStruct;
+import dcraft.struct.Struct;
 import dcraft.util.IOUtil;
 import dcraft.util.StringUtil;
-import dcraft.web.core.IOutputContext;
 import dcraft.xml.XElement;
 import dcraft.xml.XmlReader;
 
@@ -32,6 +34,102 @@ public class FeedAdapter {
 		return adapt; 
 	}
 	
+	static public FeedAdapter from(RecordStruct data) {
+		CommonPath cpath = new CommonPath(data.getFieldAsString("Path"));
+		
+		FeedAdapter adapt = new FeedAdapter();
+
+		adapt.channel = cpath.getName(1);		// site alias is 0
+		adapt.path = cpath.subpath(2).toString();
+		adapt.xml = new XElement("dcf");
+		
+		String deflocale = OperationContext.get().getSite().getDefaultLocale();
+		
+		adapt.xml.withAttribute("Locale", deflocale);
+		
+		for (Struct fs : data.getFieldAsList("Fields").getItems()) {
+			RecordStruct frec = (RecordStruct) fs;
+			
+			String sub = frec.getFieldAsString("SubId");
+			String fdata = frec.getFieldAsString("Data");
+			
+			if (StringUtil.isEmpty(sub) || StringUtil.isEmpty(fdata))
+				continue;
+			
+			int dpos = sub.lastIndexOf('.');
+			
+			adapt.setField(sub.substring(dpos + 1), sub.substring(0, dpos), fdata);
+		}
+
+		return adapt; 
+	}
+
+	/*
+	System.out.println("data: " + v.toPrettyString());
+	
+data:  { 
+"Path": "\/root\/Announcements\/test-announcement-one", 
+"Fields":  [ 
+	 { 
+		"SubId": "AuthorName.en", 
+		"Retired": null, 
+		"Data": "[unknown]", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } , 
+	 { 
+		"SubId": "AuthorUsername.en", 
+		"Retired": null, 
+		"Data": "root", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } , 
+	 { 
+		"SubId": "Created.en", 
+		"Retired": null, 
+		"Data": "20161129T144808620Z", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } , 
+	 { 
+		"SubId": "EndAt.en", 
+		"Retired": null, 
+		"Data": "2017-05-01", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } , 
+	 { 
+		"SubId": "Published.en", 
+		"Retired": null, 
+		"Data": "20170501T050000000Z", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } , 
+	 { 
+		"SubId": "Summary.en", 
+		"Retired": null, 
+		"Data": "Just a little bit about this announcement to let you know what it is all about and how to attend if it is an event and similar sorts of things that we may need to know but have a hard time recalling.", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } , 
+	 { 
+		"SubId": "Title.en", 
+		"Retired": null, 
+		"Data": "Test Announcement One", 
+		"From": null, 
+		"To": null, 
+		"Tags": null
+	 } 
+ ] , 
+"Id": "00200_000000000000013"
+} 		
+	*/	
 	protected String channel = null;
 	protected String path = null;
 	protected Path filepath = null;
@@ -318,11 +416,27 @@ public class FeedAdapter {
 		this.xml.with(new XElement("Tag").withAttribute("Alias", tag));
 	}
 	
-	public String getPart(IOutputContext wctx, String name) {
-		return this.getPart(wctx, OperationContext.get(), name);
+	public String getTags() {
+		if (this.xml == null)
+			return "";
+		
+		StringBuilder sb = new StringBuilder();
+		
+		for (XElement t : this.xml.selectAll("Tag")) {
+			if (sb.length() > 0)
+				sb.append(", ");
+			
+			sb.append(t.getAttribute("Alias"));
+		}
+		
+		return sb.toString();
 	}
 	
-	public String getPart(IOutputContext wctx, ITranslationAdapter ctx, String name) {
+	public String getPart(String name, boolean preview) {
+		return this.getPart(OperationContext.get(), name, preview);
+	}
+	
+	public String getPart(ITranslationAdapter ctx, String name, boolean preview) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
 			return null;
 		
@@ -331,7 +445,7 @@ public class FeedAdapter {
 		if (mr == null)
 			return null;
 
-		return this.getPartValue(ctx, mr, wctx.isPreview());
+		return this.getPartValue(ctx, mr, preview);
 	}
 	
 	// TODO enhance this currently only works with default fields

@@ -10,6 +10,7 @@ import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationObserver;
 import dcraft.log.DebugLevel;
 import dcraft.web.core.IOutputAdapter;
+import dcraft.web.core.WebContext;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIInitialWork;
 import dcraft.web.ui.UIWork;
@@ -21,6 +22,11 @@ import dcraft.xml.XNode;
 public class IncludeFrag extends UIElement {
 	public IncludeFrag() {
 		super("dc.IncludeFrag");
+	}
+	
+	@Override
+	public UIElement newNode() {
+		return new IncludeFrag();
 	}
 	
 	@Override
@@ -40,7 +46,7 @@ public class IncludeFrag extends UIElement {
 			IOutputAdapter sf = work.get().getContext().getSite().getWebsite().findFile(pp, work.get().getContext().isPreview());
 			
 			if (sf instanceof DynamicOutputAdapter) {
-				UIElement layout = ((DynamicOutputAdapter)sf).getSource();
+				UIElement layout = ((DynamicOutputAdapter)sf).getSource((WebContext) work.get().getContext());
 				
 				layout.setParent(this);
 				

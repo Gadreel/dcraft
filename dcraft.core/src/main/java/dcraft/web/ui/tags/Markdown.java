@@ -13,6 +13,11 @@ public class Markdown extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Markdown();
+	}
+	
+	@Override
 	public void build(WeakReference<UIWork> work) {
     	String mode = this.getAttribute("Mode", "Unsafe");
     	String content = this.getText();

@@ -13,6 +13,11 @@ public class Param extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Param();
+	}
+	
+	@Override
 	public void expand(WeakReference<UIWork> work) {
 		// do not expand children, just set the params on parent
 		

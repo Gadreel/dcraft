@@ -13,6 +13,11 @@ public class IncludeParam extends UIElement {
 	public IncludeParam() {
 		super("dc.IncludeParam");
 	}
+	
+	@Override
+	public UIElement newNode() {
+		return new IncludeParam();
+	}
 
 	@Override
 	public void expand(WeakReference<UIWork> work) {

@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.Map.Entry;
 
@@ -449,5 +451,34 @@ public class UIElement extends XElement {
 			else if (name.startsWith("dc.Require"))
 				root.add(el);
 		}		
+	}
+
+	public UIElement newNode() {
+		return new UIElement(this.tagName);
+	}
+	
+	@Override
+	public XNode deepCopy() {
+		UIElement copy = this.newNode();
+		
+		copy.line = this.line;
+		copy.col = this.col;
+		copy.comment = this.comment;
+		
+		if (this.attributes != null) {
+			copy.attributes = new ConcurrentHashMap<>();
+			
+			for (Entry<String, String> entry : this.attributes.entrySet()) 
+				copy.attributes.put(entry.getKey(), entry.getValue());
+		}
+		
+		if (this.children != null) {
+			copy.children = new CopyOnWriteArrayList<XNode>();
+			
+			for (XNode entry : this.children) 
+				copy.children.add(entry.deepCopy());
+		}
+		
+		return copy;
 	}
 }

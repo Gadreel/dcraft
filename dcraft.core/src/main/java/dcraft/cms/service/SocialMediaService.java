@@ -22,6 +22,7 @@ import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.bus.MessageUtil;
 import dcraft.cms.util.CatalogUtil;
+import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.lang.op.FuncResult;
 import dcraft.mod.ExtensionBase;
@@ -61,6 +62,17 @@ public class SocialMediaService extends ExtensionBase implements IService {
 		if ("Instagram".equals(feature)) {
 			if ("Feed".equals(op)) {
 				this.handleInstagramFeed(request);
+				return;
+			}
+		}
+		
+		// =========================================================
+		//  Twitter
+		// =========================================================
+		
+		if ("Twitter".equals(feature)) {
+			if ("Feed".equals(op)) {
+				this.handleTwitterFeed(request);
 				return;
 			}
 		}
@@ -157,8 +169,7 @@ public class SocialMediaService extends ExtensionBase implements IService {
 		request.returnEmpty();
 		return;
 	}
-	
-	
+		
 	/*
 	IG returns a record with "data" which contains a list of entries, highlights of the entry:
 	
@@ -256,5 +267,14 @@ public class SocialMediaService extends ExtensionBase implements IService {
 		
 		request.returnEmpty();
 		return;
+	}
+	
+	public void handleTwitterFeed(TaskRun request) {
+		// TODO fix - this is experimental for now
+		
+		IService ts = (IService) Hub.instance.getInstance("dcraft.cms.service.TwitterService");
+		
+		if (ts != null)
+			ts.handle(request);
 	}
 }

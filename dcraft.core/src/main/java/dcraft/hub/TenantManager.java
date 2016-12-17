@@ -7,9 +7,6 @@ import dcraft.bus.Message;
 import dcraft.db.DataRequest;
 import dcraft.db.ObjectResult;
 import dcraft.db.rocks.DatabaseManager;
-import dcraft.filestore.CommonPath;
-import dcraft.io.FileStoreEvent;
-import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.log.Logger;
 import dcraft.struct.CompositeStruct;
@@ -173,6 +170,7 @@ public class TenantManager {
 				- vars.json is the domain level variable store - direct edit by web dev
 		*/
 		
+		/*
 		FuncCallback<FileStoreEvent> localfilestorecallback = new FuncCallback<FileStoreEvent>() {
 			@Override
 			public void callback() {
@@ -224,6 +222,7 @@ public class TenantManager {
 		};
 		
 		Hub.instance.getTenantsFileStore().register(localfilestorecallback);
+		*/
 		
 		Hub.instance.getBus().sendMessage(
 			new Message("dcTenants", "Manager", "LoadAll"), 

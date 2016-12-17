@@ -14,6 +14,11 @@ public class Link extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Link();
+	}
+	
+	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		String to = this.getAttribute("To", "#");
 		String label = this.getAttribute("Label");

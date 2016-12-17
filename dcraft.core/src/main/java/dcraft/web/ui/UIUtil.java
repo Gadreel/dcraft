@@ -38,6 +38,8 @@ import dcraft.web.ui.tags.ServerScript;
 import dcraft.web.ui.tags.StandardSection;
 import dcraft.web.ui.tags.cms.BasicCarousel;
 import dcraft.web.ui.tags.cms.Facebook;
+import dcraft.web.ui.tags.cms.Feed;
+import dcraft.web.ui.tags.cms.FeedDetail;
 import dcraft.web.ui.tags.cms.Instagram;
 import dcraft.web.ui.tags.cms.QotDBlock;
 import dcraft.web.ui.tags.cms.ServerInfo;
@@ -63,6 +65,7 @@ import dcraft.web.ui.tags.form.Uploader;
 import dcraft.web.ui.tags.form.YesNo;
 import dcraft.web.ui.tags.Fragment;
 import dcraft.web.ui.tags.GallerySection;
+import dcraft.web.ui.tags.GalleryThumbs;
 import dcraft.web.ui.tags.Panel;
 import dcraft.work.Task;
 import dcraft.xml.XElement;
@@ -86,6 +89,7 @@ public class UIUtil {
 		tagmap.put("dc.StandardSection", StandardSection.class);
 		tagmap.put("dc.PairedMediaSection", PairedMediaSection.class);
 		tagmap.put("dc.GallerySection", GallerySection.class);
+		tagmap.put("dc.GalleryThumbs", GalleryThumbs.class);
 		tagmap.put("dc.HtmlSection", HtmlSection.class);
 		tagmap.put("dc.ServerScript", ServerScript.class);
 		tagmap.put("dc.Param", Param.class);
@@ -134,6 +138,8 @@ public class UIUtil {
 		tagmap.put("dcm.BasicCarousel", BasicCarousel.class);
 		tagmap.put("dcm.QotD", QotDBlock.class);
 		tagmap.put("dcm.ServerInfo", ServerInfo.class);
+		tagmap.put("dcm.Feed", Feed.class);
+		tagmap.put("dcm.FeedDetail", FeedDetail.class);
 		
 		return tagmap;
 	}
@@ -186,25 +192,7 @@ public class UIUtil {
 	static public void buildHtmlPageUI(FeedAdapter adapt, IOutputContext wctx, ITranslationAdapter ctx, UIElement frag) {
 		OperationResult or = new OperationResult();
 		
-		String title = adapt.getField(ctx, "Title");
-				
-		if (title != null) 
-			frag.setAttribute("Title", title);
-
-		String desc = adapt.getField(ctx, "Description");
-
-		if (desc != null) 
-			frag.setAttribute("Description", desc);
-
-		String keywords = adapt.getField(ctx, "Keywords");
-		
-		if (keywords != null) 
-			frag.setAttribute("Keywords", keywords);
-
-		String image = adapt.getField(ctx, "Image");
-		
-		if (image != null) 
-			frag.setAttribute("Image", image);
+		UIUtil.decorateHtmlPageUI(adapt, ctx, frag);
 		
 		for (XElement pdef : frag.selectAll("dc.PagePartDef")) {
 			String forpart = pdef.getAttribute("For");
@@ -227,6 +215,28 @@ public class UIUtil {
 				}
 			}
 		}
+	}
+	
+	static public void decorateHtmlPageUI(FeedAdapter adapt, ITranslationAdapter ctx, UIElement frag) {
+		String title = adapt.getField(ctx, "Title");
+				
+		if (title != null) 
+			frag.setAttribute("Title", title);
+
+		String desc = adapt.getField(ctx, "Description");
+
+		if (desc != null) 
+			frag.setAttribute("Description", desc);
+
+		String keywords = adapt.getField(ctx, "Keywords");
+		
+		if (keywords != null) 
+			frag.setAttribute("Keywords", keywords);
+
+		String image = adapt.getField(ctx, "Image");
+		
+		if (image != null) 
+			frag.setAttribute("Image", image);
 	}
 	
 	static public UIElement buildHtmlPartUI(FeedAdapter adapt, IOutputContext wctx, ITranslationAdapter ctx, FeedPartMatchResult mr, String id) {

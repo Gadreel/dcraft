@@ -14,6 +14,11 @@ public class Callout extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Callout();
+	}
+	
+	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
 		this.setName("div");
 		

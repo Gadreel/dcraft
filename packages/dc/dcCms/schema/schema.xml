@@ -67,6 +67,23 @@
 	</Database>
 	
 	<Shared>
+		<StringType Id="dcmPageTitle">
+			<StringRestriction MaxLength="70" />
+		</StringType>
+		
+		<StringType Id="dcPageSlug">
+			<StringRestriction Pattern="[a-z0-9\-]+" />
+			<StringRestriction MaxLength="70" />
+		</StringType>
+		
+		<StringType Id="dcmPageKeywords">
+			<StringRestriction MaxLength="70" />
+		</StringType>
+		
+		<StringType Id="dcmPageDescription">
+			<StringRestriction MaxLength="200" />
+		</StringType>
+		
 		<Record Id="dciSendMailStatus">
 			<Field Name="TotalSent" Type="Integer" />
 			<Field Name="LastErrors">

@@ -16,12 +16,16 @@
 ************************************************************************ */
 package dcraft.hub;
 
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
@@ -30,6 +34,12 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchEvent.Kind;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,6 +62,7 @@ import dcraft.db.Constants;
 import dcraft.db.DataRequest;
 import dcraft.db.IDatabaseManager;
 import dcraft.db.ObjectResult;
+import dcraft.io.IFileWatcher;
 import dcraft.io.LocalFileStore;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
@@ -145,6 +156,9 @@ public class Hub {
 	
 	protected ReentrantLock depedencyLock = new ReentrantLock();
 	protected HashMap<String, HubDependency> dependencies = new HashMap<>();
+	
+	protected WatchService watcher = null;
+	protected Map<WatchKey, IFileWatcher> filewatchdata = new HashMap<>();
 
 	public HubState getState() {
 		return this.state;
@@ -673,6 +687,13 @@ public class Hub {
 			or.exitCodeTr(139);
 			return or;
 		}
+				
+		try {
+			this.watcher = FileSystems.getDefault().newWatchService();
+		} 
+		catch (IOException x1) {
+			or.error("Cannot create file watcher service: " + x1);
+		}
 		
 		// load the dc databases, if any		
 		or.debug(0, "Initializing dcDatabase");
@@ -734,7 +755,7 @@ public class Hub {
 		
 		this.tenantsfilestore = new LocalFileStore();
 		or.debug(0, "Initializing tenants file store");		
-		this.tenantsfilestore.start(or, fstore);		
+		this.tenantsfilestore.init(or, fstore);		
 		
 		if (or.hasErrors()) {
 			or.exitCodeTr(141);
@@ -788,7 +809,7 @@ public class Hub {
 			or.exitCodeTr(147);
 			return or;
 		}
-		
+
 		/* was a slick solution, but just not in the place
 		if (this.resources.isGateway()) {
 			HubDependency conndep = new HubDependency("Gateway");
@@ -806,6 +827,49 @@ public class Hub {
 		}
 		*/
 		
+		ISystemWork filefolderwatcher = new ISystemWork() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public void run(SysReporter reporter) {
+			    // wait for key to be signaled
+			    WatchKey key = Hub.this.watcher.poll();
+			    
+			    if (key == null)
+			    	return;
+			    
+			    System.out.println("Watch key count: " + Hub.instance.filewatchdata.size());
+			    
+		        IFileWatcher fw = Hub.this.filewatchdata.get(key);
+			    
+			    if (fw == null)
+			    	return;
+		        
+			    for (WatchEvent<?> event: key.pollEvents()) {
+			        WatchEvent.Kind<?> kind = event.kind();
+
+					WatchEvent<Path> ev = (WatchEvent<Path>)event;
+			        Path filename = ev.context();
+
+			        System.out.println("detected " + filename + " : " + kind);
+			        
+			        fw.fireFolderEvent(filename, (Kind<Path>) kind); 
+			    }
+
+			    // Reset the key -- this step is critical if you want to
+			    // receive further watch events.  If the key is no longer valid,
+			    // the directory is inaccessible so exit the loop.
+			    if (! key.reset()) 
+			    	Hub.instance.filewatchdata.remove(key);
+			}
+
+			@Override
+			public int period() {
+				return 1;
+			}
+		};
+		
+		this.clock.addSlowSystemWorker(filefolderwatcher);		
+			
 		// TODO review if this even works...
 		// every five minutes run cleanup to remove expired temp files
 		// also cleanup hub/default operating contexts
@@ -994,14 +1058,6 @@ public class Hub {
 		
 		or.debug(0, "Stopping count manager");
 		this.countman.stop(or);
-		
-		or.debug(0, "Stopping package file store");		
-		this.resources.getPackages().stop(or);
-		
-		if (this.tenantsfilestore != null) {
-			or.debug(0, "Stopping public file store");		
-			this.tenantsfilestore.stop(or);		
-		}
 		
 		or.debug(0, "Stopping work pool");
 		
@@ -1212,6 +1268,34 @@ public class Hub {
 			return man.create();
 		
 		return null;
+	}
+	
+	public WatchKey registerFileWatcher(IFileWatcher fwatcher, Path path) {
+		try {
+			WatchKey watchID = path.register(this.watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+			
+			this.filewatchdata.put(watchID, fwatcher);
+		    
+		    System.out.println("register - Watch key count: " + Hub.instance.filewatchdata.size());
+			
+			return watchID;
+		}
+		catch (Exception x) {
+			Logger.error("Hub file watcher error: " + x);
+		}
+		
+		return null;
+	}
+	
+	public void unregisterFileWatcher(WatchKey key) {
+		if (key == null)
+			return;
+		
+		key.cancel();
+		
+		this.filewatchdata.remove(key);
+	    
+	    System.out.println("unregister - Watch key count: " + Hub.instance.filewatchdata.size());
 	}
 	
 	// TODO add hub info/detail collector service

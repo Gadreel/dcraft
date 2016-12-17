@@ -3,12 +3,18 @@ package dcraft.web.ui.tags;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIWork;
 import dcraft.xml.XNode;
 
 public class PairedMediaSection extends Section {
 	public PairedMediaSection() {
 		super("dc.PairedMediaSection");
+	}
+	
+	@Override
+	public UIElement newNode() {
+		return new PairedMediaSection();
 	}
 	
 	@Override

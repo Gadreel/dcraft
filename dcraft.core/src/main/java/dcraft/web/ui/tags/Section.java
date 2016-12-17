@@ -17,14 +17,24 @@ public class Section extends UIElement {
 	}
 	
 	@Override
+	public UIElement newNode() {
+		return new Section();
+	}
+	
+	@Override
 	public void build(WeakReference<UIWork> work) {
 		UIElement p = this.getParent();
 		
-		if ((p instanceof PagePart) && ((PagePart)p).isCmsEditable()) {
-			this.with(new Button("dcmi.SectionButton")
-				.withClass("dcuiSectionButton", "dcuiCmsi")
-				.withAttribute("Icon", "fa-pencil")
-			);
+		if (p != null) {
+			if (! (p instanceof PagePart))
+				p = p.getParent();
+			
+			if ((p instanceof PagePart) && ((PagePart)p).isCmsEditable()) {
+				this.with(new Button("dcmi.SectionButton")
+					.withClass("dcuiSectionButton", "dcuiCmsi")
+					.withAttribute("Icon", "fa-pencil")
+				);
+			}
 		}
 
 		super.build(work);

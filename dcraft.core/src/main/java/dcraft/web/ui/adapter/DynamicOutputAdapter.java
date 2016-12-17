@@ -20,10 +20,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 import java.io.PrintStream;
 
-import dcraft.filestore.CommonPath;
 import dcraft.hub.Hub;
-import dcraft.hub.SiteInfo;
-import dcraft.io.CacheFile;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationObserver;
@@ -42,9 +39,26 @@ import dcraft.xml.XmlPrinter;
 public class DynamicOutputAdapter extends SsiOutputAdapter  {
 	protected UIElement source = null;
 	protected String[] auth = null;		
-	protected boolean prebuilt = false;
 	
-	public UIElement getSource() {
+	public UIElement getSource(WebContext wctx) {
+		if (this.source != null)
+			return this.source;
+		
+		CharSequence xml = this.file.asChars();
+		
+		if (xml.length() == 0) 
+			return null;
+		
+		xml = this.processIncludes(wctx, xml.toString());
+		
+		FuncResult<XElement> xres = OperationContext.get().getSite().getWebsite().parseUI(xml);
+		
+		// don't stop on error
+		if (xres.hasErrors()) 
+			return null;
+		
+		this.source = (UIElement) xres.getResult();
+		
 		return this.source;
 	}
 	
@@ -54,47 +68,47 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 	}
 
 	@Override
-	public void init(SiteInfo site, CacheFile filepath, CommonPath webpath, boolean isPreview) {
-		super.init(site, filepath, webpath, isPreview);
-		
-		// one time assist - cache the first page load
-		XElement xr = OperationContext.get().getSession().getPageCache(webpath);
-		
-		if (xr == null) {
-			CharSequence xml = this.file.asChars();
-			
-			FuncResult<XElement> xres = site.getWebsite().parseUI(xml);
-			
-			// don't stop on error
-			if (xres.hasErrors()) {
-				OperationContext.get().clearExitCode();
-				return;
-			}
-			
-			xr = xres.getResult();
-		}
-		else {
-			this.prebuilt = true;
-		}
-		
-		// if we cannot parse then fallback on SSI handler
-		if (xr instanceof UIElement) {
-			this.source = (UIElement) xr;
-
-			// cache auth tags - only after source has been fully loaded
-			if (this.source.hasAttribute("AuthTags"))
-				this.auth = this.source.getAttribute("AuthTags").split(",");
-		}
-	}
-
-	@Override
 	public void execute(IOutputContext ctx) throws Exception {
 		if (ctx instanceof WebContext) {
 			WebContext wctx = (WebContext) ctx;
+		
+			String mode = wctx.getExternalParam("_dcui");
+			
+			boolean prebuilt = false;
+			
+			// one time assist - cache the first page load
+			UIElement xr = OperationContext.get().getSession().getPageCache(webpath);
+			
+			if ((xr == null) || ! "dyn".equals(mode)) {
+				xr = this.getSource(wctx);
+			}
+			else {
+				this.source = xr;
+				prebuilt = true;
+			}
+			
+			if (xr == null) {
+				OperationContext.get().clearExitCode();		// TODO review how to handle this
 				
+				// no source - then run as a SSI
+				if (ctx.getSite().getWebsite().getHtmlMode() == HtmlMode.Strict) {
+					this.source = xr = new Html();
+					
+					xr.with(new UIElement("h1")
+						.withText("Unable to parse page error!!")
+					);
+				}
+				else {
+					super.execute(ctx);
+				}
+				
+				return;
+			}
+			
+			if (xr.hasAttribute("AuthTags"))
+				this.auth = xr.getAttribute("AuthTags").split(",");
+			
 			if (!this.isAuthorized()) {
-				String mode = wctx.getExternalParam("_dcui");
-	
 				if ("dyn".equals(mode)) {
 					wctx.getResponse().setHeader("Content-Type", "application/javascript");
 					PrintStream ps = wctx.getResponse().getPrintStream();
@@ -110,24 +124,7 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 				return;
 			}
 			
-			UIElement source = this.getSource();
-			
-			// no source - then run as a SSI
-			if (source == null) {
-				if (ctx.getSite().getWebsite().getHtmlMode() == HtmlMode.Strict) {
-					source = new Html();
-					
-					source.with(new UIElement("h1")
-						.withText("Unable to parse page error!!")
-					);
-				}
-				else {
-					super.execute(ctx);
-					return;
-				}
-			}
-	
-			UIElement fsource = source;
+			UIElement fxr = xr;
 			
 			OperationObserver oo = new OperationObserver() {
 				@Override
@@ -148,23 +145,23 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 					
 			    	prt.setFormatted(true);
 			    	prt.setOut(ps);
-			    	prt.print(fsource);
+			    	prt.print(fxr);
 
 					wctx.send();
 					
 					if (! wctx.isDynamic()) 
-						octx.getSession().setPageCache(DynamicOutputAdapter.this.webpath, fsource);
+						octx.getSession().setPageCache(DynamicOutputAdapter.this.webpath, fxr);
 				}
 			};
 			
-			if (this.prebuilt) {
+			if (prebuilt) {
 				System.out.println("using page cache");
 				oo.completed(OperationContext.get());
 			}
 			else {
 				UIWork work = new UIWork();
 				work.setContext(ctx);
-				work.setRoot(source);
+				work.setRoot(fxr);
 				
 				Task task = Task
 					.taskWithSubContext()
