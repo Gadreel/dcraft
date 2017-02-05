@@ -99,6 +99,13 @@ public class CacheFile {
 	}
 	
 	public long getWhen() {
+		if (this.fpath != null)
+			try {
+				this.when = Files.getLastModifiedTime(this.fpath).toMillis();
+			} 
+			catch (IOException x) {
+			}
+		
 		return this.when;
 	}
 	

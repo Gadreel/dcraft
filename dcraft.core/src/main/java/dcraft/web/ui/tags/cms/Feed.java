@@ -4,7 +4,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joda.time.LocalDateTime;
+import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.joda.time.format.ISOPeriodFormat;
 
@@ -38,7 +38,7 @@ public class Feed extends UIElement {
 		
 		Period period = ISOPeriodFormat.standard().parsePeriod(start.startsWith("-") ? start.substring(1) : start);
 		
-		LocalDateTime fromdate = new LocalDateTime();
+		DateTime fromdate = new DateTime();		// TODO adjust to site chronology
 		
 		if (start.startsWith("-"))
 			fromdate = fromdate.minus(period);

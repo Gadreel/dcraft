@@ -1,0 +1,212 @@
+<dc.Html Title="Show Chooser" AuthTags="Editor,Admin">
+	<dc.Body class="dcuiWide">
+		<dc.PagePanel>
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="DoClose" Label="Close" Scope="Primary" />
+				</dcf.FormButtons>
+			</dcf.Form>
+			
+			<h4 id="lblDepGcPath" />
+			
+			<h3>Folders</h3>
+			
+			<div id="lstDepGcFolders" class="dcm-file-list" />
+			
+			<h3>Shows</h3>
+			
+			<div id="lstDepGcShows" class="dcm-file-list" />
+		</dc.PagePanel>
+	</dc.Body>
+	
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+
+			// if not thawing then initialize			
+			if (!entry.Store.Path) {
+				if (this.Params.Path)
+					entry.Store.Path = this.Params.Path;
+				else
+					entry.Store.Path = '/';
+					
+				entry.Store.RootPath = entry.Store.Path;
+			}
+			
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="LoadList"><![CDATA[
+			var entry = this;
+		
+			$('#lblDepGcPath').text('Path: ' + entry.Store.Path);
+		
+			$('#lstDepGcShows,#lstDepGcFolders').empty();
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmBucket',
+				Feature: 'Buckets',
+				Op: 'ListFiles',
+				Body: { 
+					Bucket: 'WebGallery',
+					Path: entry.Store.Path
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				var items = resp.Body;
+				var sfield = entry.Store.SortField ? entry.Store.SortField : 'FileName';
+				
+				// sort
+				items.sort(dc.util.List.sortObjects(sfield));
+
+				// chained - no up or down folders
+				// rooted - no up folders from starting folder
+				var showpar = ! entry.Params.Chained && (! entry.Params.Rooted || (entry.Store.RootPath != entry.Store.Path));
+				
+				// ########## FOLDERS ##########
+				
+				var flist = $('#lstDepGcFolders');
+				
+				// add parent folder
+				if (showpar && (entry.Store.Path.length > 1)) {
+					var litm = $('<a href="#" class="dcm-folder"><div class="dcm-file-title">.. [parent]</div></a>');
+					
+					litm.click(item, function(e) {
+						var curr = entry.Store.Path;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+						
+						if (!path)
+							path = '/';
+							
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					flist.append(litm);
+				}
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (entry.Params.Chained || ! item.IsFolder)
+						continue;
+						
+					var litm = $('<a href="#" class="dcm-folder"></a>');
+					
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(item.FileName);
+					
+					litm.append(itmtitle);
+					
+					litm.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					flist.append(litm);
+				}
+			});	
+			
+			this.callPageFunc('LoadMeta');
+	]]></dc.Function>
+	<dc.Function Name="LoadMeta"><![CDATA[
+			var entry = this;
+			
+			var slist = $('#lstDepGcShows');		
+	
+			slist.empty();
+			slist.append('<h3><i class="fa fa-spinner fa-spin"></i></h3>');
+			
+			dc.cms.image.Loader.loadGallery(entry.Store.Path, function(gallery, resp) {
+				entry.Store.Gallery = gallery;
+				
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				slist.empty();
+				
+				if (! gallery) {
+					//slist.append('<li>[none]</li>');
+					return;
+				}
+				
+				var gsettings = gallery.Meta;
+				
+				// --------------------------------------------
+				// slide shows list 
+				
+				if (gsettings.Shows && (gsettings.Shows.length)) {
+					for (var i1 = 0; i1 < gsettings.Shows.length; i1++) {
+						var v = gsettings.Shows[i1]; 
+						
+						var litm = $('<a href="#" class="dcm-folder"></a>');
+						
+						var itmtitle = $('<div class="dcm-file-title"></div>');
+						itmtitle.text(v.Title ? v.Title : v.Alias);
+						litm.append(itmtitle);
+						
+						litm.click(v, function(e) {
+							if (entry.Params.Callback) {
+								entry.Layer.back();
+								
+								entry.callPageFunc('ChooseShows', [ { 
+									Path: entry.Store.Path, 
+									Gallery: entry.Store.Gallery,
+									Show: e.data.Alias
+								} ]);
+							}
+							
+							e.preventDefault();
+							return false;
+						});
+						
+						slist.append(litm);
+					}
+				}
+				else {
+					//slist.append('<li>[none]</li>');
+				}
+			});
+	]]></dc.Function>
+	<dc.Function Name="ChooseShows" Params="shows"><![CDATA[
+			var entry = this;
+			
+			if (! entry.Params.Callback)
+				return;
+			
+			entry.Params.Callback({
+				Gallery: entry.Store.Gallery,
+				Shows: shows
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoRefresh"><![CDATA[			
+			var entry = this;
+		
+			entry.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="DoClose"><![CDATA[
+			var entry = this;
+			
+			entry.Layer.back();
+	]]></dc.Function>
+</dc.Html>

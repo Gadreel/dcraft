@@ -1,0 +1,166 @@
+<dc.Html Title="Page Chooser" AuthTags="Editor,Admin">
+	<dc.Body>
+		<dc.PagePanel>
+			<h4 id="lblDepPlPath" />
+			
+			<h3>Folders</h3>
+			
+			<div id="lstDepPlFolders" class="dcm-file-list" />
+			
+			<h3>Pages</h3>
+			
+			<div id="lstDepPlFiles" class="dcm-file-list" />
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (!this.Store.Path) {
+				if (this.Params.Path)
+					entry.Store.Path = this.Params.Path;
+				else
+					entry.Store.Path = '/';
+			}
+			
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="LoadList"><![CDATA[
+			var entry = this;
+			
+			$('#lblDepPlPath').text('Path: ' + entry.Store.Path);
+		
+			$('#lstDepPlFolders,#lstDepPlFiles').empty();
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'ListPages',
+				Body: { 
+					Path: entry.Store.Path
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				var items = resp.Body;
+				var sfield = entry.Store.SortField ? entry.Store.SortField : 'FileName';
+				
+				// sort
+				items.sort(dc.util.List.sortObjects(sfield));
+				
+				// ########## FOLDERS ##########
+				
+				var flist = $('#lstDepPlFolders');
+				
+				// add parent folder
+				if (entry.Store.Path.length > 1) {
+					var litm = $('<a href="#" class="dcm-folder"><div class="dcm-file-title">.. [parent]</div></a>');
+					
+					litm.click(item, function(e) {
+						var curr = entry.Store.Path;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+						
+						if (!path)
+							path = '/';
+							
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					flist.append(litm);
+				}
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (entry.Params.Chained || ! item.IsFolder)
+						continue;
+						
+					var litm = $('<a href="#" class="dcm-folder"></a>');
+					
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(item.FileName);
+					
+					litm.append(itmtitle);
+					
+					litm.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					flist.append(litm);
+				}
+				
+				// ########## FILES ##########
+				
+				var flist = $('#lstDepPlFiles');
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (item.IsFolder)
+						continue;
+					
+					var litm = $('<a href="#" class="dcm-folder"></a>');
+						
+					var path = entry.Store.Path + item.FileName;
+					
+					if (entry.Store.Path.length > 1)
+						path = entry.Store.Path + '/' + item.FileName;
+					
+					litm.attr('href', path);
+					
+					litm.click(item, function(e) {
+						var path = entry.Store.Path + e.data.FileName;
+						
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						if (entry.Params.Callback) {
+							entry.Layer.back();
+							
+							entry.Params.Callback( [ {
+								FileName: e.data.FileName,
+								FullPath: path
+							} ] );
+						}
+						else {
+							entry.Store.PopPath = path;
+						}
+						
+						e.preventDefault();
+						return false;
+					});
+										
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(item.FileName);
+					
+					litm.append(itmtitle);
+					
+					flist.append(litm);
+				}
+			});	
+	]]></dc.Function>
+	<dc.Function Name="DoRefresh"><![CDATA[
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+</dc.Html>

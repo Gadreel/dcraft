@@ -1,0 +1,85 @@
+<dc.Html Title="Html Properties" AuthTags="Admin,Editor">
+	<dc.Body>
+		<dc.PagePanel>
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Class" Label="CSS Classes" placeholder="custom styling for this section" />
+				<dcf.Text Name="Lang" Label="Language" placeholder="blank for default - es = Spanish, en = English, etc" />
+				<dcf.YesNo Name="Hidden" Label="Hidden" />
+			</dcf.Form>
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+    ]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+		    var ctxparams = dc.pui.App.Context.Params;
+	    
+			var params = $.extend(true, { }, ctxparams.Part);
+			
+			params.Section = ctxparams.Section.Id;
+			
+			if (dc.pui.App.Context.IsNew) {
+				e.Data = $.extend(true, { }, ctxparams.Section);
+			}
+			else {
+				e.Message = { 
+					Service: 'dcmCore', 
+					Feature: 'Feeds', 
+					Op: 'LoadFeedSection', 
+					Body: params
+				};
+			}
+    ]]></dc.Function>
+	<dc.Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Data = e.Data;
+			
+			e.Data = e.Data.Params;
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+
+			// copy the section context
+			var params = $.extend(true, { }, dc.pui.App.Context.Params);
+			
+			// store the copy of the section we loaded
+			$.extend(params.Section, entry.Store.Data);
+			
+			// but include in Params any additions we have from Saving
+			params.Section.Params = $.extend({ }, params.Section.Params, e.Data);
+			
+			Object.getOwnPropertyNames(params).forEach(function(name) {
+				if (name != 'Action' && name != 'Part' && name != 'Section')
+					delete params[name];
+			});
+			
+			params.Action.Publish = true;
+			
+			e.Message = { 
+				Service: 'dcmCore', 
+				Feature: 'Feeds', 
+				Op: 'AlterFeedSection', 
+				Body: params
+			};					
+    ]]></dc.Function>
+	<dc.Function Name="AfterSaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			dc.pui.App.Context.IsNew = false;
+			
+			// switch insert actions into edits
+		    dc.pui.App.Context.Params.Action = {
+		    	Op: 'Edit'
+		    };
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			dc.pui.Popup.alert('Saved');
+	]]></dc.Function>
+</dc.Html>

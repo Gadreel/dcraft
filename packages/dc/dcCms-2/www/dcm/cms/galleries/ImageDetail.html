@@ -2,30 +2,30 @@
 	<dc.RequireLib Path="/js/dc.transfer.js" />
 	<dc.RequireLib Path="/js/vendor/jquery.fileDownload.js" />
 	
-	<dc.Body>
-		<dc.Panel id="dcappMain" class="dcFlexColumn">
+	<dc.Body class="dcuiWide">
+		<dc.PagePanel>
 			<div style="display: flex; justify-content: flex-end;">
 				<!-- TODO
 				<Button id="btnDegIdEditVar" Label="Edit Variation" Click="DoEdit" />
-				<Button Label="Upload Variation" Click="DoReplace" />
 				<Button Label="Edit All" Click="DoEditAll" />
 				-->
+				<dc.Button Label="Upload Variation" Click="DoReplace" />
 				<dc.Button Label="Download" Click="DoDownload" />
 				<dc.Button Label="Delete Image" Click="DoDelete" />
 				<dc.Button Label="Close" Click="DoClose" Scope="Primary" />
 			</div>
 		
-			<div style="display: flex; flex: 1; overflow: auto;">
+			<div style="display: flex;">
 			    <div style="width: 300px;">
 					<h3 style="margin-left: 16px;">Variations</h3>
 					
-					<ul id="DegIdDetailVList" data-role="listview" data-inset="false" data-icon="false" />					
+					<ul id="DegIdDetailVList" />
 				</div>
 
-				<div style="flex: 1; overflow: auto;">
+				<div style="width: 100%; margin-left: 16px;">
 					<h3 id="lblDegIdVariation">Variation: <i class="fa fa-spinner fa-spin" /></h3>
 					
-					<div id="DegIdDetailImg" />
+					<div id="DegIdDetailImg" style="overflow: auto;" />
 				</div>
 			</div>
 			
@@ -40,7 +40,7 @@
 				</ul>
 			</div>
 			-->
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="Load"><![CDATA[
 			var entry = this;
@@ -268,12 +268,23 @@
 			var entry = this;
 			
 			var v = entry.Store.Gallery.Meta.Variations[entry.Store.Calc.GallVarPos];
-	
+			
+			dc.pui.Dialog.loadPage('/dcm/cms/galleries/VariUpload', { 
+				Path: entry.Store.Path,
+				Gallery: entry.Store.Gallery,
+				Variation: v.Alias,
+				Callback: function(file) {				
+					entry.callPageFunc('SelectImage');
+				}
+			});
+			
+			/*
 			dc.pui.Loader.loadPage('/dcm/cms/files/ReplaceGalleryFile', { 
 				Details: entry.Store.Details,
 				Path: entry.Store.Path,
 				Alias: v.Alias
-			});	
+			});
+			*/	
 	]]></dc.Function>
 	<dc.Function Name="DoEditAll"><![CDATA[
 			var entry = this;

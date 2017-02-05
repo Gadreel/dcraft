@@ -837,7 +837,7 @@ public class Hub {
 			    if (key == null)
 			    	return;
 			    
-			    System.out.println("Watch key count: " + Hub.instance.filewatchdata.size());
+			    //System.out.println("Watch key count: " + Hub.instance.filewatchdata.size());
 			    
 		        IFileWatcher fw = Hub.this.filewatchdata.get(key);
 			    
@@ -1276,7 +1276,7 @@ public class Hub {
 			
 			this.filewatchdata.put(watchID, fwatcher);
 		    
-		    System.out.println("register - Watch key count: " + Hub.instance.filewatchdata.size());
+		    //System.out.println("register - Watch key count: " + Hub.instance.filewatchdata.size());
 			
 			return watchID;
 		}
@@ -1295,7 +1295,7 @@ public class Hub {
 		
 		this.filewatchdata.remove(key);
 	    
-	    System.out.println("unregister - Watch key count: " + Hub.instance.filewatchdata.size());
+	    //System.out.println("unregister - Watch key count: " + Hub.instance.filewatchdata.size());
 	}
 	
 	// TODO add hub info/detail collector service

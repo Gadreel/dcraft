@@ -244,7 +244,7 @@
 							if (pp) {
 								var fmt = $(pp).attr('Format');
 								var ppath = entry.Params.Path;
-								var pname = ppath.substr(ppath.lastIndexOf('/') + 1) + '.' + forsect + '.en.' + fmt;
+								var pname = ppath.substr(ppath.lastIndexOf('/') + 1) + '.' + forsect + '.';  // + '.en.' + fmt;
 								
 								var pcontent = $(pp).dcVal();
 
@@ -256,7 +256,7 @@
 									for (var i2 = 0; i2 < entry.Store.Data.Files.length; i2++) {
 										var pdata = entry.Store.Data.Files[i2];
 										
-										if (pdata.Name == pname) {
+										if (pdata.Name.indexOf(pname) != -1) {		// matches the part, this supports only one language but it can be any language
 											editor.setContent(pdata.Content);
 											pfnd = true;
 											break;

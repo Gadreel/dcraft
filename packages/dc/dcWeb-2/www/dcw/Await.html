@@ -1,0 +1,98 @@
+<dc.Html Title="Working">
+	<dc.Body>
+		<dc.Panel id="panDcwAwait" Title="Working">
+			<div id="panDcwAwaitMessage" />
+			<br />
+			<br />
+			
+			<div style="text-align: center;">
+				<img id="panDcwAwaitGraphic" width="96" height="96" />
+					
+				<br />
+				
+				<dc.Button id="sectDcwAwaitProcessAction" Label="OK" Click="onDone" />
+			</div>
+		</dc.Panel>
+	</dc.Body>
+	<dc.Function Name="Load">
+				var entry = this;
+				
+				if (entry.Params.Title)
+					entry.callTagFunc('#panDcwAwait', 'setTitle', entry.Params.Title);
+			
+				if (entry.Params.Message)
+					$('#panDcwAwaitMessage').html(entry.Params.Message);
+				
+				var progfunc = function() {
+					var proginfo = entry.Params.Task.progress();
+							
+					var progress = proginfo.Amount;		// percent
+					
+					var endp = (progress / 100 * 2) - 0.5;
+					progress = '' + progress + '%';
+			
+					var can = document.createElement("canvas");
+					can.width = 96;
+					can.height = 96;
+			
+					var ctx = can.getContext("2d");
+			
+					ctx.clearRect(0, 0, can.width, can.height);
+					
+					ctx.lineWidth = 10;
+					ctx.strokeStyle = 'lightgray';
+					
+					ctx.beginPath();
+					ctx.arc(48, 48, 42, -0.5 * Math.PI, 1.5 * Math.PI);
+					ctx.stroke();	
+					
+					ctx.strokeStyle = '#76c76d';
+		      
+					ctx.beginPath();
+					ctx.arc(48, 48, 42, -0.5 * Math.PI, endp * Math.PI);
+					ctx.stroke();	
+							
+					ctx.fillStyle = '#76c76d';
+					ctx.font = "400 28px 'Roboto Condensed', sans-serif";
+					ctx.fillText(progress, (96 - ctx.measureText(progress).width) / 2, 58);
+						
+					$('#panDcwAwaitGraphic').attr('src', can.toDataURL("image/png"));
+				};
+				
+				if (entry.Params.Task) {
+					$('#sectDcwAwaitProcessAction').hide();
+			
+					var main = entry.Params.Task;
+					
+					progfunc();
+				
+					var iid = setInterval(function() {
+						progfunc();
+						//console.log((new Date().toLocaleTimeString()) + ' : ' + JSON.stringify( main.progress(), null, ' '));
+					}, 1000);
+					
+					main.Observers.push(function(ctask) {
+						window.clearInterval(iid);
+						
+						progfunc();
+						
+						//console.log((new Date().toLocaleTimeString()) + ' : ' + JSON.stringify( ctask.progress(), null, ' '));
+						
+						// $('#sectDcwAwaitProcessAction').show();  - doesn't work, button is busy
+						
+						entry.Layer.back();
+					});
+					
+					main.run();
+				}
+	</dc.Function>
+	<dc.Function Name="onDone">
+				this.Layer.back();
+	</dc.Function>
+	<dc.Function Name="onDestroy">
+				var entry = this;
+			
+				if (entry.Params.Callback)
+					entry.Params.Callback.call(entry);
+	</dc.Function>
+</dc.Html>

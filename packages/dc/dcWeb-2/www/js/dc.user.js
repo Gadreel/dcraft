@@ -130,17 +130,14 @@ dc.user = {
 	 * Given the current user info, try to sign in.  Trigger the callback whether sign in works or fails.
 	 */
 	signin2 : function(creds, remember, callback) {	
-		/* TODO
-		if (window.location.protocol != "https:") {
-			// TODO turn this into a handler event 
-			console.log('Connection is not secure, unable to sign in!');
+		if (! dc.comm.isSecure()) {
+			dc.pui.Popup.alert('May not sign in on an insecure connection');
 			
 			if (callback)
-				callback();
+				callback(null);
 			
 			return;
 		}
-			*/
 		
 		dc.user._info = { };
 
@@ -193,6 +190,9 @@ dc.user = {
 	},
 
 	/* TODO
+	 * 
+	 * check dc.comm.isSecure()
+	 * 
 	signinFacebook: function(page, callback) {
 		if (dc.user.isVerified()) {
 			callback();

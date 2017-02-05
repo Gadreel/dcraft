@@ -1,0 +1,11 @@
+<Config>
+	<Packages>
+	  <Package Name="dc/dcCore" />
+	  <Package Name="dc/dcCorePublic" />
+	  <Package Name="dc/dcWeb" />
+	  <Package Name="dc/dcCms" />
+	  <Package Name="dc/dcWeb-2" />	  
+	  <Package Name="dc/dcCms-2" />
+	  <Package Name="dc/dcTest" />
+	</Packages>
+</Config>

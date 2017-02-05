@@ -33,6 +33,8 @@ public class UpdateThreadCore implements IStoredProc {
 		
 		if (!lbs.isEmpty())
 			req.withUpdateField("dcmLabels", "|" + StringUtil.join(lbs.toStringList(), "|") + "|");
+		
+		// TODO update dcmThreadA
 
 		task.getDbm().submit(req, task.getResult());
 	}

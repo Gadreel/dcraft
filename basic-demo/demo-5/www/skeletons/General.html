@@ -1,0 +1,27 @@
+<dc.MixIn Cms="Auto">
+	<dc.Body class="general">
+		<div class="pubWrapper">
+			<header id="pubHeader">
+				<nav id="pubHeaderMenu">
+					<ul>
+						  <li><dc.Link id="mnuHome" Page="/" Label="@tr|mnuHome@" /></li>
+						  <li><dc.Link id="mnuAbout" Page="/About" Label="@tr|mnuAbout@" /></li>
+						  <li><dc.Link id="mnuContact" Page="/Contact" Label="@tr|mnuContact@" /></li>
+					</ul>
+				</nav>
+			</header>
+				
+			<div id="pubBody" />
+
+			<footer id="pubFooter">
+				<div id="pubFooterNotice">
+					&copy; @ctx|SiteCopyright@ @ctx|SiteAuthor@
+				</div>
+			</footer>
+		</div>
+	</dc.Body>
+	
+	<dc.Function Name="exLoad" Mode="Load">
+				generalLoader(this);
+	</dc.Function>
+</dc.MixIn>

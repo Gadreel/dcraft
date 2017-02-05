@@ -1,0 +1,25 @@
+<Settings Title="Demo Three">
+	<Description>Site three for Demo</Description>
+
+	<Domain Name="three.dcraft" />
+	
+	<Users>
+		<User 
+			Username="root" 
+			First="Root" Last="Three" 
+			Email="root@three.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Developer</AuthTag>
+		</User>
+	</Users>
+	
+	<Web 
+		HtmlMode="Dynamic"
+		SiteAuthor="designCraft.io"
+		IndexUrl="https://three.dcraft/"
+	>
+		<Package Name="dc/dcWeb-2" />
+	</Web>
+</Settings>

@@ -1,0 +1,8 @@
+<dcf Locale="en">
+	<Field Value="Contact – Deep Sea Theme" Name="Title" />
+	<Field Value="2017-01-28" Name="Published" />
+	<PagePart Format="md" For="article" External="true" />
+
+	<Field Value="ontactCay – eepDay eaSay emeThay" Name="Title" Locale="x-pig-latin" />
+	<PagePart Format="md" For="article" External="True" Locale="x-pig-latin" />
+</dcf>

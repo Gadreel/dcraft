@@ -24,6 +24,9 @@ import java.util.Map;
 import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.hub.Hub;
+import dcraft.hub.HubEvents;
+import dcraft.hub.IEventSubscriber;
+import dcraft.hub.TenantInfo;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.UserContext;
 import dcraft.log.Logger;
@@ -98,11 +101,53 @@ public class AuthService extends ExtensionBase implements IService {
 		for (XElement mtenant : tenants.selectAll("Tenant")) {
 			String id = mtenant.getAttribute("Id");
 			
+			if (StringUtil.isEmpty(id))
+				id = Integer.toString(this.tenantusers.size());
+			
 			TenantUsers du = new TenantUsers();
 			du.load(id, mtenant);
 			
 			this.tenantusers.put(id, du);
 		}
+		
+		// when tenant settings load update the user list
+		Hub.instance.subscribeToEvent(HubEvents.TenantLoaded, new IEventSubscriber() {			
+			@Override
+			public void eventFired(Object e) {
+				String did = (String) e;
+				
+				TenantUsers du = AuthService.this.tenantusers.get(did);
+				
+				if (du == null) 
+					return;
+				
+				TenantInfo tinfo = Hub.instance.getTenantInfo(did);
+				
+				// remove old user list
+				du.clearCache();
+				
+				// load users from hub config file for tenant
+				XElement tenants = Hub.instance.getConfig().selectFirst("Tenants");
+				
+				if (tenants != null) {
+					for (XElement mtenant : tenants.selectAll("Tenant")) {
+						String alias = mtenant.getAttribute("Alias");
+
+						if (! tinfo.getAlias().equals(alias))
+							continue;
+
+						du.load(did, mtenant);
+						break;
+					}
+				}
+				
+				// load users from tenant config file
+				XElement settings = tinfo.getSettings();
+				
+				if (settings != null)
+					du.load(did, settings.find("Users"));
+			}
+		});
 	}
 	
 	@Override
@@ -167,7 +212,6 @@ public class AuthService extends ExtensionBase implements IService {
 			}			
 			
 			if ("Verify".equals(op)) {
-				
 				if (sess == null) {
 					OperationContext.switchUser(request.getContext(), UserContext.allocateGuest());
 					
@@ -334,15 +378,22 @@ public class AuthService extends ExtensionBase implements IService {
 			);
 		}
 		
+		public void clearCache() {
+			this.cachedIndex.clear();
+		}
+		
 		public void load(String did, XElement tenant) {
 			this.tenantid = did;
+			
+			if (tenant == null)
+				return;
 			
 			for (XElement usr : tenant.selectAll("User")) {
 				this.cachedIndex.put(usr.getAttribute("Username"), usr);
 
 				// make sure we have an encrypted password for use with verify
-				if (! usr.hasNotEmptyAttribute("EncryptedPassword") && usr.hasNotEmptyAttribute("Password")) 
-					usr.withAttribute("EncryptedPassword", Hub.instance.getClock().getObfuscator().hashPassword(usr.getAttribute("Password")));
+				if (! usr.hasNotEmptyAttribute("EncryptedPassword") && usr.hasNotEmptyAttribute("PlainPassword")) 
+					usr.withAttribute("EncryptedPassword", Hub.instance.getClock().getObfuscator().hashPassword(usr.getAttribute("PlainPassword")));
 				
 				if (! usr.hasNotEmptyAttribute("FullName")) {
 					String fullname = "";

@@ -21,6 +21,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.joda.time.DateTimeZone;
+
+import dcraft.lang.IChronologyResource;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
@@ -70,7 +73,7 @@ import dcraft.xml.XmlReader;
  * @author Andy
  *
  */
-public class HubResources implements ILocaleResource {
+public class HubResources implements ILocaleResource, IChronologyResource {
 	static public boolean isValidHubId(String id) {
 		if (StringUtil.isEmpty(id) || (id.length() != 5))
 			return false;
@@ -86,7 +89,7 @@ public class HubResources implements ILocaleResource {
 	}	
 	
 	protected String deployment = "dcFileServer";
-	protected String hubid = "00001";		// reserved for utilities and stand alones - 00000 reserved for system/core 
+	protected String hubid = "00001";		// reserved for utilities and stand alone - 00000 reserved for system/core 
 	protected String team = "one";
 	protected String squad = "one";
 	protected HubMode mode = HubMode.Private;		// Gateway, Public (server), Private (server or utility)
@@ -108,6 +111,7 @@ public class HubResources implements ILocaleResource {
 	protected String locale = "en";
 	protected LocaleDefinition localedef = null;
   	protected SchemaManager schemaman = null;
+	protected String chron = "UTC";
 	
   	/**
   	 * HubId is a 5 digit (zero padded) number that uniquely identifies this Hub (process) in
@@ -379,8 +383,8 @@ public class HubResources implements ILocaleResource {
 		if (this.config.hasAttribute("ForTesting")) 
 			this.forTesting = Struct.objectToBooleanOrFalse(this.config.getAttribute("ForTesting"));
 		
-		if (this.config.hasAttribute("Locale"))
-			this.locale = this.config.getAttribute("Locale", "en");
+		this.chron = this.config.getAttribute("Chronology", this.chron);
+		this.locale = this.config.getAttribute("Locale", this.locale);
 		
 		or.trace(0, "Loaded config.xml file at: " + f.getAbsolutePath());
 		
@@ -419,6 +423,24 @@ public class HubResources implements ILocaleResource {
 		this.initsuccess = true;
 		
 		return or;
+	}
+
+	@Override
+	public IChronologyResource getParentChronologyResource() {
+		return null;
+	}
+
+	@Override
+	public String getDefaultChronology() {
+		if (this.chron != null)
+			return this.chron;
+		
+		return "UTC";
+	}
+
+	@Override
+	public DateTimeZone getDefaultChronologyDefinition() {
+		return DateTimeZone.forID(this.getDefaultChronology());
 	}
 	
 	@Override

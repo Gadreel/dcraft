@@ -1,0 +1,25 @@
+<Settings Title="Demo Six">
+	<Description>Site six for Demo</Description>
+
+	<Domain Name="six.dcraft" />
+
+	<Users>
+		<User
+			Username="root"
+			First="Root" Last="Six"
+			Email="root@six.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Developer</AuthTag>
+		</User>
+	</Users>
+
+	<Web
+		HtmlMode="Dynamic"
+		SiteAuthor="designCraft.io"
+		IndexUrl="https://six.dcraft/"
+	>
+		<Package Name="dc/dcWeb-2" />
+	</Web>
+</Settings>

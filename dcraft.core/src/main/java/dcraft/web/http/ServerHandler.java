@@ -102,6 +102,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     		return;
     	}    	
     	
+    	// TODO
+		//System.out.println("Web server request " + msg.getClass().getName() + "  " + ctx.channel().localAddress() 
+		//		+ " from " + ctx.channel().remoteAddress()); 
+	
     	if (Logger.isDebug())
     		Logger.debug("Web server request " + msg.getClass().getName() + "  " + ctx.channel().localAddress() 
     				+ " from " + ctx.channel().remoteAddress()); 
@@ -273,23 +277,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		this.context.setSessionId(sess.getId());
 		
 		OperationContextBuilder ctxb = sess.getUser().toBuilder()
+				.withSessionId(sess.getId())
 				.withOrigin(origin);
 		
 		Cookie localek = this.resolveLocale(sess, ctxb);
 		
 		if (localek != null) {
 			localek.setPath("/");
-			localek.setHttpOnly(true);
-			
-			// help pass security tests if Secure by default when using https 
-			localek.setSecure(this.context.isSecure());
-			
 			resp.setCookie(localek);		 
 		}
 		
 		sess.withUser(ctxb.toUserContext());		// use lang of current request
 		
-		OperationContext tc = sess.useContext();
+		OperationContext tc = sess.useContext(ctxb);
 		
 		// check errors now because we will clear errors after calling verify
 		// the call to verify does not count as real errors in our own operations of loading pages
@@ -328,18 +328,18 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 					
 					tc.clearExitCode();
 					
-					ServerHandler.this.continueHttpRequest(fauthtoken);
+					ServerHandler.this.continueHttpRequest(ctxb, fauthtoken);
 				}
 			});
 		}
 		else {
-			ServerHandler.this.continueHttpRequest(fauthtoken);
+			ServerHandler.this.continueHttpRequest(ctxb, fauthtoken);
 		}
     }
 	
     // after we get here we know we have a valid session and a valid user, even if that means that
     // the user session and user session requested has been replaced with Guest
-	public void continueHttpRequest(String oldauthtoken) {
+	public void continueHttpRequest(OperationContextBuilder ctxb, String oldauthtoken) {
 		String sessid = this.context.getSessionId();
 		
     	Session sess = Hub.instance.getSessions().lookup(sessid);
@@ -352,7 +352,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		sess.touch();
 		
 		// context may have changed (in a verify), continue from session's context 
-		OperationContext tc = sess.useContext();		
+		OperationContext tc = sess.useContext(ctxb);		// TODO review is this quite right - we do want to keep OpLocale (OpChron) but is this the best way? Or will we overwrite some props from User Auth?
 		
 		Request req = this.context.getRequest();
 		String origin = tc.getOrigin();
@@ -392,6 +392,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
         // TODO configure how requests are logged
         if (Logger.isDebug())
         	tc.debug("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + origin + " session: " + sessid);
+
+        //System.out.println("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + origin + " session: " + sessid);
 		
 		// TODO if (Logger.isDebug()) {
 		//	System.out.println("Operating locale " + tc.getWorkingLocale());
@@ -741,7 +743,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		
 		// if we find any locale at all then to see if it is the default
 		// if not use it, else use the default
-		if ((locale != null) && !locale.equals(this.context.getSite().getDefaultLocaleDefinition())) {
+		if ((locale != null) && !locale.equals(this.context.getSite().getDefaultLocale())) {
 			ctxb.withOperatingLocale(locale.getName());
 			return new DefaultCookie("dcLang", locale.getName());
 		}

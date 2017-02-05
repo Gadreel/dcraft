@@ -102,6 +102,7 @@
 							<Field Name="Body" Required="True">
 								<Record Inherits="dcmFeedLocator">
 									<Field Name="Publish" Type="Boolean" />
+									<Field Name="Template" Type="dcSmallString" />
 									<Field Name="SetTags">
 										<List Type="dcTinyString" />
 									</Field>
@@ -209,8 +210,6 @@
 						</Request>
 						<Response Inherits="ResponseMessage" />
 					</Op>
-					
-					<!-- 
 					<Op Name="ListPages">
 						<Description>
 							Loads a pages a given folder.
@@ -218,9 +217,7 @@
 						<Request Inherits="RequestMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Site" Type="dcTinyString" />
 									<Field Name="Path" Type="dcString" Required="True" />
-									<Field Name="Params" Type="Any" />
 								</Record>
 							</Field>
 						</Request>
@@ -245,14 +242,14 @@
 						<Request Inherits="RequestMessage">
 							<Field Name="Body">
 								<Record>
-									<Field Name="Site" Type="dcTinyString" />
 									<Field Name="Path" Type="dcString" Required="True" />
-									<Field Name="Params" Type="Any" />
 								</Record>
 							</Field>
 						</Request>
 						<Response Inherits="ResponseMessage" />
 					</Op>
+					
+					<!-- 
 					<Op Name="LoadList">
 						<Description>
 							Load a list all page records, no matter how many.  

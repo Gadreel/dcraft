@@ -1,0 +1,7 @@
+<dcf Locale="en">
+	<Field Value="About – Deep Sea Theme" Name="Title" />
+	<PagePart Format="md" For="article" External="true" />
+
+    <Field Name="Title" Value="Aboutyay – eepDay eaSay emeThay" Locale="x-pig-latin" />
+	<PagePart Format="md" For="article" External="True" Locale="x-pig-latin" />
+</dcf> 

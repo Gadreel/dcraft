@@ -1,9 +1,8 @@
-<dc.Html Title="Edit User">
+<dc.Html Title="Edit Properties">
 	<dc.Body>
-		<dc.Panel Title="Edit User">
+		<dc.PagePanel>
 			<dcf.Form>
 				<dcf.FormButtons>
-					<dc.Button Click="AfterSave" Label="Close" />
 					<dc.Button Click="DoDelete" Label="Delete" />
 					<dcf.SubmitButton Label="Save" />
 				</dcf.FormButtons>
@@ -17,7 +16,7 @@
 				<dcf.Password Name="Password" Label="New Password" placeholder="Enter only to change password" />
 				<dcf.Password Name="ConfirmPassword" Label="Confirm Password" />
 			</dcf.Form>
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	
 	<dc.Function Name="Load"><![CDATA[

@@ -22,6 +22,6 @@ public class HtmlSection extends Section {
 		super.translate(work, pnodes);
 
 		this.withClass("dc-section-html")
-			.withAttribute("data-dccms-plugin", "HtmlSection");
+			.withAttribute("data-dccms-plugin", "Html");
 	}
 }

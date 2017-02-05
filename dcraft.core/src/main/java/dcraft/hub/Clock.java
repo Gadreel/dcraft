@@ -33,6 +33,7 @@ import dcraft.lang.op.OperationResult;
 import dcraft.log.Logger;
 import dcraft.util.BasicSettingsObfuscator;
 import dcraft.util.ISettingsObfuscator;
+import dcraft.util.StandardSettingsObfuscator;
 import dcraft.util.StringUtil;
 import dcraft.util.TimeUtil;
 import dcraft.xml.XElement;
@@ -161,10 +162,12 @@ public class Clock {
 		}
 		else {
 			DateTimeZone.setDefault(DateTimeZone.UTC);
+			
+			this.obfus = new StandardSettingsObfuscator();
 		}
 
 		if (this.obfus == null)
-			this.obfus = new BasicSettingsObfuscator();
+			this.obfus = new BasicSettingsObfuscator();		// TODO change so StandardSettingsObfuscator is default
 		
 		this.obfus.init(config);
 	}

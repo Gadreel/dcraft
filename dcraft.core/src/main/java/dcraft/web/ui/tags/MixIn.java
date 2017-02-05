@@ -48,12 +48,13 @@ public class MixIn extends UIElement {
 
 				// possible to override the file path and grab a random Page from `feed`
 				if (this.hasNotEmptyAttribute("CmsPath")) {
-					FeedAdapter feed = FeedAdapter.from("Pages", this.getAttribute("CmsPath"), wctx.isPreview());
+					String cmspath = this.getAttribute("CmsPath");
+					
+					FeedAdapter feed = FeedAdapter.from("Pages", cmspath, wctx.isPreview());
 					
 					if (feed != null) {
 						UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
-						
-						// TODO lookup/set canonical path property - 
+						this.withAttribute("CmsPath", cmspath);
 					}
 				}
 				else {
@@ -72,8 +73,6 @@ public class MixIn extends UIElement {
 						if (feed != null) {
 							UIUtil.buildHtmlPageUI(feed, work.get().getContext(), this);
 							this.withAttribute("CmsPath", cmspath);
-							
-							// TODO lookup/set canonical path property - 
 							
 							break;
 						}
@@ -103,7 +102,7 @@ public class MixIn extends UIElement {
 			String forpart = pdef.getAttribute("For");
 			
 			if (StringUtil.isEmpty(forpart)) {
-				or.error("Unable to build page element, no For: " + pdef);
+				or.warn("Unable to build page element, no For: " + pdef);
 				continue;
 			}
 			
@@ -133,8 +132,9 @@ public class MixIn extends UIElement {
 			}
 			
 			if (content == null) {
-				or.error("Missing content to build page element: " + pdef);
-				continue;
+				or.warn("Missing content to build page element: " + pdef);
+				
+				content = new UIElement("p").withText("Missing content part.");
 			}
 			
 			this.remove(content);

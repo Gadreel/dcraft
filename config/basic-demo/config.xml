@@ -1,0 +1,58 @@
+<Config HubId="00100">
+	<TenantsFileStore FolderPath="./basic-demo" />
+	
+	<Tenants>
+		<Tenant Alias="root" />
+		<Tenant Alias="demo-1" />
+		<Tenant Alias="demo-2" />
+		<Tenant Alias="demo-3" />
+		<Tenant Alias="demo-4" />
+		<Tenant Alias="demo-5" />
+		<Tenant Alias="demo-6" />
+	</Tenants>
+
+	<!-- services we use for this Hub Role -->
+	<Module Name="Services" RunClass="dcraft.service.ServiceModule">
+		<Extension Name="Status" RunClass="dcraft.service.Status" />
+		<Extension Name="dcEmail" RunClass="dcraft.mail.MailService" />
+		<Extension Name="dcmCore" RunClass="dcraft.cms.service.CoreService" />
+		<Extension Name="dcmSocialMedia" RunClass="dcraft.cms.service.SocialMediaService" />
+		<Extension Name="dcmBucket" RunClass="dcraft.cms.service.BucketService" />
+	</Module>
+
+	<Module Name="Web" RunClass="dcraft.web.WebModule">
+		<Extension Name="default" RunClass="dcraft.web.WebExtension">
+			<Package Name="dc/dcWeb-2" />
+		</Extension>
+
+		<Settings DefaultTlsPort="8443" Deflate="True">
+			<HttpListener Port="8443" Secure="True"/>
+
+			<SslContext File="./config/demo/certs/dcraft.jks" PlainPassword="democert" />
+		</Settings>
+	</Module>
+
+	<Harden>
+		<Http>
+			<Header
+				Name="Content-Security-Policy"
+				Value="default-src 'self'; style-src 'unsafe-inline' 'self'; img-src * data: blob:; media-src *; font-src *;"
+			/>
+		</Http>
+	</Harden>
+
+	<Catalog Name="Email">
+		<Settings
+			Method="Smtp"
+			DefaultFrom=""
+			SmtpHost=""
+			SmtpUsername=""
+			SmtpPassword=""
+			SmtpPort="587"
+			SmtpAuth="True"
+			SmtpDebug="False"
+			SkipToAddress="@skip.com"
+			Topic="Outbox"
+		/>
+	</Catalog>
+</Config>

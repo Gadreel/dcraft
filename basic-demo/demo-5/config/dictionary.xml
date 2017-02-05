@@ -1,0 +1,12 @@
+<Dictionary>
+	<Locale Id="en">
+		<Entry Token="mnuHome" Value="Home" />
+		<Entry Token="mnuAbout" Value="About" />
+		<Entry Token="mnuContact" Value="Contact" />
+	</Locale>
+	<Locale Id="x-pig-latin">
+		<Entry Token="mnuHome" Value="omeHay" />
+		<Entry Token="mnuAbout" Value="Aboutyay" />
+		<Entry Token="mnuContact" Value="ontactCay" />
+	</Locale>
+</Dictionary>

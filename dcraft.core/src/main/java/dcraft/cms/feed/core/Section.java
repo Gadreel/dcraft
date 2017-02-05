@@ -39,7 +39,7 @@ public class Section {
 		// if not a section then default
 		if (!line.startsWith("%%%")) {
 			sec.id = "sectAuto" + StringUtil.buildSecurityCode();
-			sec.plugin = "StandardSection";
+			sec.plugin = "Standard";
 			
 			// section has content in it, collect it up
 			sec.content = new StringBuilder(line);
@@ -73,10 +73,10 @@ public class Section {
 			int iow = meta.indexOf(' '); 
 			
 			if (iow == -1) {
-				sec.plugin = meta;
+				sec.plugin = meta; 
 			}
 			else {
-				sec.plugin = meta.substring(0, iow);
+				sec.plugin = meta.substring(0, iow);  
 				
 				Map<String, String> params = Emitter.parsePluginParams(meta.substring(iow + 1));
 				
@@ -89,6 +89,9 @@ public class Section {
 						sec.attrs.setField(key, params.get(key));
 				}
 			}
+			
+			if (sec.plugin.endsWith("Section"))
+				sec.plugin = sec.plugin.substring(0, sec.plugin.length() - 7);
 			
 			if (!IOUtil.isLegalFilename(sec.plugin) || sec.plugin.contains("%")) {
 				OperationContext.get().error("Section plugin type error.");
@@ -199,7 +202,7 @@ public class Section {
 	
 	public void write(StringBuilder content) {
 		content.append("%%% ");
-		content.append(this.plugin);
+		content.append(this.plugin + "Section");
 		
 		if (StringUtil.isEmpty(this.id))
 			this.id = "sectAuto" + StringUtil.buildSecurityCode();

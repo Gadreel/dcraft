@@ -249,6 +249,20 @@ public class WebContext extends BaseContext {
 		}
 	}
 	
+	public void sendNotModified() {
+    	if (Logger.isDebug())
+    		Logger.debug("Web server respond with Not Modified");
+    	
+		if (this.response != null) {
+			this.response.setStatus(HttpResponseStatus.NOT_MODIFIED);
+
+			Channel tchan = this.getChannel();
+			
+			if ((tchan != null) && (this.response != null)) 
+				this.response.writeNotModified(tchan);
+		}
+	}
+
 	public void sendRequestOkClose() {
 		if (this.response != null) {
 			this.response.setStatus(HttpResponseStatus.OK);

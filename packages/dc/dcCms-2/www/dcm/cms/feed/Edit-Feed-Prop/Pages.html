@@ -1,0 +1,142 @@
+<dc.Html Title="Page Properties">
+	<dc.Body>
+		<dc.PagePanel>
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dcf.SubmitButton Label="Save" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Title" Label="Title" DataType="dcmPageTitle" Required="true" />
+				<dcf.Text Name="Keywords" Label="Keywords" DataType="dcmPageKeywords" />
+				<dcf.Text 
+					Name="Image"
+					Label="Image" 
+				>
+					<Input />
+					<Button Icon="fa-ellipsis-h" Click="DoSelectImage" />
+				</dcf.Text>
+				<dcf.TextArea Name="Description" Label="Description" DataType="dcmPageDescription" />
+			</dcf.Form>
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (!entry.Params.Channel || !entry.Params.Path)
+				entry.Params = dc.pui.App.Context.Params;
+				
+			entry.Store.Lang = 'en';		// TODO site default?
+    ]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			e.Message = { 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'LoadFeedInfo',
+				Body: { 
+					Channel: entry.Params.Channel, 
+					Path: entry.Params.Path 
+				}
+			};
+	]]></dc.Function>
+	<dc.Function Name="AfterLoadRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			var deflang = e.Data.Locale;  	
+			var lang = dc.util.Cookies.getCookie('dcLang');
+			
+			if (! lang)
+				lang = deflang;
+				
+			entry.Store.Lang = lang;
+
+			// collect all the content properties into a usable format
+			newdata = {
+				Path: e.Data.Path
+			};
+			
+			var flds = e.Data.PreviewFields;
+			
+			if (! flds)
+				flds = e.Data.Fields;
+
+			// load all defaults first			
+			for (var i = 0; i < flds.length; i++) {
+				var fld = flds[i];
+				
+				// support other locales someday
+				if (fld.Locale != deflang)
+					continue;
+				
+				newdata[fld.Name] = fld.Value;
+			}
+			
+			// if current lang differs, load as overrides to the default
+			if (deflang != lang) {
+				for (var i = 0; i < flds.length; i++) {
+					var fld = flds[i];
+					
+					// support other locales someday
+					if (fld.Locale != lang)
+						continue;
+					
+					newdata[fld.Name] = fld.Value;
+				}
+			}
+			
+			e.Data = newdata;
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			var savedata = {
+				Path: entry.Params.Path,
+				Channel: entry.Params.Channel,
+				Publish: true,
+				SetFields: []
+			};
+			
+			for (var fldname in e.Data) {
+				if (e.Data.hasOwnProperty(fldname) && (fldname != 'Tags')) {
+					var fld = e.Data[fldname];
+
+					if (fldname == 'Published')
+						fld = fld.replace(' ', 'T');
+
+					savedata.SetFields.push({
+						Name: fldname,
+						Value: fld
+					});
+				}
+			}
+			
+			e.Message = { 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'AlterFeedInfo',
+				Body: savedata
+			};
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+
+			// TODO review this
+			//dc.pui.Loader.clearPageCache(entry.Params.Path); 
+			
+			dc.pui.Popup.alert('Properties saved.');
+	]]></dc.Function>
+	<dc.Function Name="DoSelectImage"><![CDATA[
+			var entry = this;
+		
+		    dc.pui.Dialog.loadPage('/dcm/cms/galleries/Chooser', { 
+				Callback: function(res) {
+					if (res.Images && res.Images.length) {
+						var fh = res.Images[0];
+						
+						entry.form().setValue('Image', '/galleries' + fh.FullPath);
+					}
+				} 
+			});
+    ]]></dc.Function>
+</dc.Html>

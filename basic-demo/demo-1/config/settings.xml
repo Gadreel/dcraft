@@ -1,0 +1,32 @@
+<Settings Title="Demo One">
+	<Description>Site one for Demo</Description>
+
+	<Domain Name="one.dcraft" />
+
+	<Harden> 
+		<Http> 
+			<Header 
+				Name="Content-Security-Policy" 
+				Value="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src * data: blob:; media-src *; font-src *;" 
+			/> 
+		</Http> 
+	</Harden> 
+	
+	<Users>
+		<User 
+			Username="root" 
+			First="Root" Last="One" 
+			Email="root@one.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Developer</AuthTag>
+		</User>
+	</Users>
+	
+	<Web 
+		HtmlMode="Ssi"
+		SiteAuthor="designCraft.io"
+		IndexUrl="https://one.dcraft/"
+	/>
+</Settings>

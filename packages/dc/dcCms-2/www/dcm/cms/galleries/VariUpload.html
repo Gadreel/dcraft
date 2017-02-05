@@ -1,0 +1,80 @@
+<dc.Html Title="Upload Image" AuthTags="Editor,Admin">
+	<dc.RequireLib Path="/js/dc.transfer.js" />
+	
+	<dc.RequireLib Path="/js/dc.image.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-meta.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-orientation.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-exif.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/load-image-exif-map.js" />
+	<dc.RequireLib Path="/js/vendor/blueimp/canvas-to-blob.min.js" />
+	
+	<dc.Body>
+		<dc.PagePanel>
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Label="Close" Click="AfterSave" />
+					<dcf.SubmitButton Label="Upload" />
+				</dcf.FormButtons>
+				
+				<!--  Variation description here -->
+				<div id="lblDepQUsizing" />
+
+				<dcf.Uploader Label="Attachments" Name="Attachments" Required="true" />
+				
+				<!-- TODO support renaming 
+				<dcf.Text Name="FileName" Label="File Name:" Required="true"  Pattern="[\w-\.]+">
+					<Instructions>Give your file a useful name, no spaces, no file extension.</Instructions>
+				</dcf.Text>
+				-->
+			</dcf.Form>
+		</dc.PagePanel>
+	</dc.Body>
+				
+	<dc.Function Name="Load"><![CDATA[	
+				var page = this;
+				
+				page.Store.Gallery = page.Params.Gallery;
+				
+				// TODO load gallery if not passed
+				
+				// set the image description in an instruction block above the file chooser
+				if (page.Params.Variation)
+					$('#lblDepQUsizing').text("Target image size: " + page.Store.Gallery.formatVariation(page.Params.Variation));
+	
+				page.Store.File = null;
+	]]></dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+				var page = this;
+				
+				e.Wait = true;
+	
+				var file = page.form().input('Attachments').Files[0];
+				
+				// TODO support alternatives to jpg
+				page.Store.File = page.Params.Path + '.v/' + page.Params.Variation + '.jpg';
+			
+				page.Store.Transfer = new dc.transfer.Bucket({
+					Bucket: 'WebGallery',
+					Progress: function(amt, title) {
+						page.Store.Amount = amt - 0;		// force numeric
+					},
+					Callback: function(e2) {
+						//console.log('callback done!');
+						
+						delete page.Store.Transfer;
+
+						e.Task.resume();
+					}
+				});
+				
+				page.Store.Transfer.upload(file, page.Store.File, null, true);
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+				var page = this;
+					
+				page.Layer.back();
+				
+				if (page.Params.Callback)
+					page.Params.Callback(page.Store.File);
+	]]></dc.Function>	
+</dc.Html>

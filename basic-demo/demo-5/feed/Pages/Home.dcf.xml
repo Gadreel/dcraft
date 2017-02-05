@@ -1,0 +1,10 @@
+<dcf Locale="en">
+	<Field Name="Title" Value="Home – Deep Sea Theme" />
+	<Field Name="Keywords" Value="Deep Sea Theme designcraft webserver demo" />
+	<Field Name="Description" Value="Demonstrating the multi-language features of the designcraft webserver." />
+	<PagePart Format="md" For="article" External="true" />
+
+    <Field Name="Title" Locale="x-pig-latin" Value="omeHay – eepDay eaSay emeThay" />
+	<Field Name="Description" Locale="x-pig-latin" Value="emonstratingDay ethay ultimay-anguagelay eaturesfay ofyay ethay esigncraftday ebserverway." />
+	<PagePart For="article" Locale="x-pig-latin" Format="md" External="True" />
+</dcf> 

@@ -29,7 +29,7 @@ dc.cms.Loader = {
 			if (cmspath)
 				options = { 
 					AuthTags: [ 'Editor', 'Admin', 'Developer' ],
-					Page: '/dcm/cms/feed/Page/Edit-Prop',
+					Tab: 'FeedProp',
 					Menu: 'dcmPageProps',
 					Params: {
 						Channel: 'Pages',
@@ -72,19 +72,24 @@ dc.pui.Apps.Menus.dcmEmpty = {
 };
 
 dc.pui.Apps.Menus.dcmGeneral = {
-	Options: [
+	Tabs: [
+  		{
+			Alias: 'Pages',
+			Title: 'Pages',
+			Path: '/dcm/cms/feed/List-Feed/Pages'
+		},
 		{
+			Alias: 'Galleries',
 			Title: 'Galleries',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/galleries/Browser');
-			}
+			Path: '/dcm/cms/galleries/Browser'
 		},
 		{
+			Alias: 'Files',
 			Title: 'Files',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/files/Browser');
-			}
-		},
+			Path: '/dcm/cms/files/Browser'
+		}
+	],
+	Options: [
 		{
 			Title: 'My Account',
 			Op: function(e) {
@@ -101,26 +106,29 @@ dc.pui.Apps.Menus.dcmGeneral = {
 };
 
 dc.pui.Apps.Menus.dcmPageProps = {
-	Options: [
+	Tabs: [
 		{
+			Alias: 'FeedProp',
 			Title: 'Page Properties',
-			Op: function(e) {
-				// assumes the context is already set
-				dc.pui.App.loadPage('/dcm/cms/feed/Page/Edit-Prop');
-			}
+			Path: '/dcm/cms/feed/Edit-Feed-Prop/Pages'
+		},
+  		{
+			Alias: 'Pages',
+			Title: 'Pages',
+			Path: '/dcm/cms/feed/List-Feed/Pages'
 		},
 		{
+			Alias: 'Galleries',
 			Title: 'Galleries',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/galleries/Browser');
-			}
+			Path: '/dcm/cms/galleries/Browser'
 		},
 		{
+			Alias: 'Files',
 			Title: 'Files',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/files/Browser');
-			}
-		},
+			Path: '/dcm/cms/files/Browser'
+		}
+	],
+	Options: [
 		{
 			Title: 'My Account',
 			Op: function(e) {
@@ -137,12 +145,11 @@ dc.pui.Apps.Menus.dcmPageProps = {
 };
 		
 dc.pui.Apps.Menus.dcmPagePart = {
-	Options: [
+	Tabs: [
 		{
+			Alias: 'Content',
 			Title: 'Content',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Part-Content');
-			}
+			Path: '/dcm/cms/feed/Edit-Part-Content'
 		}
 	]
 };
@@ -155,7 +162,7 @@ dc.pui.Apps.Menus.dcmPartPopup = {
 			Op: function(e) {
 			    var params = dc.pui.App.Context.Params;
 			    
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Part-Content');
+				dc.pui.App.loadTab('Content');
 			}
 		},
 		{
@@ -182,58 +189,80 @@ dc.pui.Apps.Menus.dcmPartPopup = {
 };
 
 dc.pui.Apps.Menus.dcmPartBasicPopup = {
-	Options: [
+	Tabs: [
 		{
+			Alias: 'Content',
 			Title: 'Edit',
 			Op: function(e) {
 			    var params = dc.pui.App.Context.Params;
 			    
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Part-Content');
+				dc.pui.App.loadTab('Content', params);
 			}
 		}
 	]
 };
 
-dc.pui.Apps.Menus.dcmPagePartSection = {
-	Options: [
+dc.pui.Apps.Menus.dcmPagePartStandardSection = {
+	Tabs: [
 		{
+			Alias: 'Content',
 			Title: 'Content',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Content');
-			}
+			Path: '/dcm/cms/feed/Edit-Section/Standard'			// TODO add channel
 		},
 		{
+			Alias: 'Properties',
 			Title: 'Properties',
-			Op: function(e) {
-			    var params = dc.pui.App.Context.Params;
-			    
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Prop-' + params.Section.Plugin);
-			}
+			Path: '/dcm/cms/feed/Edit-Section/Standard-Prop'			// TODO add channel
+		}
+	]
+};
+
+dc.pui.Apps.Menus.dcmPagePartPairedMediaSection = {
+	Tabs: [
+		{
+			Alias: 'Content',
+			Title: 'Content',
+			Path: '/dcm/cms/feed/Edit-Section/PairedMedia'			// TODO add /channel
+		},
+		{
+			Alias: 'Properties',
+			Title: 'Properties',
+			Path: '/dcm/cms/feed/Edit-Section/PairedMedia-Prop'			// TODO add /channel
+		}
+	]
+};
+
+dc.pui.Apps.Menus.dcmPagePartHtmlSection = {
+	Tabs: [
+		{
+			Alias: 'Content',
+			Title: 'Content',
+			Path: '/dcm/cms/feed/Edit-Section/Html'						// TODO add /channel
+		},
+		{
+			Alias: 'Properties',
+			Title: 'Properties',
+			Path: '/dcm/cms/feed/Edit-Section/Html-Prop'			// TODO add /channel
 		}
 	]
 };
 
 dc.pui.Apps.Menus.dcmPagePartGallerySection = {
-	Options: [
+	Tabs: [
 		{
+			Alias: 'Content',
 			Title: 'List',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Gallery');
-			}
+			Path: '/dcm/cms/feed/Edit-Section/Gallery'			// TODO add /channel
 		},
 		{
+			Alias: 'Template',
 			Title: 'Template',
-			Op: function(e) {
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Template');
-			}
+			Path: '/dcm/cms/feed/Edit-Section/Gallery-Template'		// TODO add /channel
 		},
 		{
+			Alias: 'Properties',
 			Title: 'Properties',
-			Op: function(e) {
-			    var params = dc.pui.App.Context.Params;
-			    
-				dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Prop-' + params.Section.Plugin);
-			}
+			Path: '/dcm/cms/feed/Edit-Section/Gallery-Prop'			// TODO add /channel
 		}
 	]
 };
@@ -248,23 +277,23 @@ dc.pui.Apps.Menus.dcmSectionPopup = {
 			    params.Action = {
 			    	Op: 'Edit'
 			    };
-			    
+
+			    var plugin = params.Section.Plugin;
+			    	
+				dc.pui.App.Context.Menu = 'dcmPagePart' + plugin + 'Section';
+			    	
 			    var $sect = $('#' + params.Section.Id);
 			    
 			    // TODO enhance how this works and how it works in Insert Section too
-			    if ($sect.hasClass('dc-section-gallery')) {
-					dc.pui.App.Context.Menu = 'dcmPagePartGallerySection';
-					
+			    // probably load properties in /Gallery instead
+			    if (plugin == 'Gallery') {
 					params.Show = {
 						Path: $sect.attr('data-path'),
 						Alias: $sect.attr('data-show')
 					};
-					
-					dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Gallery');
 			    }
-			    else {
-					dc.pui.App.loadPage('/dcm/cms/feed/Edit-Section-Content');
-				}
+
+				dc.pui.App.loadTab('Content', params);		// TODO add /channel
 			}
 		},
 		{
@@ -553,6 +582,38 @@ dc.cms.image = {
 				desc += 'unrestricted';
 			
 			return desc;
+		},
+		formatVariationSummary: function(vari) {
+			if (!vari)
+				return 'missing';
+			
+			var desc = '';
+			
+			if (vari.ExactWidth)
+				desc += vari.ExactWidth;
+			else if (vari.MaxWidth && vari.MinWidth)
+				desc += '>=' + vari.MinWidth + ' <=' + vari.MaxWidth;
+			else if (vari.MaxWidth)
+				desc += '<=' + vari.MaxWidth;
+			else if (vari.MinWidth)
+				desc += '>=' + vari.MinWidth;
+			else 
+				desc += 'any';
+			
+			desc += ' x ';
+			
+			if (vari.ExactHeight)
+				desc += vari.ExactHeight;
+			else if (vari.MaxHeight && vari.MinHeight)
+				desc += '>=' + vari.MinHeight + ' <=' + vari.MaxHeight;
+			else if (vari.MaxHeight)
+				desc += '<=' + vari.MaxHeight;
+			else if (vari.MinHeight)
+				desc += '>=' + vari.MinHeight;
+			else 
+				desc += 'any';
+			
+			return desc;
 		}
 	}
 };
@@ -765,58 +826,37 @@ dc.cms.image.Gallery.prototype.createProcessUploadTask = function(blobs, plan, t
 	
 	var steps = [ ];
 	
-	for (var i = 0; i < blobs.length; i++) {
-		var blob = blobs[i];
-		
-		var bname = blob.Name ? blob.Name : null;
-		
-		if (! bname) {
-			bname = 'unknown';
+	steps.push({
+		Alias: 'ProcessImages',
+		Title: 'Process Images',
+		Params: {
+		},
+		Func: function(step) {
+			var task = this;
+			
+			step.TotalAmount = 20;
 
-			if (blob.name) {
-				bname = dc.util.File.toCleanFilename(blob.name);
-				
-				// remove the extension
-				var bpos = bname.lastIndexOf('.');
-				
-				if (bpos)
-					bname = bname.substr(0, bpos);
+			var pres = task.Store.Gallery.createProcessTask(blobs, plan);
+			
+			if (pres.hasErrors()) {
+				task.error('Unable to process task');
+				task.resume();
+				return;
 			}
+		
+			pres.Result.Observers.push(function(ctask) {
+				task.Result = ctask.Result;
+				task.resume();
+			});
+			
+			pres.Result.ParentTask = task;
+			pres.Result.ParentStep = step;
+			
+			step.Tasks = [ pres.Result ];
+
+			pres.Result.run();
 		}
-		
-		steps.push({
-			Alias: 'ProcessImage',
-			Title: 'Process Image',
-			Params: {
-				Blob: blob,
-				Name: bname
-			},
-			Func: function(step) {
-				var task = this;
-
-				var pres = task.Store.Gallery.createPlanTask(step.Params.Blob, step.Params.Name);
-				
-				if (pres.hasErrors()) {
-					task.error('Unable to create plan');
-					task.resume();
-					return;
-				}
-				
-				pres.Result.Observers.push(function(ctask) {
-					if (ctask.Result) {
-						task.Result.push({
-							Name: step.Params.Name,
-							Variants: ctask.Result 
-						});
-					}
-					
-					task.resume();
-				});
-
-				pres.Result.run();
-			}
-		});
-	}
+	});
 	
 	steps.push({
 		Alias: 'UploadImages',
@@ -837,6 +877,11 @@ dc.cms.image.Gallery.prototype.createProcessUploadTask = function(blobs, plan, t
 			pres.Result.Observers.push(function(ctask) {
 				task.resume();
 			});
+			
+			pres.Result.ParentTask = task;
+			pres.Result.ParentStep = step;
+			
+			step.Tasks = [ pres.Result ];
 
 			pres.Result.run();
 		}
@@ -854,6 +899,182 @@ dc.cms.image.Gallery.prototype.createProcessUploadTask = function(blobs, plan, t
 	processtask.Result = [ ];
 	
 	or.Result = processtask;
+	
+	return or;
+};
+
+dc.cms.image.Gallery.prototype.createThumbsTask = function(path, plan, token, bucket) {
+	var or = new dc.lang.OperationResult();
+	
+	var steps = [ ];
+	
+	// === DETAILS ===
+	
+	var funcDetailStep = function(task, fname) {
+		task.Steps.push({
+			Alias: 'ListImages',
+			Title: 'List Images',
+			Params: {
+				FileName: fname
+			},
+			Func: function(step) {
+				var task = this;
+				
+				step.Store = { };
+
+				task.Store.Gallery.imageDetail(step.Params.FileName, function(rmsg) {
+					if (rmsg.Result != 0) { 
+						dc.pui.Popup.alert('Error loading image details.');
+						return;
+					}
+					
+					var details = rmsg.Body.Extra;
+					var tfnd = false;
+					var tvar = null;
+					
+					//console.log('detail for: ' + step.Params.FileName + ' --- ' + JSON.stringify(details, null, '\t'));
+					
+					for (var i = 0; i < details.length; i++) {
+						var item = details[i];
+	
+						if (item.Alias == 'thumb') {
+							tfnd = true;
+						}
+						else if (item.Alias == 'original') {
+							tvar = 'original';
+						}
+						else if ((item.Alias == 'full') && (tvar == null)) {
+							tvar = 'full';
+						}
+						else if ((item.Alias == 'main') && (tvar == null)) {
+							tvar = 'main';
+						}
+					}
+					
+					if (! tfnd && tvar) {
+						var fullpath = '/galleries' + task.Store.Gallery.Path + '/' + step.Params.FileName + '.v/' + tvar + '.jpg'
+						
+						dc.util.File.loadBlob(fullpath, function(blob) {
+							//console.log('blob for: ' + fullpath + ' --- ' + blob);
+							
+							var varis = [ task.Store.Gallery.findVariation('thumb') ];
+							
+							var ctaskres = dc.image.Tasks.createVariationsTask(blob, varis, 
+								task.Store.Gallery.Meta.Extension, task.Store.Gallery.Meta.Quality);
+							
+							if (ctaskres.hasErrors()) {
+								task.error('Unable to create variations.');
+								task.resume();
+								return;
+							}
+							
+							ctaskres.Result.Observers.push(function(ctask) {
+								task.Result = ctask.Result;
+							
+								//console.log('blob variant for: ' + fullpath + ' --- ' + task.Result);
+								
+								// TODO support a callback on fail - do task.kill - handle own alerts
+								step.Store.Transfer = new dc.transfer.Bucket({
+									Bucket: task.Store.Bucket,
+									Progress: function(amt, title) {
+										step.Amount = amt - 0;		// force numeric
+										
+										//console.log('# ' + amt + ' - ' + title);
+									},
+									Callback: function(e) {
+										//console.log('callback done!');
+										
+										delete step.Store.Transfer;
+				
+										task.resume();
+									}
+								});
+								
+								var thpath = task.Store.Gallery.Path + '/' + step.Params.FileName 
+									+ '.v/thumb.jpg'
+								
+								step.Store.Transfer.upload(task.Result[0].Blob, thpath, task.Store.Token);
+							
+								//task.resume();
+							});
+					
+							ctaskres.Result.ParentTask = task;
+							ctaskres.Result.ParentStep = step;
+							
+							step.Tasks = [ ctaskres.Result ];
+				
+							ctaskres.Result.run();
+						}); 
+					}
+					else {
+						task.resume();
+					}
+				});
+			}
+		});
+	};
+	
+	// === LISTING ===
+
+	steps.push({
+		Alias: 'ListImages',
+		Title: 'List Images',
+		Params: {
+			Folder: path
+		},
+		Func: function(step) {
+			var task = this;
+
+			dc.comm.sendMessage({ 
+				Service: 'dcmBucket',
+				Feature: 'Buckets',
+				Op: 'ListFiles',
+				Body: { 
+					Bucket: 'WebGallery',
+					Path: step.Params.Folder
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);	// TODO do we send an alert in task progress?
+					return;
+				}
+				
+				var items = resp.Body;
+		
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (item.IsFolder)
+						continue;
+						
+					funcDetailStep(task, item.FileName);
+				}
+				
+				task.resume();
+			});	
+		}
+	});
+
+	/*
+	for (var i = 0; i < files.length; i++) {
+		var file = files[i];
+		
+		
+		
+	}
+	*/
+	
+	var thumbtask = new dc.lang.Task(steps);
+	
+	thumbtask.Store = {
+		Path: path,
+		Bucket: bucket ? bucket : 'WebGallery',
+		Gallery: this,
+		Token: token,
+		Plan: plan
+	};
+	
+	or.Result = thumbtask;
 	
 	return or;
 };
@@ -885,8 +1106,13 @@ dc.cms.image.Gallery.prototype.createUploadTask = function(files, token, bucket)
 					// TODO support a callback on fail - do task.kill - handle own alerts
 					step.Store.Transfer = new dc.transfer.Bucket({
 						Bucket: task.Store.Bucket,
+						Progress: function(amt, title) {
+							step.Amount = amt - 0;		// force numeric
+							
+							//console.log('# ' + amt + ' - ' + title);
+						},
 						Callback: function(e) {
-							console.log('callback done!');
+							//console.log('callback done!');
 							
 							delete step.Store.Transfer;
 	
@@ -916,6 +1142,85 @@ dc.cms.image.Gallery.prototype.createUploadTask = function(files, token, bucket)
 	
 	return or;
 };
+
+
+dc.cms.image.Gallery.prototype.createProcessTask = function(blobs, plan) {
+	var or = new dc.lang.OperationResult();
+	
+	var steps = [ ];
+	
+	for (var i = 0; i < blobs.length; i++) {
+		var blob = blobs[i];
+		
+		var bname = blob.Name ? blob.Name : null;
+		
+		if (! bname) {
+			bname = 'unknown';
+
+			if (blob.name) {
+				bname = dc.util.File.toCleanFilename(blob.name);
+				
+				// remove the extension
+				var bpos = bname.lastIndexOf('.');
+				
+				if (bpos)
+					bname = bname.substr(0, bpos);
+			}
+		}
+		
+		steps.push({
+			Alias: 'ProcessImage',
+			Title: 'Process Image',
+			Params: {
+				Blob: blob,
+				Name: bname
+			},
+			Func: function(step) {
+				var task = this;
+
+				var pres = task.Store.Gallery.createPlanTask(step.Params.Blob, step.Params.Name, plan);
+				
+				if (pres.hasErrors()) {
+					task.error('Unable to create plan');
+					task.resume();
+					return;
+				}
+				
+				pres.Result.Observers.push(function(ctask) {
+					if (ctask.Result) {
+						task.Result.push({
+							Name: step.Params.Name,
+							Variants: ctask.Result 
+						});
+					}
+					
+					task.resume();
+				});
+			
+				pres.Result.ParentTask = task;
+				pres.Result.ParentStep = step;
+				
+				step.Tasks = [ pres.Result ];
+
+				pres.Result.run();
+			}
+		});
+	}
+	
+	var processtask = new dc.lang.Task(steps);
+	
+	processtask.Store = {
+		Plan: plan,
+		Gallery: this
+	};
+	
+	processtask.Result = [ ];
+	
+	or.Result = processtask;
+	
+	return or;
+};
+
 
 dc.cms.image.Gallery.prototype.createPlanTask = function(blob, name, plan) {
 	var or = new dc.lang.OperationResult();
@@ -964,6 +1269,11 @@ dc.cms.image.Gallery.prototype.createPlanTask = function(blob, name, plan) {
 						task.Result = ctask.Result;
 						task.resume();
 					});
+			
+					ctaskres.Result.ParentTask = task;
+					ctaskres.Result.ParentStep = step;
+					
+					step.Tasks = [ ctaskres.Result ];
 		
 					ctaskres.Result.run();
 				}

@@ -37,6 +37,11 @@
 			<Field Name="dcmAttributes" Type="AnyRecord" List="True" /> 
 		</Table>
 		
+		<Trigger Table="dcmThread" Operation="AfterInsert" Execute="dcraft.cms.thread.trigger.AfterThreadInsert" />
+		
+		<Trigger Table="dcmThread" Operation="BeforeUpdate" Execute="dcraft.cms.thread.trigger.BeforeThreadUpdate" />
+		<Trigger Table="dcmThread" Operation="AfterUpdate" Execute="dcraft.cms.thread.trigger.AfterThreadUpdate" />
+		
 		<!-- ==============================================
 				FEED
 		=============================================== -->
@@ -170,6 +175,13 @@
 				<Request Inherits="dcmThreadListRequestInfo" />
 				<ListResponse Type="dcmThreadSummaryInfo" />
 			</Procedure>
+			<Procedure Name="dcmThreadFolderListingOld" Execute="dcraft.cms.thread.proc.FolderListingOld">
+				<Description>
+					List all messages in a given folder for given party(s) and label(s) 
+				</Description>
+				<Request Inherits="dcmThreadListRequestInfo" />
+				<ListResponse Type="dcmThreadSummaryInfo" />
+			</Procedure>
 			<Procedure Name="dcmThreadFolderCounting" Execute="dcraft.cms.thread.proc.FolderCounting">
 				<Description>
 					Count messages in all folders for given party(s) and label(s) 
@@ -191,6 +203,13 @@
 						<Field Name="Modified" Type="dcmThread:dcmModified" />   
 					</Record>
 				</ListResponse>
+			</Procedure>
+			<Procedure Name="dcmThreadFullIndex" Execute="dcraft.cms.thread.proc.FullIndex">
+				<Description>
+					Reindex all threads.
+				</Description>
+				<Request />
+				<Response />
 			</Procedure>
 		</Secure>
 		

@@ -85,11 +85,14 @@ public class AfterTenantInsert implements IStoredProc {
 			
 			// insert root user auth tags
 			conn.set(DB_GLOBAL_RECORD, did, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "Admin", stamp, "Data", "Admin");
+			conn.set(DB_GLOBAL_RECORD, did, "dcUser", DB_GLOBAL_ROOT_USER, "dcAuthorizationTag", "Developer", stamp, "Data", "Developer");
 			
 			// increment index count
 			conn.inc(DB_GLOBAL_INDEX_SUB, did, "dcUser", "dcAuthorizationTag", "Admin".toLowerCase(Locale.ROOT));
+			conn.inc(DB_GLOBAL_INDEX_SUB, did, "dcUser", "dcAuthorizationTag", "Developer".toLowerCase(Locale.ROOT));
 			// set the new index new
 			conn.set(DB_GLOBAL_INDEX_SUB, did, "dcUser", "dcAuthorizationTag", "Admin".toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, "Admin", null);
+			conn.set(DB_GLOBAL_INDEX_SUB, did, "dcUser", "dcAuthorizationTag", "Developer".toLowerCase(Locale.ROOT), DB_GLOBAL_ROOT_USER, "Developer", null);
 			
 			// insert root Tenant record count
 			conn.set(DB_GLOBAL_RECORD_META, did, "dcUser", "Count", 1);

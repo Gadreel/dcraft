@@ -1,0 +1,44 @@
+<Settings Title="Demo Five" Locale="en">
+	<Description>Site Five for Demo</Description>
+
+	<Domain Name="five.dcraft" />
+	
+	<Locale Name="x-pig-latin" />
+	
+	<Users>
+		<User 
+			Username="root" 
+			First="Root" Last="Five" 
+			Email="root@five.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Developer</AuthTag>
+		</User>
+		<User 
+			Username="editor" 
+			First="Editor" Last="Five" 
+			Email="editor@five.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Editor</AuthTag>
+		</User>
+	</Users>
+	
+	<Web 
+		SiteAuthor="designCraft.io"
+		IndexUrl="https://five.dcraft/"
+	>
+		<Package Name="dc/dcWeb-2" />
+		<Package Name="dc/dcCms-2" />
+
+		<Global Style="/css/dcm.app.css" />
+		
+		<Global Script="/js/dcm.app.js" />
+	</Web>
+
+	<Feed>
+		<Channel Name="Pages" />
+	</Feed>
+</Settings>

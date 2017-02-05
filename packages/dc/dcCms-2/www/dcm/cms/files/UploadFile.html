@@ -1,8 +1,8 @@
-<dc.Html Title="Upload File" AuthTags="Editor,Admin">
+<dc.Html Title="Upload Files" AuthTags="Editor,Admin">
 	<dc.RequireLib Path="/js/dc.transfer.js" />
 	
 	<dc.Body>
-		<dc.Panel Title="Upload Files">
+		<dc.PagePanel>
 			<dcf.Form Name="UploadFile">
 				<dcf.FormButtons>
 					<dc.Button Label="Close" Click="AfterSave" />
@@ -11,7 +11,7 @@
 
 				<dcf.Uploader Label="Attachments" Name="Attachments" />
 			</dcf.Form>
-		</dc.Panel>
+		</dc.PagePanel>
 
 				<!-- TODO rename				
 				<dcf.Text Name="Path" Label="Name" Required="true" Pattern="[\w-\/]+" 
@@ -58,11 +58,13 @@
 					});
 				}
 	
-				var uploadtask = dc.transfer.Util.uploadFiles(cfiles, 'WebFileStore', null, function() {
-					e.Task.resume();
-				});
+				var uploadtask = dc.transfer.Util.uploadFiles(cfiles, 'WebFileStore');
+				
+				dc.pui.Popup.await('Large files may take some time, please wait until the upload is complete.', function() {
+					e.Task.resume();		// resume the Save task
+				}, 'Uploading Files', uploadtask);
 
-				uploadtask.run();
+				//uploadtask.run();
 	]]></dc.Function>
 	<dc.Function Name="AfterSave"><![CDATA[
 			var page = this;

@@ -17,7 +17,7 @@ import dcraft.web.ui.UIWork;
 import dcraft.xml.XElement;
 import dcraft.xml.XNode;
 
-public class GalleryThumbs extends Section {
+public class GalleryThumbs extends UIElement {
 	public GalleryThumbs() {
 		super("dc.GalleryThumbs");
 	}
@@ -31,7 +31,13 @@ public class GalleryThumbs extends Section {
 	public void build(WeakReference<UIWork> work) {
 		Long maximgs = this.hasNotEmptyAttribute("Max") ? StringUtil.parseInt(this.getAttribute("Max")) : null;
 		
-	    String template = this.getText();
+	    String template = "";
+		XElement xtemp = this.find("Template");
+		
+		if (xtemp != null) 
+			template = xtemp.toInnerString();
+		else 
+			template = this.getText();
 		
 	    if (StringUtil.isEmpty(template))
 	    	template = "<a href=\"#\" data-image=\"@img|Alias@\"><img src=\"@path@\" data-dc-img=\"@imgdata@\" /></a>";
@@ -68,7 +74,7 @@ public class GalleryThumbs extends Section {
 				  while (m.find()) {
 					  String grp = m.group();
 					  String macro = grp.substring(1, grp.length() - 1);
-					  String val = GalleryThumbs.this.expandMacro(GalleryThumbs.this.getAttribute("Path"), meta, show, img, macro);
+					  String val = GalleryThumbs.expandMacro(GalleryThumbs.this.getAttribute("Path"), meta, show, img, macro);
 					  
 					  // if any of these, then replace and check (expand) again 
 					  if (val != null) {
@@ -125,7 +131,7 @@ public class GalleryThumbs extends Section {
 		this.withClass("dc-gallery-thumbs")
 			.withAttribute("data-dc-enhance", "true")
 			.withAttribute("data-dc-tag", this.getName())
-			//.withAttribute("data-dccms-plugin", "GallerySection")
+			//.withAttribute("data-dccms-plugin", "Gallery")
 			.withAttribute("data-variant", this.getAttribute("Variant"))
 			.withAttribute("data-ext", this.getAttribute("Extension"))
 			.withAttribute("data-path", this.getAttribute("Path"))
@@ -136,7 +142,7 @@ public class GalleryThumbs extends Section {
 		super.translate(work, pnodes);
 	}
 
-	  public String expandMacro(String path, RecordStruct meta, RecordStruct show, Struct img, String macro) {
+	  static public String expandMacro(String path, RecordStruct meta, RecordStruct show, Struct img, String macro) {
 		  String[] parts = macro.split("\\|");
 		  
 		  String val = null;

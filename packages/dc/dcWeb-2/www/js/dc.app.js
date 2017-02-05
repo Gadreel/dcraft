@@ -129,10 +129,15 @@ dc.pui.layer.Base.prototype = {
 		var page = loader.Pages[entry.Name];
 		
 		$(layer.Content).empty().append(page.Layout).promise().then(function() {
+			var lclass = page.PageClass + ' dcuiContentLayer';
+			
+			if (layer.History.length)
+				lclass += ' dcuiHistory';
+			
 			if (layer.Content == layer.ContentShell)
-				$(layer.Content).attr('class', page.PageClass + ' dcuiLayer');
-			else
-				$(layer.Content).attr('class', page.PageClass);
+				lclass += ' dcuiLayer';
+
+			$(layer.Content).attr('class', lclass);
 				
 			if (entry.Loaded && entry.FreezeTop)
 				$(layer.Content).scrollTop(entry.FreezeTop);				
@@ -468,15 +473,24 @@ dc.pui.layer.App = function() {
 
 dc.pui.layer.App.prototype = new dc.pui.layer.Base();
 
+dc.pui.layer.App.prototype.init = function(contentshell, content, options) {
+	dc.pui.layer.Base.prototype.init.call(this, contentshell, content, options);
+	
+	this.TabHistory = { };
+	this.TabFocus = null;
+}
+
 dc.pui.layer.App.prototype.open = function() {
 	var dialog = this;
 	var del = $('#dcuiApp');
 	
 	if (! del.length) {
-		var dbox = $('<div id="dcuiApp" class="dcuiLayer"></div>');
+		var dbox = $('<div id="dcuiApp" class="dcuiLayer dcuiMenu"></div>');
 		
-		var dbmenu = $('<div id="dcuiAppMenu"></div>');
-		var dbpane = $('<div id="dcuiAppPane"></div>');
+		var dbmenu = $('<div id="dcuiAppMenu"><div class="dc-pui-panel dc-pui-panel-primary dc-pui-panel-page">' +
+				'<div class="dc-pui-panel-heading"><h5>Tabs</h5></div><div id="dcuiAppMenuBody" class="dc-pui-panel-body"></div></div></div>');
+		
+		var dbpane = $('<div id="dcuiAppPane" class="dcuiContentLayer"></div>');
 		
 		dbox
 			.append(dbmenu)
@@ -494,13 +508,50 @@ dc.pui.layer.App.prototype.open = function() {
 	dc.pui.layer.Base.prototype.open.call(this);
 };
 
+dc.pui.layer.App.prototype.loadTab = function(tabalias, params) {
+	var tinfo = this.getTabInfo(tabalias);
+	
+	if (! tinfo)
+		return;
+	
+	if (this.Current) {
+		this.Current.freeze();
+		this.History.push(this.Current);
+		this.Current = null;
+	}
+	
+	this.TabFocus = tabalias;
+	
+	if (this.TabHistory[tabalias]) {
+		this.History = this.TabHistory[tabalias];
+		this.back();
+	}
+	else {
+		this.TabHistory[tabalias] = [];
+		this.History = this.TabHistory[tabalias];
+		this.loadPage(tinfo.Path, params); 
+	}
+};
+
 dc.pui.layer.App.prototype.start = function(context) {
 	var app = this;
 	app.Context = context;
 	
 	this.clearHistory();
 	
-	app.loadPage(context.Page, context.Params);
+	if (context.Tab)
+		app.loadTab(context.Tab, context.Params);
+	else
+		app.loadPage(context.Page, context.Params);
+};
+
+dc.pui.layer.App.prototype.startTab = function(context) {
+	var app = this;
+	app.Context = context;
+	
+	this.clearHistory();
+	
+	app.loadTab(context.Tab);
 };
 
 dc.pui.layer.App.prototype.manifestPage = function(entry, frompop) {
@@ -511,7 +562,23 @@ dc.pui.layer.App.prototype.manifestPage = function(entry, frompop) {
 	app.loadMenu();
 };
 
-dc.pui.layer.App.prototype.loadMenu = function() {
+dc.pui.layer.App.prototype.getTabInfo = function(tabalias) {
+	var app = this;
+	var area = this.getMenuArea();
+
+	var amenu = dc.pui.Apps.Menus[area];
+
+	if (amenu && amenu.Tabs) {
+		for (var i = 0; i < amenu.Tabs.length; i++) {
+			if (amenu.Tabs[i].Alias == tabalias)
+				return amenu.Tabs[i];
+		}
+	}
+	
+	return null;
+};
+
+dc.pui.layer.App.prototype.getMenuArea = function() {
 	var app = this;
 	
 	var area = null;
@@ -526,58 +593,41 @@ dc.pui.layer.App.prototype.loadMenu = function() {
 	if (!area)
 		area = 'dcSignIn';
 	
-	$('#dcuiAppMenu').empty();
+	return area;
+};
+
+dc.pui.layer.App.prototype.loadMenu = function() {
+	var app = this;
+	
+	var area = this.getMenuArea();
+	
+	$('#dcuiAppMenuBody').empty();
 	
 	// if any page is loaded, use back
-	var hist = app.getHistory();
+	//var hist = app.getHistory();
 	
-	var mcntrl = $('<div id="dcuiAppMenuCntrl"></div>');
-	
-	// mobile popup menu
-	var node1 = $('<a href="#"></a>');
-	node1.append('<i class="fa fa-bars"></i>');
-	node1.addClass('mobile');
-	
-	mcntrl.append(node1);
-	
-	// help menu
-	var node0 = $('<a href="#"></a>');
-	node0.append('<i class="fa fa-question"></i>');
-	
-	node0.click(function(e) {
-		var hpage = app.Current.Name + "-help";
+	var addbTab = function(mnu) {
+		if (mnu.Auth && !dc.user.isAuthorized(mnu.Auth))
+			return;
 		
-		app.loadPage(hpage);
-	});
+		var node = $('<a href="#" class="pure-button"></a>');
+		
+		if (mnu.Alias == app.TabFocus)
+			node.addClass('pure-button-selected');
+			
+		node.text(mnu.Title);
+		node.addClass(mnu.Kind);
+		
+		node.click(mnu, function(e) {
+			if (!dc.pui.Apps.busyCheck()) 
+				app.loadTab(e.data.Alias);
+			
+			e.preventDefault();
+			return false;
+		});
 	
-	mcntrl.append(node0);
-	
-	// back menu
-	var node2 = $('<a id="dcuiIntegratedMenuBack" href="#"></a>');
-	node2.append('<i class="fa fa-chevron-left"></i>');
-	
-	node2.click(function(e) {
-		if (! $(this).hasClass('disabled')) {
-			app.back();
-		}
-	});
-	
-	if (hist.length == 0) 
-		node2.addClass('disabled');
-	
-	mcntrl.append(node2);
-	
-	// close menu
-	var node3 = $('<a href="#"></a>');
-	node3.append('<i class="fa fa-times"></i>');
-	
-	node3.click(function(e) {
-		app.close();
-	});
-	
-	mcntrl.append(node3);
-	
-	$('#dcuiAppMenu').append(mcntrl);
+		$('#dcuiAppMenuBody').append(node);
+	};
 	
 	var addbMenu = function(mnu) {
 		if (mnu.Auth && !dc.user.isAuthorized(mnu.Auth))
@@ -596,22 +646,30 @@ dc.pui.layer.App.prototype.loadMenu = function() {
 			return false;
 		});
 	
-		$('#dcuiAppMenu').append(node);
+		$('#dcuiAppMenuBody').append(node);
 	};
-	
+
 	var amenu = dc.pui.Apps.Menus[area];
+
+	if (amenu && amenu.Tabs) {
+		for (var i = 0; i < amenu.Tabs.length; i++) 
+			addbTab(amenu.Tabs[i]);
+	}
 	
+	if (amenu && amenu.Tabs && amenu.Options) 
+		$('#dcuiAppMenuBody').append('<hr />');
+
 	if (amenu && amenu.Options) {
 		for (var i = 0; i < amenu.Options.length; i++) 
 			addbMenu(amenu.Options[i]);
 	}
+};
+
+dc.pui.layer.App.prototype.clearHistory = function() {
+	this.TabHistory = { };
+	this.TabFocus = null;
 	
-	node1.click(amenu, function(e) {
-		dc.pui.Popup.menu(e.data);
-		
-		e.preventDefault();
-		return false;
-	});
+	dc.pui.layer.Base.prototype.clearHistory.call(this);
 };
 
 // App feature (singleton)
@@ -629,7 +687,7 @@ dc.pui.layer.FullScreen.prototype.open = function() {
 	var del = $('#dcuiFullScreen');
 	
 	if (! del.length) {
-		var dbox = $('<div id="dcuiFullScreen" class="dcuiLayer"></div>');
+		var dbox = $('<div id="dcuiFullScreen" class="dcuiLayer dcuiContentLayer"></div>');
 		
 		$('body').append(dbox);
 	}
@@ -1011,6 +1069,10 @@ dc.pui.Popup = {
 		dc.pui.Alert.loadPage('/dcw/Alert', { Message: msg, Callback: callback, Title: title })
 	},
 
+	await: function(msg, callback, title, task) {
+		dc.pui.Alert.loadPage('/dcw/Await', { Message: msg, Callback: callback, Title: title, Task: task })
+	},
+
 	confirm: function(msg, callback, title) {
 		dc.pui.Alert.loadPage('/dcw/Confirm', { Message: msg, Callback: callback, Title: title })
 	},
@@ -1084,7 +1146,7 @@ dc.pui.PageEntry.prototype = {
 			Alias: 'MainLoadPage',
 			Title: 'Main load page function',
 			Func: function(step) {
-				var event = { Wait: false, Task: this };
+				var event = { Wait: false, Task: this, Thaw: entry.Loaded };
 
 				entry.callPageFunc('Load', event); 
 				
@@ -1120,6 +1182,8 @@ dc.pui.PageEntry.prototype = {
 				callback.call(entry);
 		});
 		
+		entry.Frozen = false;
+		
 		loadtask.run();		
 	},
 	
@@ -1130,6 +1194,25 @@ dc.pui.PageEntry.prototype = {
 			return page.Functions[method].apply(this, Array.prototype.slice.call(arguments, 1));
 			
 		return null;
+	},
+	
+	callTagFunc: function(selector, method) {
+		var entry = this;
+		var ret = null;
+		var args = Array.prototype.slice.call(arguments, 2);
+		
+		args.unshift(null);
+		args.unshift(entry);
+		
+		$(selector).each(function() { 
+			args[1] = this;
+			var tag = $(this).attr('data-dc-tag');
+			
+			if (tag && dc.pui.TagFuncs[tag] && dc.pui.TagFuncs[tag][method])
+				ret = dc.pui.TagFuncs[tag][method].apply(this, args);
+		});
+		
+		return ret;
 	},
 	
 	query: function(selector) {
@@ -1167,6 +1250,8 @@ dc.pui.PageEntry.prototype = {
 		Object.getOwnPropertyNames(entry.Forms).forEach(function(name) {
 			entry.Forms[name].freeze();
 		});
+		
+		entry.Frozen = true;
 	},
 	
 	onResize: function(e) {
@@ -1393,9 +1478,13 @@ dc.pui.Form.prototype = {
 	
 	setValue: function(field, value) { 
 		var form = this;
-		
-		if (form.Inputs[field])
-			form.Inputs[field].setValue(value);
+			
+		if (form.Inputs[field]) {
+			if (this.PageEntry.Frozen) 
+				form.FreezeInfo[form.Inputs[field].Record].Values[field] = value;
+			else
+				form.Inputs[field].setValue(value);
+		}
 	},
 	
 	getValues: function() {
@@ -2129,6 +2218,7 @@ dc.pui.Form.prototype = {
 							
 							var event = { 
 								Task: task,
+								Step: step,
 								Record: step.Params.Record,
 								Data: task.Store.Current.AfterData
 							};
@@ -2459,7 +2549,48 @@ dc.pui.Form.prototype = {
 
 dc.pui.TagCache = { };   // place to cache data that spans instances of a tag
 
+//place to add functions to tags
+dc.pui.TagFuncs = { 
+	'dc.PagePanel': {
+		'setTitle': function(entry, node, title) {
+			$(node).find('> div:first-child h5').text(title);
+		}
+	},
+	'dc.Panel': {
+		'setTitle': function(entry, node, title) {
+			$(node).find('> div:first-child h5').text(title);
+		}
+	}		
+};   
+
 dc.pui.Tags = {
+	'dc.PagePanel': function(entry, node) {
+		$(node).find('a').click(function(e) {
+			if ($(this).hasClass('dcui-pagepanel-close')) {
+				entry.Layer.close();
+			}
+			else if ($(this).hasClass('dcui-pagepanel-back')) {
+				entry.Layer.back();
+			}
+			else if ($(this).hasClass('dcui-pagepanel-help')) {
+				var hpage = entry.Name + "-help";
+				
+				dc.pui.Alert.loadPage(hpage);
+			}
+			else if ($(this).hasClass('dcui-pagepanel-menu')) {
+				if (! entry.Layer.getMenuArea)
+					return;
+				
+				var area = entry.Layer.getMenuArea();
+
+				if (area)
+					dc.pui.Popup.menu(area);
+			}
+			
+			e.preventDefault();
+			return false;
+		});
+	},
 	'dc.Button': function(entry, node) {
 		dc.pui.Tags['dc.Link'](entry, node);
 	},
@@ -2502,7 +2633,8 @@ dc.pui.Tags = {
 
 				if (! hasext || (ext == '.html')) {
 					$(node).click(link, function(e) {
-						entry.Layer.loadPage(e.data);
+						//entry.Layer.loadPage(e.data);
+						window.location = e.data;		// want to reload
 						
 						e.preventDefault();
 						return false;
@@ -2702,10 +2834,13 @@ dc.pui.Tags = {
 			
 			vname += show.Extension ? show.Extension : '.jpg';
 			
-			dc.pui.FullScreen.loadPage('/dcw/ViewImage', {
-				//Path: '/galleries' + show.Path + '/' + show.Images[show.StartPos] + '.v/' + vname
-				View: show
-			});
+			if (dc.handler && dc.handler.tags && dc.handler.tags.ViewImage && dc.handler.tags.ViewImage.open) 
+				dc.handler.tags.ViewImage.open(entry, node, show);
+			else
+				dc.pui.FullScreen.loadPage('/dcw/ViewImage', {
+					//Path: '/galleries' + show.Path + '/' + show.Images[show.StartPos] + '.v/' + vname
+					View: show
+				});
 			
 			e.preventDefault();
 			return false;
@@ -3255,7 +3390,13 @@ dc.pui.controls.Uploader.prototype.onAfterSave = function(e) {
 		task.resume();
 	});
 	
-	uploadtask.Parent = task;
+	uploadtask.ParentTask = task;
+	uploadtask.ParentStep = e.Step;
+	
+	if (! e.Step.Tasks)
+		e.Step.Tasks = [ ];
+		
+	e.Step.Tasks.push(uploadtask);
 
 	uploadtask.run();		
 };

@@ -34,7 +34,7 @@ public class FeedAdapter {
 		return adapt; 
 	}
 	
-	static public FeedAdapter from(RecordStruct data) {
+	static public FeedAdapter from(ITranslationAdapter ctx, RecordStruct data) {
 		CommonPath cpath = new CommonPath(data.getFieldAsString("Path"));
 		
 		FeedAdapter adapt = new FeedAdapter();
@@ -43,7 +43,7 @@ public class FeedAdapter {
 		adapt.path = cpath.subpath(2).toString();
 		adapt.xml = new XElement("dcf");
 		
-		String deflocale = OperationContext.get().getSite().getDefaultLocale();
+		String deflocale = ctx.getWorkingLocale();
 		
 		adapt.xml.withAttribute("Locale", deflocale);
 		
@@ -58,7 +58,7 @@ public class FeedAdapter {
 			
 			int dpos = sub.lastIndexOf('.');
 			
-			adapt.setField(sub.substring(dpos + 1), sub.substring(0, dpos), fdata);
+			adapt.setField(ctx, sub.substring(dpos + 1), sub.substring(0, dpos), fdata);
 		}
 
 		return adapt; 
@@ -184,7 +184,7 @@ data:  {
 		if (StringUtil.isEmpty(locale))
 			OperationContext.get().error("Missing Locale - " + this.channel + " | " + this.path);
 		
-		String title = this.getDefaultField("Title");
+		String title = this.getDefaultFieldValue("Title");
 		
 		if (StringUtil.isEmpty(title))
 			OperationContext.get().error("Missing Title - " + this.channel + " | " + this.path);
@@ -215,27 +215,13 @@ data:  {
 		return this.xml.getAttribute(name);
 	}
 	
-	public String getDefaultField(String name) {
-		if ((this.xml == null) || StringUtil.isEmpty(name))
-			return null;
-		
-		// provide the value for the `default` locale of the feed 
-		String deflocale = this.xml.getAttribute("Locale");
-		
-		for (XElement fel : this.xml.selectAll("Field")) {
-			if (name.equals(fel.getAttribute("Name"))) {
-				if (!fel.hasAttribute("Locale"))
-					return fel.getValue();
-					
-				if ((deflocale != null) && deflocale.equals(fel.getAttribute("Locale")))
-					return fel.getValue();
-			}
-		}
-		
-		return null;
+	public String getDefaultFieldValue(String name) {
+		XElement fel = this.getDefaultField(name);
+
+		return (fel != null) ? fel.getValue() : null;
 	}
 	
-	public XElement getDefaultFieldX(String name) {
+	public XElement getDefaultField(String name) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
 			return null;
 		
@@ -254,8 +240,8 @@ data:  {
 		
 		return null;
 	}
-	
-	public XElement getDefaultPartX(String name) {
+		
+	public XElement getDefaultPart(String name) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
 			return null;
 		
@@ -286,54 +272,29 @@ data:  {
 		int highest = Integer.MAX_VALUE;
 		FeedPartMatchResult best = new FeedPartMatchResult();
 		
-		for (XElement afel : this.xml.selectAll("Alternate")) {
-			String alocale = afel.getAttribute("Locale");
-			
-			int arate = ctx.rateLocale(alocale);
-			
-			if ((arate >= highest) || (arate == -1))
-				continue;
-			
-			for (XElement fel : afel.selectAll(tag)) {
-				if (match.equals(fel.getAttribute(attr))) {
-					best.el = fel;
-					best.localename = alocale;
-					highest = arate;
-					break;
-				}
-			}
-		}
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
 		
 		for (XElement fel : this.xml.selectAll(tag)) {
-			if (fel.hasAttribute("Locale") && match.equals(fel.getAttribute(attr))) {
-				String flocale = fel.getAttribute("Locale");
-				
-				int arate = ctx.rateLocale(flocale);
-				
-				if ((arate >= highest) || (arate == -1))
+			if (! match.equals(fel.getAttribute(attr)))
 					continue;
-				
-				best.el = fel;
-				best.localename = flocale;
-				highest = arate;
-			}
-		}
-
-		String deflocale = this.xml.getAttribute("Locale");
-		
-		if (StringUtil.isNotEmpty(deflocale)) {
-			int arate = ctx.rateLocale(deflocale);
 			
-			if ((arate != -1) && (arate < highest)) {
-				for (XElement fel : this.xml.selectAll(tag)) {
-					if (!fel.hasAttribute("Locale") && match.equals(fel.getAttribute(attr))) {
-						best.el = fel;
-						best.localename = deflocale;
-						highest = arate;
-						break;
-					}
-				}
-			}
+			String flocale = fel.getAttribute("Locale", deflocale);
+		
+			int arate = ctx.rateLocale(flocale);
+			
+			if ((arate == -1) && ! deflocale.equals(flocale))
+				break;	
+			
+			// if all else fails use default
+			if ((arate == -1))
+				arate = 100;	
+			
+			if (arate >= highest) 
+				continue;
+				
+			best.el = fel;
+			best.localename = flocale;
+			highest = arate;
 		}
 		
 		if (highest == Integer.MAX_VALUE)
@@ -375,30 +336,95 @@ data:  {
 		return null;
 	}
 	
-	// TODO enhance this currently only works with default fields
-	public void setField(String locale, String name, String value) {
+	public String getField(ITranslationAdapter ctx, String locale, String name) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
-			return;
+			return null;
+
+		if (StringUtil.isEmpty(locale))
+			locale = ctx.getWorkingLocale();
 		
-		XElement mr = this.getDefaultFieldX(name);
-		
-		if (mr == null) {
-			mr = new XElement("Field").withAttribute("Name", name);
-			this.xml.with(mr);
+		// provide the value for the `default` locale of the feed 
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
+
+		// if matches default locale then Field goes in top level elements
+		for (XElement fel : this.xml.selectAll("Field")) {
+			if (! name.equals(fel.getAttribute("Name"))) 
+				continue;
+			
+			if (locale.equals(deflocale) && ! fel.hasAttribute("Locale")) 
+				return fel.getValue();
+			
+			if (locale.equals(fel.getAttribute("Locale"))) 
+				return fel.getValue();
 		}
-		
-		mr.setValue(value);
+				
+		return null;
 	}
 	
-	// TODO enhance this currently only works with default fields
-	public void removeField(String locale, String name) {
+	public void setField(ITranslationAdapter ctx, String locale, String name, String value) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
 			return;
 		
-		XElement mr = this.getDefaultFieldX(name);
+		// provide the value for the `default` locale of the feed 
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
 		
-		if (mr != null) 
-			this.xml.remove(mr);
+		// TODO support other fields based on channel
+		// special handling for some fields - always at top level
+		if ("Published".equals(name) || "AuthorUsername".equals(name) || "AuthorName".equals(name) || "Created".equals(name))
+			locale = deflocale;
+
+		// if matches default locale then Field goes in top level elements
+		for (XElement fel : this.xml.selectAll("Field")) {
+			if (! name.equals(fel.getAttribute("Name"))) 
+				continue;
+			
+			if (locale.equals(deflocale) && ! fel.hasAttribute("Locale")) {
+				fel.setValue(value);
+				return;
+			}
+			
+			if (locale.equals(fel.getAttribute("Locale"))) {
+				fel.setValue(value);
+				return;
+			}
+		}
+		
+		XElement fel = new XElement("Field")
+				.withAttribute("Name", name);
+		
+		if (! locale.equals(deflocale))
+			fel.withAttribute("Locale", locale);
+		
+		fel.setValue(value);
+				
+		this.xml.with(fel);
+	}
+	
+	public void removeField(ITranslationAdapter ctx, String locale, String name) {
+		if ((this.xml == null) || StringUtil.isEmpty(name))
+			return;
+
+		if (StringUtil.isEmpty(locale))
+			locale = ctx.getWorkingLocale();
+		
+		// provide the value for the `default` locale of the feed 
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
+
+		// if matches default locale then Field goes in top level elements
+		for (XElement fel : this.xml.selectAll("Field")) {
+			if (! name.equals(fel.getAttribute("Name"))) 
+				continue;
+			
+			if (locale.equals(deflocale) && ! fel.hasAttribute("Locale")) {
+				this.xml.remove(fel);
+				return;
+			}
+			
+			if (locale.equals(fel.getAttribute("Locale"))) {
+				this.xml.remove(fel);
+				return;
+			}
+		}
 	}
 	
 	public void clearTags() {
@@ -448,20 +474,66 @@ data:  {
 		return this.getPartValue(ctx, mr, preview);
 	}
 	
-	// TODO enhance this currently only works with default fields
-	public void setPart(Path folder, String locale, String name, String format, String value) {
+	public String getPart(ITranslationAdapter ctx, String locale, String name, boolean preview) {
+		if ((this.xml == null) || StringUtil.isEmpty(name))
+			return null;
+
+		if (StringUtil.isEmpty(locale))
+			locale = ctx.getWorkingLocale();
+		
+		// provide the value for the `default` locale of the feed 
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
+
+		// if matches default locale then Field goes in top level elements
+		for (XElement fel : this.xml.selectAll("PagePart")) {
+			if (! name.equals(fel.getAttribute("For"))) 
+				continue;
+			
+			if (locale.equals(deflocale) && ! fel.hasAttribute("Locale")) 
+				return this.getPartValue(locale, fel, preview);
+			
+			if (locale.equals(fel.getAttribute("Locale"))) 
+				return this.getPartValue(locale, fel, preview);
+		}
+				
+		return null;
+	}
+	
+	public void setPart(ITranslationAdapter ctx, String locale, String name, String format, String value, boolean isPreview) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
 			return;
 
 		if (value == null)
 			value = "";
 		
-		XElement mr = this.getDefaultPartX(name);
+		XElement mr = null;
+		
+		// provide the value for the `default` locale of the feed 
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
+
+		// if matches default locale then Field goes in top level elements
+		for (XElement fel : this.xml.selectAll("PagePart")) {
+			if (! name.equals(fel.getAttribute("For"))) 
+				continue;
+			
+			if (locale.equals(deflocale) && ! fel.hasAttribute("Locale")) {
+				mr = fel;
+				break;
+			}
+			
+			if (locale.equals(fel.getAttribute("Locale"))) {
+				mr = fel;
+				break;
+			}
+		}
 		
 		if (mr == null) {
 			mr = new XElement("PagePart")
 					.withAttribute("For", name);
 			
+			if (! locale.equals(deflocale))
+				mr.withAttribute("Locale", locale);
+					
 			this.xml.with(mr);
 		}
 		
@@ -471,40 +543,53 @@ data:  {
 			.withAttribute("Format", format)
 			.withAttribute("External", "true");
 		
-		// remove the file if external
-		String fname = this.filepath.getFileName().toString();
-		int pos = fname.indexOf('.');
-		String spath = (pos != -1) ? fname.substring(0, pos) : fname;
+		Path fpath = this.getPartFile(locale, mr, isPreview);
 		
 		try {
-			IOUtil.saveEntireFile2(folder.resolve(spath + "." + name + "." + locale + "." + format), value);
+			IOUtil.saveEntireFile2(fpath, value);
 		}
 		catch (Exception x) {
 		}
 	}
 	
-	// TODO enhance this currently only works with default fields
-	public void removePart(Path folder, String locale, String name) {
+	public void removePart(ITranslationAdapter ctx, String locale, String name, boolean isPreview) {
 		if ((this.xml == null) || StringUtil.isEmpty(name))
 			return;
+
+		if (StringUtil.isEmpty(locale))
+			locale = ctx.getWorkingLocale();
 		
-		XElement mr = this.getDefaultPartX(name);
-		
-		if (mr != null) {
-			this.xml.remove(mr);
-		
-			String fmt = mr.getAttribute("Format");
+		// provide the value for the `default` locale of the feed 
+		String deflocale = this.xml.getAttribute("Locale", ctx.getWorkingLocale());
+
+		// if matches default locale then Field goes in top level elements
+		for (XElement fel : this.xml.selectAll("PagePart")) {
+			if (! name.equals(fel.getAttribute("For"))) 
+				continue;
 			
-			if (StringUtil.isNotEmpty(fmt))
+			if (locale.equals(deflocale) && ! fel.hasAttribute("Locale")) {
+				this.removePartValue(locale, fel, isPreview);	
 				return;
+			}
 			
-			// remove the file if external
-			String fname = this.filepath.getFileName().toString();
-			int pos = fname.indexOf('.');
-			String spath = (pos != -1) ? fname.substring(0, pos) : fname;
-						
+			if (locale.equals(fel.getAttribute("Locale"))) {
+				this.removePartValue(locale, fel, isPreview);	
+				return;
+			}
+		}
+	}
+	
+	public void removePartValue(String locale, XElement part, boolean isPreview) {
+		if (part == null)
+			return;
+		
+		this.xml.remove(part);
+		
+		if (part.getAttributeAsBooleanOrFalse("External")) {
+			Path fpath = this.getPartFile(locale, part, isPreview);
+			
 			try {
-				Files.deleteIfExists(folder.resolve(spath + "." + name + "." + locale + "." + fmt));
+				Files.deleteIfExists(fpath);
 			}
 			catch (Exception x) {
 			}
@@ -524,27 +609,11 @@ data:  {
 		if (part == null)
 			return null;
 		
-		String ex = part.getAttribute("External", "False");
-		
-		if (part.hasAttribute("Locale"))
-			locale = part.getAttribute("Locale");	// use the override locale if present
-		
-		if (StringUtil.isNotEmpty(ex) && "true".equals(ex.toLowerCase())) {
-			String spath = "/" + this.channel + this.path + "." + part.getAttribute("For") + "." + locale + "." + part.getAttribute("Format");
-
-			// TODO connect to file caching system - use resolveCachePath instead ?
+		if (part.getAttributeAsBooleanOrFalse("External")) {
+			Path fpath = this.getPartFile(locale, part, isPreview);
 			
-			Path fpath = null;
-			
-			if (isPreview) {
-				fpath = OperationContext.get().getSite().resolvePath("/feed-preview" + spath);
-				
-				if (Files.notExists(fpath))
-					fpath = OperationContext.get().getSite().resolvePath("/feed" + spath);
-			}
-			else {
-				fpath = OperationContext.get().getSite().resolvePath("/feed" + spath);
-			}
+			if (isPreview && Files.notExists(fpath)) 
+				fpath = this.getPartFile(locale, part, false);
 
 			if (Files.exists(fpath)) {
 				FuncResult<CharSequence> mres = IOUtil.readEntireFile(fpath);
@@ -555,5 +624,17 @@ data:  {
 		}
 		
 		return part.getValue();
+	}
+	
+	public Path getPartFile(String locale, XElement part, boolean isPreview) {
+		// use the override locale if present
+		
+		String spath = this.channel + this.path + "." + part.getAttribute("For") + "." 
+			+ part.getAttribute("Locale", locale) + "." + part.getAttribute("Format");
+		
+		if (isPreview)
+			return OperationContext.get().getSite().resolvePath("/feed-preview/" + spath); 
+		
+		return OperationContext.get().getSite().resolvePath("/feed/" + spath); 
 	}
 }

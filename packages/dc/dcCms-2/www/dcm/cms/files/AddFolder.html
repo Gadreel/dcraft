@@ -1,6 +1,6 @@
 <dc.Html Title="Add Folder" AuthTags="User">
 	<dc.Body>
-		<dc.Panel Title="Add Folder">
+		<dc.PagePanel>
 			<dcf.Form Name="AddFolder">
 				<dcf.FormButtons>
 					<dcf.SubmitButton Label="Add" />
@@ -9,7 +9,7 @@
 				<dcf.Text Name="Path" Label="Name" Required="true" Pattern="[\w-]+" 
 					placeholder="folder name, no spaces - use dash instead of space" />
 			</dcf.Form>
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="Load"><![CDATA[
 			this.form().query('Path').focus();				

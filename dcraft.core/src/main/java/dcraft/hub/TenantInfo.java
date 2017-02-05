@@ -55,7 +55,9 @@ import dcraft.util.IOUtil;
 import dcraft.util.ISettingsObfuscator;
 import dcraft.util.StringUtil;
 import dcraft.web.http.WebTrustManager;
+import dcraft.work.IWork;
 import dcraft.work.Task;
+import dcraft.work.TaskRun;
 import dcraft.xml.XAttribute;
 import dcraft.xml.XElement;
 import dcraft.xml.XmlReader;
@@ -243,7 +245,24 @@ public class TenantInfo extends CommonInfo implements IFileWatcher {
 
 	@Override
 	public void fireFolderEvent(Path fname, WatchEvent.Kind<Path> kind) {
-		this.reloadSettings();
+		// make sure the event fires in the right context and out of the event thread
+		Task task = Task
+			.taskWithContext(new OperationContextBuilder()
+					.withRootTaskTemplate()
+					.withTenantId(this.getId())
+					.toOperationContext()
+			)
+			.withTitle("Reloading tenant settings: " + this.getAlias())
+			.withTopic("Batch")
+			.withWork(new IWork() {
+				@Override
+				public void run(TaskRun trun) {
+					TenantInfo.this.reloadSettings();
+					trun.complete();
+				}
+			});
+		
+		Hub.instance.getWorkPool().submit(task);
 	}
 	
 	public void reloadSettings() {
@@ -383,6 +402,8 @@ public class TenantInfo extends CommonInfo implements IFileWatcher {
 		this.watcher.init(this);
 		
 		this.prepTenantSchedule();
+		
+		Hub.instance.fireEvent(HubEvents.TenantLoaded, this.getId());
 	}
 	
 	public void registerService(IService service) {

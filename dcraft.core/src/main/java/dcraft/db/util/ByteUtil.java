@@ -631,6 +631,10 @@ public class ByteUtil {
         return ret;
     }    
     
+	public static BigDecimal dateTimeToReverse(DateTime v) {
+		return new BigDecimal("-" + v.getMillis());
+	}
+    
     public static String dbStringToString(Memory mem) {
     	int pos = mem.getPosition();
     	int len = 0;

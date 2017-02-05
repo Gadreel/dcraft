@@ -81,6 +81,7 @@ public class SsiOutputAdapter implements IOutputAdapter {
 			resp.setDateHeader("Date", System.currentTimeMillis());
 			resp.setDateHeader("Last-Modified", this.file.getWhen());
 			resp.setHeader("X-UA-Compatible", "IE=Edge,chrome=1");
+			resp.setHeader("Cache-Control", "no-cache");
 			
 			// because of Macro support we need to rebuild this page every time it is requested
 			String content = this.processIncludes(ctx, this.file.asString());

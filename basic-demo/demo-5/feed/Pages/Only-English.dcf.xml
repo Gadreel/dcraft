@@ -1,0 +1,11 @@
+<dcf Locale="en">
+	<Field Value="English Only Content" Name="Title" />
+	<Field Value="Root Five" Name="AuthorName" />
+	<Field Value="root" Name="AuthorUsername" />
+	<Field Value="20170205T162846656Z" Name="Created" />
+	<Field Value="2017-02-05" Name="Published" />
+	<Field Name="Keywords" />
+	<Field Name="Image" />
+	<Field Value="This page does not have a Pig Latin translation so it shows only English for all viewers." Name="Description" />
+	<PagePart Format="md" For="article" External="true" />
+</dcf>

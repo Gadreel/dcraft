@@ -9,7 +9,7 @@
 	<dc.RequireLib Path="/js/vendor/blueimp/canvas-to-blob.min.js" />
 	
 	<dc.Body>
-		<dc.Panel Title="Upload Image">
+		<dc.PagePanel>
 			<dcf.Form>
 				<dcf.FormButtons>
 					<dc.Button Label="Close" Click="AfterSave" />
@@ -27,18 +27,7 @@
 				</dcf.Text>
 				-->
 			</dcf.Form>
-		</dc.Panel>
-
-				<!--  TODO	progress
-				<div class="ui-field-contain">
-					<label id="lblTransfer" class="tlabel">Progress</label>		
-					<div class="progress">
-						<div id="fileProgressBar" class="pbar"></div>
-						<div id="fileProgressLabel" class="pbarlabel">0%</div>
-					</div>
-				</div>
-				-->
-				
+		</dc.PagePanel>
 	</dc.Body>
 				
 	<dc.Function Name="Load"><![CDATA[	
@@ -78,6 +67,7 @@
 					
 				var pres = page.Store.Gallery.createProcessUploadTask(files);
 				
+				/*
 				pres.Result.Observers.push(function(ctask) {
 					for (var i = 0; i < ctask.Result.length; i++) {
 						var fobj = ctask.Result[i];
@@ -100,8 +90,32 @@
 
 					e.Task.resume();
 				});
+				*/
+				
+				dc.pui.Popup.await('Large images may take some time, please wait until the upload is complete.', function() {
+					for (var i = 0; i < pres.Result.Result.length; i++) {
+						var fobj = pres.Result.Result[i];
+						var vari = page.Store.Gallery.topVariation(page.Params.Variation);
+					
+						for (var n = 0; n < fobj.Variants.length; n++) {
+							var vr = fobj.Variants[n];
 
-				pres.Result.run();				
+							if (vr.Alias == vari.Alias) {					
+								page.Store.Files.push({
+									FileName: fobj.Name,
+									FullPath: page.Store.Gallery.Path + '/' + fobj.Name 
+										+ '.v/' + vr.FileName
+								});
+								
+								break;
+							}
+						}
+					}
+
+					e.Task.resume();		// resume the Save task
+				}, 'Uploading Images', pres.Result);
+
+				//pres.Result.run();				
 	]]></dc.Function>
 	<dc.Function Name="AfterSave"><![CDATA[
 				var page = this;

@@ -99,11 +99,16 @@ public class SslContextFactory {
         
         String jkspass = sslconfig.getAttribute("Password");
 
-        // try to decrypt, if we succeed then we use it - if we don't then use plain text password
-        String jkspw = Hub.instance.getClock().getObfuscator().decryptHexToString(jkspass);	
-        
-        if (jkspw != null)
-        	jkspass = jkspw;
+        if (StringUtil.isNotEmpty(jkspass)) {
+	        // try to decrypt, if we succeed then we use it - if we don't then use plain text password
+	        jkspass = Hub.instance.getClock().getObfuscator().decryptHexToString(jkspass);	
+	        
+	        //if (jkspw != null)
+	        //	jkspass = jkspw;
+        }
+        else {
+            jkspass = sslconfig.getAttribute("PlainPassword");
+        }
         
         if (StringUtil.isEmpty(jksfile)) 
         		return;

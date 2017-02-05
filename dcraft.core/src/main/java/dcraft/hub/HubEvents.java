@@ -26,7 +26,7 @@ public class HubEvents {
 	final static public int BusConnected = 100;
 	final static public int BusDisconnected = 101;
 	
-	final static public int TenantConfigChanged = 200;
+	final static public int TenantLoaded = 200;
 	final static public int TenantAdded = 201;
 	final static public int TenantUpdated = 202;
 }

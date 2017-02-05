@@ -19,15 +19,6 @@ public class HtmlSection extends Plugin {
 
 	@Override
 	public void emit(ProcessContext ctx, UIElement parent, List<String> lines, Map<String, String> params) {
-        StringBuilder in = new StringBuilder();
-        
-        in.append("<div>");
-
-        for (String n : lines)
-        	in.append(n).append("\n");
-        
-        in.append("</div>");
-        
 		UIElement pel = new dcraft.web.ui.tags.HtmlSection();
 		
 		if (params.containsKey("Id"))
@@ -38,7 +29,19 @@ public class HtmlSection extends Plugin {
 		
 		if (params.containsKey("Class"))
 			pel.withClass(params.get("Class").split(" "));
+		
+		if (params.containsKey("Hidden"))
+			pel.withAttribute("Hidden", params.get("Hidden"));
 	
+        StringBuilder in = new StringBuilder();
+        
+        in.append("<div>");
+
+        for (String n : lines)
+        	in.append(n).append("\n");
+        
+        in.append("</div>");
+        
         try {
         	FuncResult<XElement> xres = XmlReader.parse(in, false);
         	

@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
@@ -87,41 +86,23 @@ public class FeedInfo {
 		if (dcf == null)
 			return list;
 		
-		// collect all the external part names		
-		BiConsumer<XElement, String> collectfunc = new BiConsumer<XElement, String>() {			
-			@Override
-			public void accept(XElement part, String locale) {
-				// don't move if not external
-				String ext = part.getAttribute("External", "false").toLowerCase();
-				
-				if (!"true".equals(ext))
-					return;
-				
-				// use the override locale if present
-				if (part.hasAttribute("Locale"))
-					locale = part.getAttribute("Locale");	
-			
-				String sname = (draft ? FeedInfo.this.prepath : FeedInfo.this.pubpath).getFileName().toString();
-				
-				int pos = sname.indexOf('.');
-				sname = sname.substring(0, pos) + "." + part.getAttribute("For") + "." + locale + "." + part.getAttribute("Format");
-
-				list.add(sname);
-			}
-		}; 
-		
 		// the Site default locale
 		String deflocale = dcf.getAttribute("Locale", OperationContext.get().getSite().getDefaultLocale());
 		
 		// check for external parts and move them
-		for (XElement fel : dcf.selectAll("PagePart")) 
-			collectfunc.accept(fel, deflocale);
-		
-		for (XElement afel : dcf.selectAll("Alternate")) {
-			String locale = afel.getAttribute("Locale");
+		for (XElement fel : dcf.selectAll("PagePart")) {
+			if (! fel.getAttributeAsBooleanOrFalse("External"))
+				continue;
 			
-			for (XElement fel : afel.selectAll("PagePart")) 
-				collectfunc.accept(fel, locale);
+			// use the override locale if present
+			String locale = fel.getAttribute("Locale", deflocale);	
+		
+			String sname = (draft ? FeedInfo.this.prepath : FeedInfo.this.pubpath).getFileName().toString();
+			
+			int pos = sname.indexOf('.');
+			sname = sname.substring(0, pos) + "." + fel.getAttribute("For") + "." + locale + "." + fel.getAttribute("Format");
+
+			list.add(sname);
 		}
 		
 		return list;
@@ -172,6 +153,10 @@ public class FeedInfo {
 	
 	public Path getPrepath() {
 		return this.prepath;
+	}
+	
+	public boolean exists() {
+		return Files.exists(this.pubpath) || Files.exists(this.prepath);
 	}
 
 	public RecordStruct getDetails() {
@@ -249,17 +234,6 @@ public class FeedInfo {
 					.withField("Value", fld.getValue())
 				);
 			
-			for (XElement afel : pubxml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("Field")) 
-					pubfields.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("Name"))
-						.withField("Locale", alocale)
-						.withField("Value", fld.getValue())
-					);
-			}
-			
 			ListStruct pubparts = new ListStruct();
 			feed.withField("PartContent", pubparts);
 			
@@ -267,19 +241,8 @@ public class FeedInfo {
 				pubparts.addItem(new RecordStruct()
 					.withField("Name", fld.getAttribute("For"))
 					.withField("Format", fld.getAttribute("Format", "md"))
-					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part, this is not an alternate, just the default locale for that part
+					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part
 				);
-			
-			for (XElement afel : pubxml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("PagePart")) 
-					pubparts.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("For"))
-						.withField("Format", fld.getAttribute("Format", "md"))
-						.withField("Locale", alocale)
-					);
-			}
 		}
 		
 		if (prexml != null) {
@@ -303,17 +266,6 @@ public class FeedInfo {
 					.withField("Value", fld.getValue())
 				);
 			
-			for (XElement afel : prexml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("Field")) 
-					prefields.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("Name"))
-						.withField("Locale", alocale)
-						.withField("Value", fld.getValue())
-					);
-			}	
-			
 			ListStruct preparts = new ListStruct();
 			feed.withField("PreviewPartContent", preparts);
 			
@@ -321,19 +273,8 @@ public class FeedInfo {
 				preparts.addItem(new RecordStruct()
 					.withField("Name", fld.getAttribute("For"))
 					.withField("Format", fld.getAttribute("Format", "md"))
-					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part, this is not an alternate, just the default locale for that part
+					.withField("Locale", fld.getAttribute("Locale", primelocale))		// prime locale can be override for specific part
 				);
-			
-			for (XElement afel : prexml.selectAll("Alternate")) {
-				String alocale = afel.getAttribute("Locale", primelocale);
-				
-				for (XElement fld : afel.selectAll("PagePart")) 
-					preparts.addItem(new RecordStruct()
-						.withField("Name", fld.getAttribute("For"))
-						.withField("Format", fld.getAttribute("Format", "md"))
-						.withField("Locale", alocale)
-					);
-			}
 		}
 		
 		return feed;
@@ -385,6 +326,7 @@ public class FeedInfo {
 	
 	// this is not required, you may go right to saveDraftFile
 	// dcui = only if a Page
+	/*
 	public void initDraftFile(String locale, String title, String dcui, FuncCallback<CompositeStruct> op) {
 		if (StringUtil.isEmpty(locale))
 			locale = OperationContext.get().getSite().getDefaultLocale();		
@@ -423,6 +365,7 @@ public class FeedInfo {
 		
 		this.updateDb(op);
 	}	
+	*/
 	
 	protected XElement getFeedTemplate(String title, String locale) {
 		return new XElement("dcf")
@@ -483,28 +426,28 @@ public class FeedInfo {
 		
 		// default published, can be overridden in the SetFields collection
 		if (publish) {
-			XElement mr = ad.getDefaultFieldX("Published");
+			XElement mr = ad.getDefaultField("Published");
 			
 			if (mr == null) 
-				ad.setField(locale, "Published", new LocalDate().toString());
+				ad.setField(ctx, locale, "Published", new LocalDate().toString());
 		}
 		
 		for (Struct fs : fields.getItems()) {
 			RecordStruct frec = (RecordStruct) fs;
 			
 			if (frec.hasField("Value"))
-				ad.setField(locale, frec.getFieldAsString("Name"), frec.getFieldAsString("Value"));
+				ad.setField(ctx, locale, frec.getFieldAsString("Name"), frec.getFieldAsString("Value"));
 			else
-				ad.removeField(locale, frec.getFieldAsString("Name"));
+				ad.removeField(ctx, locale, frec.getFieldAsString("Name"));
 		}
 		
 		for (Struct ps : parts.getItems()) {
 			RecordStruct frec = (RecordStruct) ps;
 			
 			if (frec.hasField("Value"))
-				ad.setPart(savepath.getParent(), locale, frec.getFieldAsString("For"), frec.getFieldAsString("Format"), frec.getFieldAsString("Value"));
+				ad.setPart(ctx, locale, frec.getFieldAsString("For"), frec.getFieldAsString("Format"), frec.getFieldAsString("Value"), ! publish);
 			else
-				ad.removePart(savepath.getParent(), locale, frec.getFieldAsString("For"));
+				ad.removePart(ctx, locale, frec.getFieldAsString("For"), ! publish);
 		}
 		
 		if (tags != null) {

@@ -1,6 +1,6 @@
 <dc.Html Title="Sign In">
 	<dc.Body>
-		<dc.Panel Title="Sign In">
+		<dc.PagePanel>
 			<dcf.Form Name="SignIn">
 				<dcf.FormButtons>
 					<dc.Button Label="Reset Password" Click="onRecover" />
@@ -12,7 +12,7 @@
 				<dcf.Password Name="Password" Label="Password" Required="true" />
 				<dcf.YesNo Label="Remember Me" Name="RememberMe" />
 			</dcf.Form>
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="onCancel">
 				this.Layer.back();

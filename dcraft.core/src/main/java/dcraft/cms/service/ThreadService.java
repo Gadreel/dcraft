@@ -19,10 +19,11 @@ package dcraft.cms.service;
 import dcraft.bus.IService;
 import dcraft.bus.Message;
 import dcraft.db.DataRequest;
-import dcraft.db.ObjectFinalResult;
+import dcraft.db.ObjectResult;
 import dcraft.db.ReplicatedDataRequest;
 import dcraft.hub.Hub;
 import dcraft.mod.ExtensionBase;
+import dcraft.struct.CompositeStruct;
 import dcraft.work.TaskRun;
 
 // TODO refactor into better service structure
@@ -49,7 +50,20 @@ public class ThreadService extends ExtensionBase implements IService {
 					.withParams(msg.getFieldAsComposite("Body"));
 			
 			if (req != null) {
-				Hub.instance.getDatabase().submit(req, new ObjectFinalResult(request));
+				long st = System.currentTimeMillis();
+				
+				System.out.println("starting " + op + " at " + st);
+				
+				Hub.instance.getDatabase().submit(req, new ObjectResult() {
+					@Override
+					public void process(CompositeStruct result) {
+						long et = System.currentTimeMillis();
+						
+						System.out.println("ending " + op + " at " + et + " took " + (et - st));
+						
+						request.returnValue(request);
+					}
+				});
 				return;
 			}
 		}

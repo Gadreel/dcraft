@@ -170,6 +170,58 @@ public class Response {
 		*/
     }
     
+    public void writeNotModified(Channel ch) {
+        // Build the response object.
+    	FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, this.status);
+
+
+        if (this.keepAlive) {
+            // Add keep alive header as per:
+            // - http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html#Connection
+            response.headers().set(Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+        }
+
+        // Encode the cookies
+        for (Cookie c : this.cookies.values()) 
+	        response.headers().add(Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(c));
+        
+        for (Entry<CharSequence, String> h : this.headers.entrySet())
+        	response.headers().set(h.getKey(), h.getValue());
+        
+        Hub.instance.getSecurityPolicy().hardenHttpResponse(response);
+        
+    	if (Logger.isDebug()) {
+    		Logger.debug("Web server responding to " + ch.remoteAddress());
+    		
+    		for (Entry<String, String> ent : response.headers().entries()) {
+        		Logger.debug("Response header: " + ent.getKey() + ": " + ent.getValue());
+    		}
+    	}
+    	
+        // Write the response.
+        ChannelFuture future = ch.writeAndFlush(response);
+
+        // Close the non-keep-alive connection after the write operation is done.
+        if (!this.keepAlive) 
+            future.addListener(ChannelFutureListener.CLOSE);
+        
+        /*  we do not need to sync - HTTP is one request, one response.  we would not pile messages on this channel
+         * 
+         *  furthermore, when doing an upload stream we can actually get locked up here because the "write" from our stream
+         *  is locked on the write process of the data bus and the response to the session is locked on the write of the response
+         *  here - but all the HTTP threads are busy with their respective uploads.  If they all use the same data bus session 
+         *  then all HTTP threads can get blocked trying to stream upload if even one of those has called an "OK" to upload and
+         *  is stuck here.  so be sure not to use sync with HTTP responses.  this won't be a problem under normal use.
+         *   
+        try {
+			future.sync();
+		} 
+        catch (InterruptedException x) {
+			// TODO should we close channel?
+		}
+		*/
+    }
+    
     public void writeStart(Channel ch, int contentLength) {
         // Build the response object.
     	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, this.status);

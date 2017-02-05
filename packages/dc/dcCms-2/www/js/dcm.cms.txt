@@ -706,7 +706,7 @@ dc.cms.ui = {
 					Title: 'Content',
 					Kind: 'Option',
 					Op: function(e) {
-						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Content');
+						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section/Content/Page');
 					}
 				},
 				{
@@ -715,7 +715,7 @@ dc.cms.ui = {
 					Op: function(e) {
 					    var params = dc.cms.ui.Loader.getContext().Params;
 					    
-						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Prop-' + params.Section.Plugin);
+						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Prop/' + params.Section.Plugin);
 					}
 				}
 			],
@@ -728,14 +728,14 @@ dc.cms.ui = {
 					Title: 'List',
 					Kind: 'Option',
 					Op: function(e) {
-						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Gallery');
+						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section/Gallery/Page');
 					}
 				},
 				{
 					Title: 'Template',
 					Kind: 'Option',
 					Op: function(e) {
-						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Template');
+						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section/Gallery-Template/Page');
 					}
 				},
 				{
@@ -744,7 +744,7 @@ dc.cms.ui = {
 					Op: function(e) {
 					    var params = dc.cms.ui.Loader.getContext().Params;
 					    
-						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Prop-' + params.Section.Plugin);
+						dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Prop/' + params.Section.Plugin);
 					}
 				}
 			],
@@ -773,10 +773,10 @@ dc.cms.ui = {
 								Alias: $sect.attr('data-show')
 							};
 							
-							dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Gallery');
+							dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section/Gallery/Page');
 					    }
 					    else {
-							dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section-Content');
+							dc.cms.ui.Loader.openPane('/dcm/edit/page/Edit-Section/Content/Page');
 						}
 					}
 				},

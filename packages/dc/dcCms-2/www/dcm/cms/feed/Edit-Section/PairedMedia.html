@@ -1,0 +1,176 @@
+<dc.Html Title="Paired Media Content" AuthTags="Admin,Editor">
+	<dc.RequireLib Path="/js/vendor/ace-1.1.8/ace.js" />
+	
+	<dc.Body>
+		<dc.PagePanel>
+			<!-- TODO header -->
+			<div style="padding-right: 12px; text-align: right;">
+				<dc.Button Click="DoSelectImage" Label="Insert Image" />
+				<dc.Button Click="DoSelectFile" Label="Link File" />
+				<dc.Button Click="DoSelectPage" Label="Link Page" />
+				<dc.Button Click="DoSavePublish" Label="Save" Scope="Primary" /> 
+			</div>
+		
+			<div id="sectDepEscEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load">
+			var entry = this;
+			
+			//if (!entry.Store.Editor) {
+				entry.Store.Changed = false;
+				entry.Store.SetMode = false;
+				entry.Store.PublishFlag = false; 
+			    entry.Store.Editor = ace.edit('sectDepEscEdit');
+			    entry.Store.Params = dc.pui.App.Context.Params;
+			    
+			    var editor = entry.Store.Editor;
+			    
+			    editor.setTheme("ace/theme/chrome");
+			    editor.getSession().setMode("ace/mode/markdown");
+				editor.setShowPrintMargin(false);
+				editor.getSession().setTabSize(5);
+				editor.getSession().setUseSoftTabs(false);	    
+				editor.getSession().setUseWrapMode(true);
+			
+				editor.on("change", function() {
+					if (!entry.Store.SetMode)
+						entry.Store.Changed = true;
+				});	
+				
+				if (dc.pui.App.Context.IsNew || entry.Store.Params.Section.Content) {
+					entry.Store.SetMode = true;
+					
+					if (entry.Store.Params.Section.Content)
+						editor.setValue(entry.Store.Params.Section.Content, -1);
+					
+					entry.Store.SetMode = false;
+				}
+				else {			
+					var params = $.extend(true, { }, entry.Store.Params.Part);
+					
+					params.Section = entry.Store.Params.Section.Id;
+					
+					dc.comm.sendMessage({ 
+						Service: 'dcmCore', 
+						Feature: 'Feeds', 
+						Op: 'LoadFeedSection', 
+						Body: params
+					}, function(rmsg) {
+						if (rmsg.Result != 0) {
+							dc.pui.Popup.alert(rmsg.Message);
+							return;
+						}
+						
+						entry.Store.Params.Section = rmsg.Body;
+						
+						entry.Store.SetMode = true;
+						
+						editor.setValue(rmsg.Body.Content, -1);
+						
+						entry.Store.SetMode = false;
+					});
+				}
+			//}
+			
+			entry.Store.Editor.focus();
+    </dc.Function>
+	<dc.Function Name="Freeze">
+			var entry = this;
+			
+			if (entry.Store.Editor) 
+				entry.Store.Params.Section.Content = entry.Store.Editor.getValue();		
+	</dc.Function>
+	<dc.Function Name="DoSavePublish">
+			var entry = this;
+			
+			entry.Store.PublishFlag = true; 
+			entry.callPageFunc('DoSave');
+	</dc.Function>
+	<dc.Function Name="DoSave">
+			var entry = this;
+
+			// remember the content					
+			entry.Store.Params.Section.Content = entry.Store.Editor.getValue();
+			
+			// copy the values we loaded about this context and this section
+			var params = $.extend(true, { }, entry.Store.Params);
+			
+			Object.getOwnPropertyNames(params).forEach(function(name) {
+				if (name != 'Action' && name != 'Part' && name != 'Section')
+					delete params[name];
+			});
+			
+			params.Action.Publish = entry.Store.PublishFlag;
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCore', 
+				Feature: 'Feeds', 
+				Op: 'AlterFeedSection', 
+				Body: params
+			}, function(rmsg) {
+				if (rmsg.Result != 0) 
+					dc.pui.Popup.alert(rmsg.Message);
+				else
+					dc.pui.Popup.alert('Saved');
+					
+				// switch insert actions into edits
+			    entry.Store.Params.Action = {
+			    	Op: 'Edit'
+			    }
+			});
+	</dc.Function>
+	<dc.Function Name="DoSelectImage">
+			var entry = this;
+		
+		    dc.pui.Dialog.loadPage('/dcm/cms/galleries/Chooser', { 
+				Callback: function(res) {
+					if (res.Images) {
+						for (var i = 0; i < res.Images.length; i++) {
+							var fh = res.Images[i];
+							
+							entry.Store.Editor.insert('![](/galleries' + fh.FullPath + ' "")\n');
+						}
+					}
+			
+					entry.Store.Editor.focus();
+				} 
+			});
+	</dc.Function>
+	<dc.Function Name="DoSelectFile">
+			var entry = this;
+		
+		    dc.pui.Dialog.loadPage('/dcm/cms/files/Chooser', { 
+				Callback: function(files) {
+					if (files) {
+						for (var i = 0; i < files.length; i++) 
+							entry.Store.Editor.insert('[click here](/files' + files[i].FullPath + ' "")\n');
+					}
+			
+					entry.Store.Editor.focus();
+				} 
+			});
+	</dc.Function>
+	<dc.Function Name="DoSelectPage"><![CDATA[			
+			var entry = this;
+		
+		    dc.pui.Dialog.loadPage('/dcm/cms/feed/Choose-Feed/Pages', { 
+				Callback: function(files) {
+					if (files) {
+						for (var i = 0; i < files.length; i++) 
+							entry.Store.Editor.insert('[click here](' + files[i].FullPath + ' "")\n');
+					}
+			
+					entry.Store.Editor.focus();
+				} 
+			});
+	]]></dc.Function>
+	<dc.Function Name="onDestroy">
+			var entry = this;
+			
+			if (entry.Store.Editor) {
+				entry.Store.Editor.destroy();		
+				delete entry.Store.Editor;
+			}
+	</dc.Function>
+</dc.Html>

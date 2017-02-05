@@ -1,19 +1,19 @@
 <dc.Html Title="Confirm">
 	<dc.Body>
-		<dc.Panel id="panDcwAlert" Title="Confirm">
+		<dc.PagePanel id="panDcwAlert">
 			<div id="panDcwMessage" />
 			
 			<dcf.FormButtons>
 				<dc.Button Label="No" Click="onDeny" />
 				<dc.Button Label="Yes" Click="onApprove" />
 			</dcf.FormButtons>
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="Load">
 				var entry = this;
 			
 				if (entry.Params.Title)
-					$('#panDcwAlert > div:first-child').html(entry.Params.Title);
+					entry.callTagFunc('#panDcwAlert', 'setTitle', entry.Params.Title);
 			
 				if (entry.Params.Message)
 					$('#panDcwMessage').html(entry.Params.Message);

@@ -24,6 +24,7 @@ import dcraft.struct.FieldStruct;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.struct.Struct;
+import dcraft.util.StringUtil;
 import dcraft.work.TaskRun;
 import dcraft.xml.XElement;
 
@@ -55,8 +56,13 @@ public class TenantsService extends ExtensionBase implements IService {
 					for (XElement del : mdomain.selectAll("Name"))
 						names.addItem(del.getText());
 					
+					String id = mdomain.getAttribute("Id");
+					
+					if (StringUtil.isEmpty(id))
+						id = Integer.toString(res.getSize());
+					
 					res.addItem(new RecordStruct(
-							new FieldStruct("Id", mdomain.getAttribute("Id")),
+							new FieldStruct("Id", id),
 							new FieldStruct("Alias", mdomain.getAttribute("Alias")),
 							new FieldStruct("Title", mdomain.getAttribute("Title")),
 							new FieldStruct("Names", names),

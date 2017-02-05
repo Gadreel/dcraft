@@ -1135,6 +1135,12 @@ div, p {
 	word-wrap: break-word;
 }
 
+code {
+    display: block;
+    margin: 16px 0;
+    white-space: pre-wrap;
+}
+
 .dc-no-select, .dc-no-select * {
   -moz-user-select: none;
   -ms-user-select: none;
@@ -1687,6 +1693,37 @@ div, p {
     border-color: #ebccd1;
 }
 
+.dc-pui-panel-heading h5 { 
+    float: left;
+    margin: 0;
+    font-size: 1.17em;
+}
+
+/* so floated buttons don't collapse header */
+.dc-pui-panel-heading::after { 
+   content: " ";
+   display: block; 
+   height: 0; 
+   clear: both;
+}
+
+.dc-pui-panel-heading a.dc-pui-panel-header-btn {
+	display: block;
+	margin: 0 12px;
+    font-size: 24px;
+    float: right;
+}
+
+.dc-pui-panel-heading a.dc-pui-panel-header-btn,
+.dc-pui-panel-heading a.dc-pui-panel-header-btn:visited {
+	color: white;
+}
+
+.dc-pui-panel-heading a.dc-pui-panel-header-btn:focus,
+.dc-pui-panel-heading a.dc-pui-panel-header-btn:hover {
+	color: gray;
+}
+
 .dc-pui-panel-group {
     margin-bottom: 20px;
 }
@@ -1706,6 +1743,11 @@ div, p {
 
 .dc-pui-panel-body.dc-pui-panel-body-tucked {
     padding: 0;
+}
+
+.dc-pui-panel-page,
+.dc-pui-panel-page .dc-pui-panel-body {
+	height: 100%;
 }
 
 @media only screen and (max-width : 639px) {
@@ -1837,6 +1879,10 @@ div, p {
 	padding-bottom: 20px;
 }
 
+.dc-section.dc-section-hidden {
+	filter: opacity(25%);
+}
+
 .dc-section:not(:last-child) {
 	border-bottom: 2px solid gray;
 }
@@ -1930,6 +1976,19 @@ div, p {
     height: 90%;
 }
 
+.dc-youtube-container-16x9 iframe {
+	position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.dc-youtube-container-16x9 img {
+	width: 100%; 
+	height: auto;
+}
+
 /* -----------------------------------------------
 	layer layout
 ----------------------------------------------- */
@@ -1980,14 +2039,17 @@ div, p {
 #dcuiDialogPane {
 	flex: 0 1 748px;
 	max-height: 100vh;	 
+    max-width: 748px;
 }
 
 #dcuiDialogPane.dcuiWide {
 	flex: 0 1 1200px;
+    max-width: 1200px;
 }
 
 #dcuiDialogPane.dcuiExtraWide {
 	flex: 0 1 2000px;
+    max-width: 2000px;
 }
 
 #dcuiAlert {
@@ -2073,6 +2135,10 @@ div, p {
 	padding: 0;
 }
 
+#dcuiApp .dc-pui-panel-page .dc-pui-panel-body {
+	height: calc(100vh - 85px);
+}
+
 #dcuiAppPane {
     -webkit-flex: 1 1 auto;
     -ms-flex: 1 1 auto;
@@ -2095,82 +2161,7 @@ div, p {
 }
 
 #dcuiAppMenu {
-	width: 48px;
-	background: white;
-	margin: 0;
-	overflow: hidden;
-	overflow-y: auto;
-}
-
-#dcuiAppMenuCntrl {
-	background-color: #337ab7;
-	
-    display: -ms-flexbox;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-flex-direction: column-reverse;
-    -ms-flex-direction: column-reverse;
-    flex-direction: column-reverse;
-    -webkit-flex-wrap: nowrap;
-    -ms-flex-wrap: nowrap;
-    flex-wrap: nowrap;
-    -webkit-justify-content: flex-end;
-    -ms-flex-pack: end;
-    justify-content: flex-end;
-    -webkit-align-content: center;
-    -ms-flex-line-pack: center;
-    align-content: center;
-    -webkit-align-items: center;
-    -ms-flex-align: center;
-    align-items: center;
-}
-
-#dcuiAppMenuCntrl > a {
-	display: block;
-    -webkit-flex: 0 0 auto;
-    -ms-flex: 0 0 auto;
-    flex: 0 0 auto;
-	margin: 2px 12px;
-    font-size: 32px;
-}
-
-#dcuiAppMenuCntrl > a,
-#dcuiAppMenuCntrl > a:visited {
-	color: white;
-}
-
-#dcuiAppMenuCntrl > a:focus,
-#dcuiAppMenuCntrl > a:hover {
-	color: gray;
-}
-
-#dcuiAppMenuCntrl > a.disabled,
-#dcuiAppMenuCntrl > a.disabled:visited,
-#dcuiAppMenuCntrl > a.disabled:focus,
-#dcuiAppMenuCntrl > a.disabled:hover {
-	color: lightgray;
-	cursor: default;
-}
-
-#dcuiAppMenu > .pure-button {
-	display: block;
-	border-top: 2px solid #eee;
-}
-
-#dcuiAppMenu > .pure-button:last-child {
-	border-bottom: 2px solid #eee;
-}
-
-@media all and (max-width: 959px) {
-	#dcuiAppMenu {
-		background-color: #337ab7;
-		border-right: 3px solid #58595b;
-		padding-top: 40px;
-	}
-	
-	#dcuiAppMenu > .pure-button {
-		display: none;
-	}
+	display: none;
 }
 
 @media all and (min-width: 960px) {
@@ -2183,22 +2174,31 @@ div, p {
 	}
 	
 	#dcuiAppMenu {
+		display: block;
 		width: 240px;
 		margin: 8px;
 		border-radius: 10px 10px 10px 10px;
+		background: white;
 	}
 	
-	#dcuiAppMenuCntrl {
-	    -webkit-flex-direction: row;
-	    -ms-flex-direction: row;
-	    flex-direction: row;
+	#dcuiAppMenu > div {
+		overflow-x: hidden;
+		overflow-y: auto;
 	}
-
-	#dcuiAppMenuCntrl > a.mobile {
-		display: none;		
+	
+	#dcuiAppMenu > div .dc-pui-panel-heading {
+		padding: 14px 15px;
+	}
+	
+	#dcuiAppMenuBody > .pure-button {
+		display: block;
+		border-top: 2px solid #eee;
+	}
+	
+	#dcuiAppMenuBody > .pure-button:last-child {
+		border-bottom: 2px solid #eee;
 	}
 }
-
 
 
 #dcuiFullScreen {
@@ -2211,6 +2211,37 @@ div, p {
 	z-index: 500;
 	padding: 0;
 }
+
+#dcuiFullScreen > a.dcuiCloseButton {
+	position: absolute;
+    right: 18px;
+    top: 18px;
+	z-index: 50;
+}
+
+#dcuiFullScreen > a.dcuiCloseButton, 
+#dcuiFullScreen > a.dcuiCloseButton:visited {
+    color: white;
+}
+
+#dcuiFullScreen > a.dcuiCloseButton:hover, 
+#dcuiFullScreen > a.dcuiCloseButton:focus {
+    color: #337ab7;
+}
+
+
+.dcuiLayer:not(.dcuiMenu) .dcui-pagepanel-menu {
+	display: none;
+}
+
+.dcuiContentLayer:not(.dcuiHistory) .dcui-pagepanel-back {
+	display: none;
+}
+
+#dcuiAlertPane.dcuiContentLayer .dcui-pagepanel-help {
+	display: none;
+}
+
 
 /*
 #panDcwImageViewer {

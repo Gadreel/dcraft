@@ -40,7 +40,7 @@ public class BasicCarousel extends UIElement {
 			}
 		}
 		
-		System.out.println("using show: " + alias);
+		//System.out.println("using show: " + alias);
 
 		this
 			.withClass("dc-no-select")

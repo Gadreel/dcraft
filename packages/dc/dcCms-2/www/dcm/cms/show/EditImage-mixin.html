@@ -1,9 +1,9 @@
-<dc.MixIn Title="Edit Image Properties" AuthTags="Admin,Editor">
+<dc.MixIn Title="Image Properties" AuthTags="Admin,Editor">
 	<dc.Fragment>
-		<dc.Panel Title="Edit Image Properties">
+		<dc.PagePanel>
 			<dcf.Form>
 				<dcf.FormButtons>
-					<dc.Button Click="Cancel" Label="Cancel" />
+					<dc.Button Click="DoDelete" Label="Delete" />
 					<dcf.SubmitButton Label="Save" />
 				</dcf.FormButtons>
 
@@ -13,8 +13,8 @@
 			
 				<dcf.TextArea Name="Description" Label="Description" />
 			</dcf.Form>
-		</dc.Fragment>
-	</dc.Body>
+		</dc.PagePanel>
+	</dc.Fragment>
 	<dc.Function Name="LoadRecord" Params="e"><![CDATA[
 			var entry = this;
 			
@@ -37,15 +37,39 @@
 			var entry = this;
 			
 			entry.Params.Gallery.save(function(resp) {
-				if (resp.Result > 0) 
+				if (resp.Result > 0) {
 					dc.pui.Popup.alert(resp.Message);
-				else
+				}
+				else {
 					entry.Layer.back();
+					
+					if (entry.Params.Callback)
+						entry.Params.Callback();
+				}
 			});
 	]]></dc.Function>
-	<dc.Function Name="Cancel"><![CDATA[
+	<dc.Function Name="DoDelete"><![CDATA[
 			var entry = this;
 			
-			entry.Layer.back();
+			for (var i = 0; i < entry.Params.Show.Images.length; i++) {
+				var img = entry.Params.Show.Images[i];
+				
+				if (img.Alias == entry.Params.Image.Alias) {
+					entry.Params.Show.Images.splice(i, 1);
+					break;
+				}
+			}
+			
+			entry.Params.Gallery.save(function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+				}
+				else {
+					entry.Layer.back();
+					
+					if (entry.Params.Callback)
+						entry.Params.Callback();
+				}
+			});
 	]]></dc.Function>
 </dc.MixIn>

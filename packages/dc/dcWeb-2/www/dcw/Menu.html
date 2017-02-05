@@ -3,22 +3,60 @@
 
 	<dc.Function Name="Load"><![CDATA[
 				var entry = this;
-			
-				for (var i = 0; i < entry.Params.Menu.Options.length; i++) {
-					var opt = entry.Params.Menu.Options[i];
-					
-					var btn = $('<a href="#" class="pure-button">' + opt.Title + '</a>');
+				
+				if (entry.Params.Menu && entry.Params.Menu.Tabs) {
+					for (var i = 0; i < entry.Params.Menu.Tabs.length; i++) {
+						var opt = entry.Params.Menu.Tabs[i];
+						
+						if (opt.Auth && ! dc.user.isAuthorized(opt.Auth))
+							continue;
 							
-					btn.click(opt, function (e) {
-						entry.Layer.back();
+						var btn = $('<a href="#" class="pure-button"></a>');
 						
-						e.data.Op.call(entry, e);
+						// TODO maybe support focus Param ?
+						//if (mnu.Alias == app.TabFocus)
+						//	node.addClass('pure-button-selected');
 						
-						e.preventDefault();
-						return false;
-					});
-									
-					$('#dcuiAlertPane').append(btn);
+						btn.text(opt.Title);
+						btn.addClass(opt.Kind);
+								
+						btn.click(opt, function (e) {
+							entry.Layer.back();
+							
+							// TODO support other layers - via Params
+							dc.pui.App.loadTab(e.data.Alias);
+							
+							e.preventDefault();
+							return false;
+						});
+										
+						$('#dcuiAlertPane').append(btn);
+					}
+				}
+			
+				if (entry.Params.Menu && entry.Params.Menu.Options) {
+					for (var i = 0; i < entry.Params.Menu.Options.length; i++) {
+						var opt = entry.Params.Menu.Options[i];
+						
+						if (opt.Auth && ! dc.user.isAuthorized(opt.Auth))
+							continue;
+							
+						var btn = $('<a href="#" class="pure-button"></a>');
+						
+						btn.text(opt.Title);
+						btn.addClass(opt.Kind);
+								
+						btn.click(opt, function (e) {
+							entry.Layer.back();
+							
+							e.data.Op.call(entry, e);
+							
+							e.preventDefault();
+							return false;
+						});
+										
+						$('#dcuiAlertPane').append(btn);
+					}
 				}
 	]]></dc.Function>
 </dc.Html>

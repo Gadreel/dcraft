@@ -22,8 +22,7 @@ public class Sections {
 			return null;
 		}
 		
-		// TODO locale support
-		String src = fa.getPartValue("en", partm.el, true);
+		String src = fa.getPartValue(partm.localename, partm.el, true);
 		
 		if (src == null) {
 			OperationContext.get().error("Feed part " + part + " has no content.");

@@ -22,6 +22,10 @@ public class Panel extends UIElement {
 	
 	@Override
 	public void translate(WeakReference<UIWork> work, List<XNode> pnodes) {
+		this
+			.withAttribute("data-dc-enhance", "true")
+			.withAttribute("data-dc-tag", this.getName());
+	
 		// the children will move into the body, so clear out our child list
 		List<XNode> hiddenchildren = this.children;
 		
@@ -40,7 +44,7 @@ public class Panel extends UIElement {
 		
 		this.with(new UIElement("div")
 				.withAttribute("class", "dc-pui-panel-heading")
-				.withText(title)
+				.with(new UIElement("h5").withText(title))
 			);
 		
 		XElement bodyui = new UIElement("div")

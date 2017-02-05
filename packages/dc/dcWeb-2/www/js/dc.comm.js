@@ -150,6 +150,11 @@ dc.comm = {
 			console.dir(res);
 		});
 	},
+	
+	isSecure : function() {
+		return (window.location.protocol == 'https:');
+	},
+	
 	Messages: {
 		findExitEntry : function(list) {
 			if (!dc.util.Struct.isList(list)) 

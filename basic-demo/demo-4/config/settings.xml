@@ -1,0 +1,42 @@
+<Settings Title="Demo Four">
+	<Description>Site Four for Demo</Description>
+
+	<Domain Name="four.dcraft" />
+	
+	<Users>
+		<User 
+			Username="root" 
+			First="Root" Last="Four" 
+			Email="root@four.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Developer</AuthTag>
+		</User>
+		<User 
+			Username="editor" 
+			First="Editor" Last="Four" 
+			Email="editor@four.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Editor</AuthTag>
+		</User>
+	</Users>
+	
+	<Web 
+		SiteAuthor="designCraft.io"
+		IndexUrl="https://four.dcraft/"
+	>
+		<Package Name="dc/dcWeb-2" />
+		<Package Name="dc/dcCms-2" />
+
+		<Global Style="/css/dcm.app.css" />
+		
+		<Global Script="/js/dcm.app.js" />
+	</Web>
+
+	<Feed>
+		<Channel Name="Pages" />
+	</Feed>
+</Settings>

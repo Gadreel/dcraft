@@ -1,15 +1,17 @@
-<dc.Html Title="Edit Part Content" AuthTags="Admin,Editor">
+<dc.Html Title="Part Content" AuthTags="Admin,Editor">
 	<dc.RequireLib Path="/js/vendor/ace-1.1.8/ace.js" />
 	
 	<dc.Body>
-		<!-- TODO header -->
-		<div style="padding-right: 12px; text-align: right;">
-			<dc.Button Click="DoSelectImage" Label="Link Image" />
-			<dc.Button Click="DoSelectFile" Label="Link File" />
-			<dc.Button Click="DoSavePublish" Label="Save" Scope="Primary" /> 
-	    </div>
-	
-		<div id="sectDepEpcEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
+		<dc.PagePanel>
+			<div style="padding-right: 12px; text-align: right;">
+				<dc.Button Click="DoSelectImage" Label="Insert Image" />
+				<dc.Button Click="DoSelectFile" Label="Link File" />
+				<dc.Button Click="DoSelectPage" Label="Link Page" />
+				<dc.Button Click="DoSavePublish" Label="Save" Scope="Primary" /> 
+		    </div>
+		
+			<div id="sectDepEpcEdit" style="position: absolute; top: 46px; left: 0; right: 0; bottom: 0;" />
+		</dc.PagePanel>
 	</dc.Body>
 	
 	<dc.Function Name="Load"><![CDATA[
@@ -132,6 +134,18 @@
 					if (files) {
 						for (var i = 0; i < files.length; i++) 
 							entry.Store.Editor.insert('[click here](/files' + files[i].FullPath + ' "")\n');
+					}
+				} 
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoSelectPage"><![CDATA[			
+			var entry = this;
+		
+		    dc.pui.Dialog.loadPage('/dcm/cms/feed/Choose-Feed/Pages', { 
+				Callback: function(files) {
+					if (files) {
+						for (var i = 0; i < files.length; i++) 
+							entry.Store.Editor.insert('[click here](' + files[i].FullPath + ' "")\n');
 					}
 				} 
 			});

@@ -4,6 +4,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 
 import dcraft.cms.feed.core.FeedIndexer;
+import dcraft.lang.op.OperationContext;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIWork;
 import dcraft.xml.XElement;
@@ -31,10 +32,11 @@ public class PagePart extends UIElement {
 			XElement channelDef = FeedIndexer.findChannel(this.getAttribute("Channel")); 
 			
 			if (channelDef != null) {
-				this.withAttribute("AuthTags",
-						channelDef.getAttribute("AuthTags", "Editor,Admin,Developer"));
+				String badges = channelDef.getAttribute("AuthTags", "Editor,Admin,Developer");
 				
-				this.editable = true;
+				this.withAttribute("AuthTags", badges);
+				
+				this.editable = OperationContext.get().isAuthorized(badges.split(","));
 			}
 		}
 		

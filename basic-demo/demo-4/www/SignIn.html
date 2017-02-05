@@ -1,0 +1,19 @@
+<dc.Html Skeleton="/skeletons/General" PageClass="signin">
+	<dc.PagePartDef Title="Article" For="article" BuildId="pubBody" />
+	
+	<dc.PagePart For="article">
+		<h1>designCraft CMS</h1>
+		
+		<h2>CMS Sign In</h2>
+		
+		<dc.IncludeFrag Path="/dcw/SignIn-mixin" />
+		
+		<br />
+	</dc.PagePart>
+	
+	<dc.Function Name="SignedIn"><![CDATA[
+				var page = this;
+			
+				page.Layer.loadPage('/');
+    ]]></dc.Function>
+</dc.Html>

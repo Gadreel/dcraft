@@ -1,8 +1,8 @@
 <dc.Html Title="Edit Show" AuthTags="Admin,Editor">
 	<dc.RequireLib Path="/js/vendor/Sortable.min.js" />
 	
-	<dc.Body>
-		<dc.Panel Title="Edit Show">
+	<dc.Body class="dcuiWide">
+		<dc.PagePanel>
 			<dcf.Form>
 				<dcf.FormButtons>
 					<dc.Button Click="DoSelectImage" Label="Select Image From Gallery" />
@@ -13,8 +13,8 @@
 				</dcf.FormButtons>
 			</dcf.Form>
 			
-			<ul id="imageDesEList" class="dc-pui-sortable" />					
-		</dc.Panel>
+			<div id="imageDesEList" class="dc-pui-sortable dcm-file-list" />					
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="Load" Params="e"><![CDATA[
 			var entry = this;
@@ -89,15 +89,34 @@
 				for (var i = 0; i < entry.Store.Show.Images.length; i++) {
 					var img = entry.Store.Show.Images[i]; 
 				
-					var litm = $('<li></li>');
-					
+					var litm = $('<a href="#" class="dcm-file"></a>');
+				
 					litm.attr('data-img-alias', img.Alias);
+						
+					var path = '/galleries' + entry.Params.Path + '/' + img.Alias;
 					
-					var anchr = $('<a href="#"><h2>' + dc.util.Web.escapeHtml(img.Title ? img.Title : img.Alias) + '</h2>'
-							+ '<p>' + dc.util.Web.escapeHtml(img.Description) + '</p>'
-							+ '</a>');
+					var imgel = $('<img src="/imgs/dots.png" />');
 					
-					anchr.click(img, function(e) {
+					litm.append(imgel);
+					
+					// to keep the scope of imgel, make function
+					var lfunc = function(path, imgel) {
+						dc.util.Image.load(path + '.v/thumb.jpg', 
+							function(img) {
+								if (img)
+									imgel.attr('src', img.src);
+								else
+									imgel.attr('src', '/imgs/question.png');
+							});
+					};
+					
+					lfunc(path, imgel);
+					
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(img.Title ? img.Title : img.Alias);
+					litm.append(itmtitle);
+				
+					litm.click(img, function(e) {
 					    //	console.log('xyz');
 					    
 					    if (entry.Store.SortTime) {
@@ -120,10 +139,8 @@
 						return false;
 					});
 					
-					litm.append(anchr);
-					
 					// TODO make it so we can delete only one entry if the alias shows up twice
-					
+					/*
 					var anchr2 = $('<a href="#">Delete</a>')
 					
 					anchr2.click(img, function(e) {
@@ -143,6 +160,7 @@
 					});
 					
 					litm.append(anchr2);
+					*/
 					
 					list.append(litm);
 				}
@@ -154,7 +172,7 @@
 			var oldimages = entry.Store.Show.Images;
 			entry.Store.Show.Images = [];
 			
-			$('#imageDesEList li').each(function(i) {
+			$('#imageDesEList > a').each(function(i) {
 				var calias = $(this).attr('data-img-alias');
 				
 				//console.log('adding: ' + calias);

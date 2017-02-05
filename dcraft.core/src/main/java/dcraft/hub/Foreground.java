@@ -140,7 +140,12 @@ public class Foreground {
 			if (StringUtil.isEmpty(pass) || "0".equals(pass))
 				System.out.println("Stopping.");
 			else if (capi.startSession("root", pass)) 
-				cli.run(scan, capi);
+				try {
+					cli.run(scan, capi);
+				}
+				catch(Exception x) {
+					System.out.println("Unable to start commandline interface");
+				}
 			else
 				System.out.println("Error logging in session");
 		}
@@ -174,6 +179,11 @@ public class Foreground {
 					else
 						capi = ApiSession.createSessionFromConfig(sess);  //  LocalSession(domain);
 					
+					if (capi == null) {
+						System.out.println("Bad tenant");
+						continue;
+					}
+					
 					//capi = CoreApi.createSessionFromConfig(domain);
 					
 					System.out.print("Username: ");
@@ -199,8 +209,14 @@ public class Foreground {
 				System.out.println("Failed");
 			}
 
-			if (auth)
-				cli.run(scan, capi);
+			if (auth) {
+				try {
+					cli.run(scan, capi);
+				}
+				catch(Exception x) {
+					System.out.println("Unable to start commandline interface");
+				}
+			}
 		}
 
 		if (capi != null)

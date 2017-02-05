@@ -8,11 +8,14 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.joda.time.DateTimeZone;
+
 import dcraft.filestore.bucket.Bucket;
 import dcraft.filestore.bucket.BucketUtil;
 import dcraft.groovy.GCompClassLoader;
 import dcraft.io.CacheFile;
 import dcraft.io.LocalFileStore;
+import dcraft.lang.IChronologyResource;
 import dcraft.lang.op.FuncResult;
 import dcraft.locale.Dictionary;
 import dcraft.locale.ILocaleResource;
@@ -38,7 +41,7 @@ import dcraft.xml.XmlReader;
  * 
  */
 
-public class SiteInfo extends CommonInfo implements ILocaleResource {
+public class SiteInfo extends CommonInfo implements ILocaleResource, IChronologyResource {
 	static public SiteInfo forRoot(TenantInfo tenant) {
 		SiteInfo site = new SiteInfo();
 		site.tenant = new WeakReference<TenantInfo>(tenant);
@@ -75,6 +78,7 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	protected Dictionary dictionary = null;
 	protected Map<String, LocaleDefinition> locales = new HashMap<>();
 	protected Map<String, LocaleDefinition> sitelocales = new HashMap<>();
+	protected String chron = null;
 	
 	@Override
 	public String getAlias() {
@@ -190,6 +194,11 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 			}		
 			
 			this.getTenant().watchSettingsChange(cpath);
+
+			Path certpath = cpath.resolve("certs");
+			
+			if ((certpath != null) && Files.exists(certpath)) 
+				this.getTenant().watchSettingsChange(certpath);
 		}
 
 		Path bpath = this.resolvePath("/buckets");
@@ -207,7 +216,11 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 				String dname = del.getAttribute("Name");					// TODO check Use attribute		
 				this.tenant.get().registerSiteDomain(dname, this);
 			}
-	
+			
+			if (settings.hasAttribute("Chronology")) {
+				this.chron = settings.getAttribute("Chronology");
+			}
+			
 			if (settings.hasAttribute("Locale")) {
 				this.locale = settings.getAttribute("Locale");
 				
@@ -288,6 +301,27 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	}
 	
 	@Override
+	public IChronologyResource getParentChronologyResource() {
+		if (this.isRoot())
+			return Hub.instance.getResources();
+		
+		return this.getTenant().getRootSite();
+	}
+	
+	@Override
+	public String getDefaultChronology() {
+		if (this.chron != null)
+			return this.chron;
+		
+		return this.getParentChronologyResource().getDefaultChronology();
+	}
+	
+	@Override
+	public DateTimeZone getDefaultChronologyDefinition() {
+		return DateTimeZone.forID(this.getDefaultChronology());
+	}
+	
+	@Override
 	public String getDefaultLocale() {
 		if (this.locale != null)
 			return this.locale;
@@ -323,7 +357,10 @@ public class SiteInfo extends CommonInfo implements ILocaleResource {
 	
 	@Override
 	public ILocaleResource getParentLocaleResource() {
-		return Hub.instance.getResources();
+		if (this.isRoot())
+			return Hub.instance.getResources();
+		
+		return this.getTenant().getRootSite();
 	}
 	
 	@Override

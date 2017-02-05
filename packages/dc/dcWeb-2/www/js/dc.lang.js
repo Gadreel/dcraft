@@ -609,6 +609,13 @@ var dc = {
 				xmlHTTP.responseType = 'arraybuffer';
 			
 			    xmlHTTP.onload = function( e ) {
+			        if (this.status === 404) {
+				        if (callback) 
+				        	callback(null);
+
+			            return;
+			         }			    	
+			    	
 					var h = xmlHTTP.getAllResponseHeaders();
 					var m = h.match(/^Content-Type\:\s*(.*?)$/mi);
 					var mimeType = m[1] || 'image/png';
@@ -642,7 +649,12 @@ var dc = {
 			        if (progcallback) 
 			        	progcallback(thisImg, completedPercentage);
 			    }
-			
+			    
+			    xmlHTTP.onerror = function () {
+			        if (callback) 
+			        	callback(null);
+		    	};
+			    	
 			    xmlHTTP.send();
 			    
 			    return thisImg;
@@ -905,6 +917,65 @@ var dc = {
 				}
 				
 				return fname;
+			},
+			loadBlob: function(url, callback, progcallback) {
+				var completedPercentage = 0;
+				var prevValue = 0;
+
+				var xmlHTTP = new XMLHttpRequest();
+				
+				xmlHTTP.open('GET', url , true);
+				xmlHTTP.responseType = 'arraybuffer';
+			
+			    xmlHTTP.onload = function( e ) {
+			        if (this.status === 404) {
+				        if (callback) 
+				        	callback(null);
+
+			            return;
+			         }			    	
+			    	
+					var h = xmlHTTP.getAllResponseHeaders();
+					var m = h.match(/^Content-Type\:\s*(.*?)$/mi);
+					var mimeType = m[1] || 'image/png';
+					
+					var blob = new Blob([ this.response ], { type: mimeType });
+					
+					if (callback) 
+						callback(blob);
+			    };
+			
+			    xmlHTTP.onprogress = function(e) {
+			        if (e.lengthComputable) {
+			            completedPercentage = parseInt(( e.loaded / e.total ) * 100);
+			
+				        if (progcallback && (prevValue != completedPercentage)) 
+				        	progcallback(completedPercentage);
+			        }
+			    };
+			
+			    xmlHTTP.onloadstart = function() {
+			        // Display your progress bar here, starting at 0
+			        completedPercentage = 0;
+			        
+			        if (progcallback) 
+			        	progcallback(completedPercentage);
+			    };
+			
+			    xmlHTTP.onloadend = function() {
+			        // You can also remove your progress bar here, if you like.
+			        completedPercentage = 100;
+			        
+			        if (progcallback) 
+			        	progcallback(completedPercentage);
+			    }
+			    
+			    xmlHTTP.onerror = function () {
+			        if (callback) 
+			        	callback(null);
+		    	};
+			    	
+			    xmlHTTP.send();
 			}
 		}
 	},
@@ -1101,7 +1172,9 @@ dc.lang.Task.prototype = new dc.lang.OperationResult();
 dc.lang.Task.prototype.init = function(steps, observer) {
 	//dc.lang.OperationResult.prototype.init.call(this, entry, node);
 	
+	this.Completed = false;
 	this.Result = null;
+	this.Title = null;
 	this.Steps = steps;
 	this.CurrentStep = 0;
 	this.Observers = [ ];
@@ -1119,6 +1192,9 @@ dc.lang.Task.prototype.run = function() {
 	var step = this.Steps[this.CurrentStep];
 	
 	// TODO if step does not have Alias or Title add
+	
+	step.Amount = 0;
+	step.TotalAmount = 100;		// can be overridden in step run
 	
 	if (!step.Params)
 		step.Params = { };
@@ -1142,8 +1218,10 @@ dc.lang.Task.prototype.resume = function() {
 	
 	var step = this.Steps[this.CurrentStep];
 
-	if (! step.Repeat)
+	if (! step.Repeat) {
+		step.Amount = step.TotalAmount;
 		this.CurrentStep++;
+	}
 
 	var task = this;
 	
@@ -1155,6 +1233,9 @@ dc.lang.Task.prototype.resumeNext = function() {
 		this.complete();
 		return;
 	}
+
+	var step = this.Steps[this.CurrentStep];
+	step.Amount = step.TotalAmount;
 	
 	this.CurrentStep++;
 
@@ -1164,7 +1245,71 @@ dc.lang.Task.prototype.resumeNext = function() {
 }
 
 dc.lang.Task.prototype.complete = function() {
+	this.Completed = true;
+	
 	for (var i = 0; i < this.Observers.length; i++) 
 		this.Observers[i](this);
+}
+
+dc.lang.Task.prototype.getCurrentTitle = function() {
+	if (this.CurrentStep < this.Steps.length)
+		return this.Steps[this.CurrentStep].Title;
+		
+	if (this.Title)
+		return this.Title;
+		
+	if (this.Steps.length > 0)
+		return this.Steps[this.Steps.length - 1].Title;
+		
+	return 'Unknown';
+}
+
+// return { Amount: 0 - 100, Title: 'step title' }
+dc.lang.Task.prototype.progress = function() {
+	if (this.Completed)
+		return {
+			Amount: 100,
+			Title: this.getCurrentTitle()
+		};
+	
+	var a = 0;
+	var ta = 0;
+	
+	for (var i = 0; i < this.Steps.length; i++) {
+		var step = this.Steps[i];
+
+		//console.log('checking: ' + step.Title); 
+		
+		if (step.Tasks && step.Tasks.length) {
+			ta += step.Tasks.length * (step.TotalAmount ? step.TotalAmount : 100);
+			
+			//console.log('checking deeper: ' + step.Tasks.length); 
+		
+			for (var i2 = 0; i2 < step.Tasks.length; i2++) {
+				var steptask = step.Tasks[i2];
+
+				var amt = steptask.progress().Amount;
+				var adjamt = amt * (step.TotalAmount ? step.TotalAmount : 100) / 100; 
+
+				//console.log('- found: ' + amt + ' adj: ' + adjamt); 
+				
+				a += adjamt;
+			}
+		}
+		else if (step.TotalAmount) {
+			a += step.Amount;
+			ta += step.TotalAmount;
+		}
+		else {
+			ta += 100;
+		}
+
+		//console.log('amounts: ' + a + ' / ' + ta); 
+	}
+	
+	return {
+		Amount: Math.round( a / ta * 100),
+		Title: this.getCurrentTitle()
+	};
 }
 

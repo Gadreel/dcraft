@@ -16,6 +16,7 @@
 ************************************************************************ */
 package dcraft.script.inst.ext;
 
+import dcraft.cms.util.CatalogUtil;
 import dcraft.filestore.CommonPath;
 import dcraft.filestore.IFileStoreFile;
 import dcraft.log.Logger;
@@ -27,6 +28,7 @@ import dcraft.struct.RecordStruct;
 import dcraft.struct.Struct;
 import dcraft.util.StringUtil;
 import dcraft.work.Task;
+import dcraft.xml.XElement;
 
 public class SendEmail extends Instruction {
 	@Override
@@ -35,6 +37,17 @@ public class SendEmail extends Instruction {
 		String reply = stack.stringFromSource("ReplyTo");		// optional
 		String to = stack.stringFromSource("To");
 		boolean managed = stack.boolFromSource("Managed");
+		
+		if (StringUtil.isEmpty(to)) {
+			String tolist = stack.stringFromSource("ToList", "WebMaster");
+			
+			if (StringUtil.isNotEmpty(tolist)) {
+				XElement catalog = CatalogUtil.getCatalog("Email-List-" + tolist, null);
+				
+				if (catalog != null)
+					to = catalog.getAttribute("To");
+			}			
+		}
 		
 		// direct send
 		String subject = stack.stringFromSource("Subject");

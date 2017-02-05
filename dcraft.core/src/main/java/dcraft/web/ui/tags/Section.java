@@ -21,20 +21,29 @@ public class Section extends UIElement {
 		return new Section();
 	}
 	
-	@Override
-	public void build(WeakReference<UIWork> work) {
+	public PagePart getPagePart() {
 		UIElement p = this.getParent();
 		
 		if (p != null) {
 			if (! (p instanceof PagePart))
 				p = p.getParent();
 			
-			if ((p instanceof PagePart) && ((PagePart)p).isCmsEditable()) {
-				this.with(new Button("dcmi.SectionButton")
-					.withClass("dcuiSectionButton", "dcuiCmsi")
-					.withAttribute("Icon", "fa-pencil")
-				);
-			}
+			if (p instanceof PagePart) 
+				return (PagePart) p;
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public void build(WeakReference<UIWork> work) {
+		PagePart p = this.getPagePart();
+		
+		if ((p != null) && p.isCmsEditable()) {
+			this.with(new Button("dcmi.SectionButton")
+				.withClass("dcuiSectionButton", "dcuiCmsi")
+				.withAttribute("Icon", "fa-pencil")
+			);
 		}
 
 		super.build(work);
@@ -48,6 +57,18 @@ public class Section extends UIElement {
 		this
 			.withClass("dc-section");
 		
-		super.translate(work, pnodes);
+		if (! this.getAttributeAsBooleanOrFalse("Hidden")) {
+			super.translate(work, pnodes);
+		}
+		else {
+			PagePart p = this.getPagePart();
+			
+			if ((p != null) && p.isCmsEditable()) {
+				super.translate(work, pnodes);
+
+				this
+					.withClass("dc-section-hidden");
+			}
+		}
 	}
 }

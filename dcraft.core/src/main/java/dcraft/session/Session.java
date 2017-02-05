@@ -1169,7 +1169,7 @@ Context: {
 		this.pagecacgepath = webpath;
 		this.pagecacgexml = fsource;
 		
-		System.out.println("page cache source set");
+		//System.out.println("page cache source set");
 	}
 
 	public UIElement getPageCache(CommonPath webpath) {
@@ -1179,7 +1179,7 @@ Context: {
 			this.pagecacgepath = null;
 			this.pagecacgexml = null;
 			
-			System.out.println("page cache source found");
+			//System.out.println("page cache source found");
 			
 			return cache;
 		}

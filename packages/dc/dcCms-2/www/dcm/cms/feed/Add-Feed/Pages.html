@@ -1,0 +1,96 @@
+<dc.Html Title="Add Page" AuthTags="User">
+	<dc.Body>
+		<dc.PagePanel>
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dcf.SubmitButton Label="Add" />
+				</dcf.FormButtons>
+				
+				<dcf.Text Name="Path" Label="Slug Name" Required="true" Pattern="[\w-]+" 
+					placeholder="page name, no spaces - use dash instead of space" />
+				<dcf.Text Name="Title" Label="Title" DataType="dcmPageTitle" Required="true" />
+				<dcf.Text Name="Keywords" Label="Keywords" DataType="dcmPageKeywords" />
+				<dcf.Text 
+					Name="Image"
+					Label="Image" 
+				>
+					<Input />
+					<Button Icon="fa-ellipsis-h" Click="DoSelectImage" />
+				</dcf.Text>
+				<dcf.Text Name="Template" Label="Template" DataType="dcSmallString" Required="true" readonly="readonly" />
+				<dcf.TextArea Name="Description" Label="Description" DataType="dcmPageDescription" />
+			</dcf.Form>
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load" Params="e"><![CDATA[
+			this.form().query('Path').focus();		
+			
+			console.log('thawing: ' + e.Thaw);		
+	]]></dc.Function>
+	<dc.Function Name="LoadRecord" Params="e">
+			e.AsNew = true;
+			e.Data = {
+				Path: '',
+				Template: 'Standard'
+			};
+	</dc.Function>
+	<dc.Function Name="SaveRecord" Params="e"><![CDATA[
+			var entry = this;
+			
+			var savedata = {
+				Path: entry.Params.Path + '/' + e.Data.Path,
+				Template: e.Data.Template,
+				Channel: 'Pages',
+				Publish: true,
+				SetFields: [],
+				SetParts: [				// TODO plan a better approach
+					{
+						For: 'article',
+						Format: 'md',
+						Value: '%%% StandardSection Id="sectAuto"\n\n_placeholder_\n\n%%%%%%%%%%%%%% end section %%%%%%%%%%%%%%\n'
+					}				
+				]
+			};
+			
+			delete e.Data.Path;
+			delete e.Data.Template;
+			
+			for (var fldname in e.Data) {
+				if (e.Data.hasOwnProperty(fldname)) {
+					savedata.SetFields.push({
+						Name: fldname,
+						Value: e.Data[fldname]
+					});
+				}
+			}
+			
+			e.Message = { 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'AlterFeedInfo',
+				Body: savedata
+			};
+	]]></dc.Function>
+	<dc.Function Name="AfterSave"><![CDATA[
+			var entry = this;
+				
+			entry.Layer.back();
+			
+			if (entry.Params.Callback)
+				entry.Params.Callback( entry.Params.Path );
+	]]></dc.Function>
+	<dc.Function Name="DoSelectImage"><![CDATA[
+			var entry = this;
+		
+		    dc.pui.Dialog.loadPage('/dcm/cms/galleries/Chooser', { 
+				Callback: function(res) {
+					if (res.Images && res.Images.length) {
+						var fh = res.Images[0];
+						
+						entry.form().setValue('Image', '/galleries' + fh.FullPath);
+						//entry.form().FreezeInfo.Default.Values.Image = '/galleries' + fh.FullPath;
+					}
+				} 
+			});
+    ]]></dc.Function>
+</dc.Html>

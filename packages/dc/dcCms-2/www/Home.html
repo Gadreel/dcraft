@@ -1,0 +1,22 @@
+<dc.Html Title="Home">
+	<dc.Body>
+		<!-- TODO cleanup - if signed in show a message about going to Portal -->
+		<IncludePart Path="/dcw/Header" />
+
+		<div class="dcappWrapper">
+			<article id="dcappMain">
+				<p>
+					You are seeing this because no home page is configured for this domain.
+					You might be interested in Signing In:
+				</p>
+				
+				<dc.Button Label="Sign In" Icon="user" Click="DoSignIn" /> 
+			</article>
+		</div>
+
+		<IncludePart Path="/dcw/Footer" />
+	</dc.Body>
+	<dc.Function Name="DoSignIn"><![CDATA[
+				// TODO use dialog -- dc.pui.Loader.loadSigninPage();
+	]]></dc.Function>
+</dc.Html>

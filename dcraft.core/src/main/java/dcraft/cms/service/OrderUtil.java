@@ -103,59 +103,87 @@ public class OrderUtil {
 						if (sset.hasAttribute("Mode"))
 							testing = "Dev".equals(sset.getAttribute("Mode"));
 						
-						XElement auth = sset.selectFirst(testing ? "AuthorizeDev" : "AuthorizeLive");
+						XElement pel = sset.selectFirst("Payment");
 						
-						if (auth == null) {
-							callback.error("Missing store Authorize settings.");
-							callback.complete();
-							return;
+						String pmode = (pel != null) ? pel.getAttribute("Mode", "Manual") : "Manual";
+						
+						if ("Manual".equals(pmode)) {
+							DbRecordRequest upreq = new UpdateRecordRequest()
+								.withId(refid)
+								.withTable("dcmOrder");
+						
+							upreq.withSetField("dcmStatus", "AwaitingPayment");
+							
+							Hub.instance.getDatabase().submit(upreq, new ObjectResult() {
+								@Override
+								public void process(CompositeStruct result) {
+							    	OperationContext.get().touch();
+									
+									// TODO mark coupons used if present
+							    	/*
+									<Field Name="dcmWasUsed" Type="Boolean" /> 
+									<Field Name="dcmAmountUsed" Type="Decimal" /> 
+							    	*/
+							    	
+									callback.complete();
+								}
+							});
 						}
-						
-						String lid = auth.getAttribute("LoginId");
-						String key = auth.getAttribute("TransactionKey");
-						
-						String authid = Hub.instance.getClock().getObfuscator().decryptHexToString(lid);
-						String authkey = Hub.instance.getClock().getObfuscator().decryptHexToString(key);
-						
-						// TODO store order items as independent records? order audits? other fields/tables to fill in?
-						// put order into a thread and box
-						
-						AuthUtil.authXCard(authid, authkey, refid, !testing, false, order, new FuncCallback<RecordStruct>() {
-							@Override
-							public void callback() {
-						    	OperationContext.get().touch();
-						    	
-								DbRecordRequest upreq = new UpdateRecordRequest()
-									.withId(refid)
-									.withTable("dcmOrder");
-								
-								if (this.hasErrors() || this.isEmptyResult()) 
-									upreq.withSetField("dcmStatus", "VerificationRequired");
-								else 
-									upreq.withSetField("dcmStatus", "AwaitingFulfillment");
-								
-								if (this.isEmptyResult())
-									upreq.withSetField("dcmPaymentResponse", this.toLogMessage());
-								else
-									upreq.withSetField("dcmPaymentId", this.getResult().getFieldAsString("TxId"))
-										.withSetField("dcmPaymentResponse", this.getResult().getFieldAsString("Message"));
-								
-								Hub.instance.getDatabase().submit(upreq, new ObjectResult() {
-									@Override
-									public void process(CompositeStruct result) {
-								    	OperationContext.get().touch();
-										
-										// TODO mark coupons used if present
-								    	/*
-										<Field Name="dcmWasUsed" Type="Boolean" /> 
-										<Field Name="dcmAmountUsed" Type="Decimal" /> 
-								    	*/
-								    	
-										callback.complete();
-									}
-								});
+						else if ("Authorize".equals(pmode)) {
+							XElement auth = sset.selectFirst(testing ? "AuthorizeDev" : "AuthorizeLive");
+							
+							if (auth == null) {
+								callback.error("Missing store Authorize settings.");
+								callback.complete();
+								return;
 							}
-						});
+							
+							String lid = auth.getAttribute("LoginId");
+							String key = auth.getAttribute("TransactionKey");
+							
+							String authid = Hub.instance.getClock().getObfuscator().decryptHexToString(lid);
+							String authkey = Hub.instance.getClock().getObfuscator().decryptHexToString(key);
+							
+							// TODO store order items as independent records? order audits? other fields/tables to fill in?
+							// put order into a thread and box
+							
+							AuthUtil.authXCard(authid, authkey, refid, !testing, false, order, new FuncCallback<RecordStruct>() {
+								@Override
+								public void callback() {
+							    	OperationContext.get().touch();
+							    	
+									DbRecordRequest upreq = new UpdateRecordRequest()
+										.withId(refid)
+										.withTable("dcmOrder");
+									
+									if (this.hasErrors() || this.isEmptyResult()) 
+										upreq.withSetField("dcmStatus", "VerificationRequired");
+									else 
+										upreq.withSetField("dcmStatus", "AwaitingFulfillment");
+									
+									if (this.isEmptyResult())
+										upreq.withSetField("dcmPaymentResponse", this.toLogMessage());
+									else
+										upreq.withSetField("dcmPaymentId", this.getResult().getFieldAsString("TxId"))
+											.withSetField("dcmPaymentResponse", this.getResult().getFieldAsString("Message"));
+									
+									Hub.instance.getDatabase().submit(upreq, new ObjectResult() {
+										@Override
+										public void process(CompositeStruct result) {
+									    	OperationContext.get().touch();
+											
+											// TODO mark coupons used if present
+									    	/*
+											<Field Name="dcmWasUsed" Type="Boolean" /> 
+											<Field Name="dcmAmountUsed" Type="Decimal" /> 
+									    	*/
+									    	
+											callback.complete();
+										}
+									});
+								}
+							});
+						}
 					}
 				});
 			}

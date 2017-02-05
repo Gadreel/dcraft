@@ -1,0 +1,265 @@
+<dc.Html Title="Pages Browser" AuthTags="Editor,Admin">
+	<dc.RequireLib Path="/js/dc.transfer.js" />
+	<dc.RequireLib Path="/js/vendor/jquery.fileDownload.js" />
+	
+	<dc.Body>
+		<dc.PagePanel>
+			<dcf.Form>
+				<dcf.FormButtons>
+					<dc.Button Click="DoAddPage" Label="Add Page" />
+					<dc.Button Click="DoAddFolder" Label="Add Folder" />
+				</dcf.FormButtons>
+			</dcf.Form>
+			
+			<h4 id="lblDepPlPath" />
+			
+			<h3>Folders</h3>
+			
+			<div id="lstDepPlFolders" class="dcm-file-list" />
+			
+			<h3>Pages</h3>
+			
+			<div id="lstDepPlFiles" class="dcm-file-list" />
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			if (!this.Store.Path) {
+				if (this.Params.Path)
+					entry.Store.Path = this.Params.Path;
+				else
+					entry.Store.Path = '/';
+			}
+			
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="LoadList"><![CDATA[
+			var entry = this;
+			
+			$('#lblDepPlPath').text('Path: ' + entry.Store.Path);
+		
+			$('#lstDepPlFolders,#lstDepPlFiles').empty();
+			
+			dc.comm.sendMessage({ 
+				Service: 'dcmCore',
+				Feature: 'Feeds',
+				Op: 'ListPages',
+				Body: { 
+					Path: entry.Store.Path
+				}
+			}, function(resp) {
+				if (resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+				
+				var items = resp.Body;
+				var sfield = entry.Store.SortField ? entry.Store.SortField : 'FileName';
+				
+				// sort
+				items.sort(dc.util.List.sortObjects(sfield));
+				
+				// ########## FOLDERS ##########
+				
+				var flist = $('#lstDepPlFolders');
+				
+				// add parent folder
+				if (entry.Store.Path.length > 1) {
+					var litm = $('<a href="#" class="dcm-folder"><div class="dcm-file-title">.. [parent]</div></a>');
+					
+					litm.click(item, function(e) {
+						var curr = entry.Store.Path;
+						
+						if (curr.length == 1)
+							return;
+							
+						var path = curr.substr(0, curr.lastIndexOf('/'));
+						
+						if (!path)
+							path = '/';
+							
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					flist.append(litm);
+				}
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (entry.Params.Chained || ! item.IsFolder)
+						continue;
+						
+					var litm = $('<a href="#" class="dcm-folder"></a>');
+					
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(item.FileName);
+					
+					litm.append(itmtitle);
+					
+					litm.click(item, function(e) {
+						var path = '/' + e.data.FileName;
+					
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+								
+						entry.Store.Path = path;
+						entry.callPageFunc('LoadList');
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					flist.append(litm);
+				}
+				
+				// ########## FILES ##########
+				
+				var flist = $('#lstDepPlFiles');
+				
+				// display
+				for (var i = 0; i < items.length; i++) {
+					var item = items[i];
+					
+					if (item.IsFolder)
+						continue;
+					
+					var litm = $('<a href="#" class="dcm-folder"></a>');
+						
+					var path = entry.Store.Path + item.FileName;
+					
+					if (entry.Store.Path.length > 1)
+						path = entry.Store.Path + '/' + item.FileName;
+					
+					litm.attr('href', path);
+					
+					litm.click(item, function(e) {
+						var path = entry.Store.Path + e.data.FileName;
+						
+						if (entry.Store.Path.length > 1)
+							path = entry.Store.Path + '/' + e.data.FileName;
+					
+						//dc.pui.Popup.alert('Under construction: ' + path);
+						
+						window.location = path;
+
+						entry.Layer.close();
+						
+						e.preventDefault();
+						return false;
+					});
+					
+					/* TODO someday enhance to make a snapshot of the page and show graphic
+					var litm = $('<a href="#" class="dcm-file"></a>');
+						
+					var path = '/files/' + item.FileName;
+				
+					if (entry.Store.Path.length > 1)
+						path = '/files' + entry.Store.Path + '/' + item.FileName;
+					
+					litm.attr('href', path);
+					
+					if (item.FileName.indexOf('.') != -1) {
+						var fext = item.FileName.substr(item.FileName.indexOf('.')).toLowerCase();
+						var icon = '/imgs/ext-unk.png';
+						
+						if ((fext == '.png') || (fext == '.jpg') || (fext == '.jpeg') || (fext == '.gif')) {
+							icon = path;
+						}
+						else if ((fext == '.doc') || (fext == '.docx')) {
+							icon = '/imgs/ext-doc.png';
+						}
+						else if ((fext == '.xls') || (fext == '.xlsx')) {
+							icon = '/imgs/ext-xls.png';
+						}
+						else if ((fext == '.ppt') || (fext == '.pptx')) {
+							icon = '/imgs/ext-ppt.png';
+						}
+						else if (fext == '.pdf') {
+							icon = '/imgs/ext-pdf.png';
+						}
+						else if (fext == '.zip') {
+							icon = '/imgs/ext-zip.png';
+						}
+						
+						if (icon) {
+							var imgel = $('<img />');
+							imgel.attr('src', icon);
+							litm.append(imgel);
+						}
+					}
+					
+					litm.click(item, function(e) {
+						var path = entry.Store.Path + '/' + e.data.FileName;
+								
+						if (entry.Params.Callback) {
+							entry.Layer.back();
+							
+							entry.Params.Callback( [ {
+								FileName: e.data.FileName,
+								FullPath: path
+							} ] );
+						}
+						else {
+							entry.Store.PopPath = path;
+
+							// TODO $('#puFileOpts').popup('open', { positionTo: e.currentTarget });
+						}
+						
+						e.preventDefault();
+						return false;
+					});
+					*/
+					
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(item.FileName);
+					
+					litm.append(itmtitle);
+					
+					/*
+					litm.append('<td>' + dc.transfer.fmtFileSize(item.Size) + '</td>');
+				
+					litm.append('<td>' + dc.util.Date.formatZLocalMedium(item.LastModified) + '</td>');
+					*/
+					
+					flist.append(litm);
+				}
+						
+			});	
+	]]></dc.Function>
+	<dc.Function Name="DoRefresh"><![CDATA[
+			this.callPageFunc('LoadList');
+	]]></dc.Function>
+	<dc.Function Name="DoAddPage"><![CDATA[
+			var entry = this;
+					
+			//dc.pui.Popup.alert('Under construction. Add to folder: ' + entry.Store.Path);
+			
+			dc.pui.Dialog.loadPage('/dcm/cms/feed/Add-Feed/Pages', { 
+				Path: this.Store.Path,
+				Callback: function(path) {
+					entry.Store.Path = path;
+					
+					entry.callPageFunc('LoadList');
+				}
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoAddFolder"><![CDATA[
+			var entry = this;
+			
+			dc.pui.Dialog.loadPage('/dcm/cms/feed/Add-Feed-Folder/Pages', { 
+				Path: this.Store.Path,
+				Callback: function(path) {
+					entry.Store.Path = path;
+					
+					entry.callPageFunc('LoadList');
+				}
+			});	
+	]]></dc.Function>
+</dc.Html>

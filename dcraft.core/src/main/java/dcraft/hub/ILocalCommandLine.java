@@ -21,5 +21,5 @@ import java.util.Scanner;
 import dcraft.api.ApiSession;
 
 public interface ILocalCommandLine {
-	void run(Scanner scan, ApiSession client);
+	void run(Scanner scan, ApiSession client) throws Exception;
 }

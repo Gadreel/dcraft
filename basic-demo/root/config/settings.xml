@@ -1,0 +1,26 @@
+<Settings Title="Demo Root">
+	<Description>Root site for Demo</Description>
+
+	<Domain Name="root.dcraft" />
+	<Domain Name="root" />
+	<Domain Name="localhost" />
+	
+	<Users>
+		<User 
+			Username="root" 
+			First="root" Last="admin" 
+			Email="admin@root.dcraft"
+			PlainPassword="temp1234"
+		>
+			<AuthTag>Admin</AuthTag>
+			<AuthTag>Developer</AuthTag>
+			<AuthTag>SysAdmin</AuthTag>
+		</User>
+	</Users>
+	
+	<Web 
+		HtmlMode="Ssi"
+		SiteAuthor="designCraft.io"
+		IndexUrl="https://root.dcraft/"
+	/>
+</Settings>

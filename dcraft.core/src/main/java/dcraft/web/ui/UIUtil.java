@@ -30,6 +30,7 @@ import dcraft.web.ui.tags.IncludeParam;
 import dcraft.web.ui.tags.Link;
 import dcraft.web.ui.tags.Markdown;
 import dcraft.web.ui.tags.MixIn;
+import dcraft.web.ui.tags.PagePanel;
 import dcraft.web.ui.tags.PagePart;
 import dcraft.web.ui.tags.PairedMediaSection;
 import dcraft.web.ui.tags.Param;
@@ -101,6 +102,7 @@ public class UIUtil {
 		tagmap.put("dc.Link", Link.class);
 		tagmap.put("dc.Button", Button.class);
 		tagmap.put("dc.Panel", Panel.class);
+		tagmap.put("dc.PagePanel", PagePanel.class);
 		tagmap.put("dc.Callout", Callout.class);
 		
 		// advanced forms

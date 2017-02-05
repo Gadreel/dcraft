@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import dcraft.lang.op.FuncResult;
+import dcraft.lang.op.OperationContext;
 import dcraft.util.StringUtil;
 import dcraft.web.md.Plugin;
 import dcraft.web.md.ProcessContext;
@@ -78,14 +79,16 @@ public class Emitter {
             break;
         case CODE:
         case FENCED_CODE:
-        	UIElement targetparent = new UIElement("pre");
+        	//UIElement targetparent = new UIElement("pre");
         	target = new UIElement("code");
         	
             if (root.id != null)
             	target.setAttribute("id", root.id);
             
-            targetparent.add(target);
-        	parent.add(targetparent);
+            //targetparent.add(target);
+        	//parent.add(targetparent);
+            
+        	parent.add(target);
             
             break;
         case BLOCKQUOTE:
@@ -966,6 +969,8 @@ public class Emitter {
             
             if (res.isNotEmptyResult())
             	parent.add(res.getResult());
+            else
+            	OperationContext.get().clearExitCode();
         }
     }
 

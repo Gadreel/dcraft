@@ -30,6 +30,7 @@ import dcraft.bus.Message;
 import dcraft.hub.TenantInfo;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
+import dcraft.lang.IChronologyResource;
 import dcraft.locale.ILocaleResource;
 import dcraft.locale.ITranslationAdapter;
 import dcraft.locale.LocaleDefinition;
@@ -447,7 +448,10 @@ public class OperationContext implements ITranslationAdapter {
 
     // cachable
     protected LocaleDefinition localedef = null;
+    protected DateTimeZone chrondef = null;
+    
 	protected ILocaleResource localeresource = null;
+	protected IChronologyResource chronresource = null;
     
     public void touch() {
     	this.lastactivity = System.currentTimeMillis();
@@ -602,6 +606,24 @@ public class OperationContext implements ITranslationAdapter {
 
 	public boolean isGateway() {
 		return this.opcontext.getFieldAsBooleanOrFalse("Gateway");
+	}
+	
+	public void setChronologyResource(IChronologyResource v) {
+		this.chronresource = v;
+	}
+	
+	public IChronologyResource getChronologyResource() {
+		IChronologyResource tr = this.chronresource;
+		
+		if (tr != null) 
+			return tr;
+		
+		tr = this.getSite();
+		
+		if (tr != null) 
+			return tr;
+		
+		return Hub.instance.getResources();
 	}
 	
 	public void setLocaleResource(ILocaleResource v) {
@@ -1382,8 +1404,32 @@ public class OperationContext implements ITranslationAdapter {
 		}
     }
 	
+    public String getWorkingChronology() {
+		if (!this.opcontext.isFieldEmpty("OpChronology"))
+			return this.opcontext.getFieldAsString("OpChronology");
+		
+		// do not look at user's context, that is a preference only
+		// op context comes from practical and direct manipulation of the environment we are running in
+		// how this context started controls the chronology
+		
+		return this.getChronologyResource().getDefaultChronology();
+    }
+	
+	// locale definitions must be in domain or hub, not anywhere else
+	// in a sense this is more accurate than above because it will give the available locale, even if the local setting is set otherwise
+	public DateTimeZone getWorkingChronologyDefinition() {
+		if (this.chrondef == null) {
+			String chron = this.getWorkingChronology();
+			
+			this.chrondef = DateTimeZone.forID(chron);
+		}
+		
+		return this.chrondef;
+	}
+    
+	@Override
 	public String getWorkingLocale() {
-		if (!this.opcontext.isFieldEmpty("OpLocale"))
+		if (! this.opcontext.isFieldEmpty("OpLocale"))
 			return this.opcontext.getFieldAsString("OpLocale");
 		
 		// do not look at user's context, that is a preference only

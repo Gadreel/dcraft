@@ -16,8 +16,7 @@ dc.transfer = {
 			Feature: 'Buckets',
 			Bucket: 'Default',
 			Callback: null,
-			ProgressBar: '#fileProgressBar',		// TODO rework into a component
-			ProgressLabel: '#fileProgressLabel'
+			Progress: null
 		};
 		
 		this.settings = $.extend( {}, defaults, options );
@@ -114,14 +113,13 @@ dc.transfer = {
 	
 		// each chunk (16MB) starts in a fresh call stack - here
 		this.sendNextChunk = function() {
-			//var progressBar = $(this.settings.ProgressBar);
-			//var progressLabel = $(this.settings.ProgressLabel);
+			var buck = this;
 	
 			// we are done uploading so do a verify
 			if ((this.data.famt == this.data.ftotal) && this.data.finalsent) {
 				// don't finish the progress bar until verify is done
-				//progressBar.css('width', '98%');
-				//progressLabel.text('Finishing...');
+				if (buck.settings.Progress)
+					buck.settings.Progress(98, 'Verifying');
 				
 				this.verifyFile();
 				return;
@@ -158,8 +156,6 @@ dc.transfer = {
 			var uri = '/upload/' + this.data.binding.ChannelId + (this.data.lastchunk ? '/Final' : '/Block');
 			
 			xhr.open("POST", uri, true);
-			
-			var buck = this;
 			
 			xhr.onreadystatechange = function() {
 				console.log('state change: ' + xhr.readyState + ' status: ' + xhr.status);
@@ -203,13 +199,9 @@ dc.transfer = {
 					
 					if (p1 > 96)
 						p1 = 96;
-					
-					//progressBar.css('width', p1 + '%');
-					//progressLabel.text(p1 + '%');
-					//progressLabel.text(numeral(this.data.aamt / 1024).format('0,0') + 'kb of ' 
-					//	+ numeral(ftotal / 1024).format('0,0') + 'kb'));
-					
-					//progressLabel.text(dc.transfer.fmtFileSize(buck.data.aamt) + ' of ' + dc.transfer.fmtFileSize(buck.data.ftotal));
+				
+					if (buck.settings.Progress)
+						buck.settings.Progress(p1, dc.transfer.fmtFileSize(buck.data.aamt) + ' of ' + dc.transfer.fmtFileSize(buck.data.ftotal));
 				}
 			};	
 			
@@ -331,8 +323,13 @@ dc.transfer = {
 						// TODO support a callback on fail - do task.kill - handle own alerts
 						step.Store.Transfer = new dc.transfer.Bucket({
 							Bucket: bucket,
+							Progress: function(amt, title) {
+								step.Amount = amt - 0;		// force numeric
+								
+								//console.log('# ' + amt + ' - ' + title);
+							},
 							Callback: function(e) {
-								console.log('callback done!');
+								//console.log('callback done!');
 								
 								delete step.Store.Transfer;
 
@@ -357,7 +354,8 @@ dc.transfer = {
 			}
 			
 			var uploadtask = new dc.lang.Task(steps, function(res) {
-				callback();
+				if (callback)
+					callback();
 			});
 			
 			uploadtask.Store = {

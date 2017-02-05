@@ -46,7 +46,7 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 		
 		CharSequence xml = this.file.asChars();
 		
-		if (xml.length() == 0) 
+		if ((xml == null) || xml.length() == 0) 
 			return null;
 		
 		xml = this.processIncludes(wctx, xml.toString());
@@ -139,6 +139,8 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 						wctx.getResponse().setHeader("X-UA-Compatible", "IE=Edge,chrome=1");
 					}
 					
+					wctx.getResponse().setHeader("Cache-Control", "no-cache");
+					
 					PrintStream ps = wctx.getResponse().getPrintStream();
 
 					XmlPrinter prt = wctx.isDynamic() ? new JsonPrinter(wctx) : new HtmlPrinter(wctx);
@@ -155,7 +157,7 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 			};
 			
 			if (prebuilt) {
-				System.out.println("using page cache");
+				//System.out.println("using page cache");
 				oo.completed(OperationContext.get());
 			}
 			else {

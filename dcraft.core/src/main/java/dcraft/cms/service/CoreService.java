@@ -16,7 +16,16 @@
 ************************************************************************ */
 package dcraft.cms.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import dcraft.bus.IService;
 import dcraft.bus.Message;
@@ -33,14 +42,18 @@ import dcraft.cms.util.EventUtil;
 import dcraft.filestore.CommonPath;
 import dcraft.filestore.IFileStoreFile;
 import dcraft.filestore.bucket.Bucket;
+import dcraft.hub.SiteInfo;
 import dcraft.lang.op.FuncCallback;
 import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
+import dcraft.log.Logger;
 import dcraft.mod.ExtensionBase;
 import dcraft.struct.CompositeStruct;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
+import dcraft.util.IOUtil;
+import dcraft.util.StringUtil;
 import dcraft.work.TaskRun;
 import dcraft.xml.XElement;
 
@@ -97,7 +110,6 @@ public class CoreService extends ExtensionBase implements IService {
 		// =========================================================
 		
 		if ("Feeds".equals(feature)) {
-			/* TODO
 			if ("ListPages".equals(op)) {
 				this.handleListPages(request);
 				return;
@@ -105,6 +117,12 @@ public class CoreService extends ExtensionBase implements IService {
 			
 			if ("AddPageFolder".equals(op)) {
 				this.handleAddPageFolder(request);
+				return;
+			}
+			
+			/* TODO
+			if ("AddPage".equals(op)) {
+				this.handleAddPageFiles(request);
 				return;
 			}
 			
@@ -120,11 +138,6 @@ public class CoreService extends ExtensionBase implements IService {
 			
 			if ("AddFeedFiles".equals(op)) {
 				this.handleAddFeedFiles(request);
-				return;
-			}
-			
-			if ("AddPageFiles".equals(op)) {
-				this.handleAddPageFiles(request);
 				return;
 			}
 			
@@ -360,16 +373,14 @@ public class CoreService extends ExtensionBase implements IService {
 		return;
 	}
 	
-	/*
 	public void handleListPages(TaskRun request) {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
 		
 		String channel = "Pages";
 		String path = rec.getFieldAsString("Path");
-		String site = rec.getFieldAsString("Site");	
 		
 		// link to fake so we can use FeedInfo to locate the folders
-		FeedInfo fi = FeedInfo.buildInfo(site, channel, path + "/_fake.dcf.xml");
+		FeedInfo fi = FeedInfo.buildInfo(channel, path + "/_fake.dcf.xml");
 		
 		Path pubpath = fi.getPubpath().getParent();
 		Path prepath = fi.getPrepath().getParent();
@@ -448,10 +459,9 @@ public class CoreService extends ExtensionBase implements IService {
 		
 		String channel = "Pages";
 		String path = rec.getFieldAsString("Path");
-		String site = rec.getFieldAsString("Site");	
 		
 		// link to fake so we can use FeedInfo to locate the folders
-		FeedInfo fi = FeedInfo.buildInfo(site, channel, path + "/_fake.dcf.xml");
+		FeedInfo fi = FeedInfo.buildInfo(channel, path + "/_fake.dcf.xml");
 		
 		Path pubpath = fi.getPubpath().getParent();
 		Path prepath = fi.getPrepath().getParent();
@@ -465,6 +475,45 @@ public class CoreService extends ExtensionBase implements IService {
 		}
 		
 		request.complete();
+	}
+	
+	/*
+	public void handleAddPageFiles(TaskRun request) {
+		RecordStruct rec = MessageUtil.bodyAsRecord(request);
+		
+		String channel = "Pages";
+		String path = rec.getFieldAsString("Path");
+		String tname = rec.getFieldAsString("Template");	
+		
+		FeedInfo fi = FeedInfo.buildInfo(channel, path);
+		
+		String dcui = null;
+		
+		XElement chel = FeedIndexer.findChannel(channel);
+		
+		for (XElement tel : chel.selectAll("Template")) {
+			if (tname.equals(tel.getAttribute("Name"))) {
+				XElement ctel = (XElement) tel.deepCopy();				
+				ctel.setName("dcui");
+				dcui = ctel.toString(true);
+				break;
+			}
+		}
+		
+		SiteInfo si = OperationContext.get().getSite();
+		
+		Path tpath = si.resolvePath("config/templates/" + tname + ".dcui.xml");
+		
+		if (Files.exists(tpath)) 
+			dcui = IOUtil.readEntireFile(tpath).getResult().toString();
+		
+		fi.initDraftFile(rec.getFieldAsString("Locale"), rec.getFieldAsString("Title"), dcui, new FuncCallback<CompositeStruct>() {
+			@Override
+			public void callback() {
+				//request.setResult(this.getResult());
+				request.complete();
+			}
+		});
 	}
 	
 	public void handleFeedLoadList(TaskRun request) {
@@ -497,45 +546,6 @@ public class CoreService extends ExtensionBase implements IService {
 		FeedInfo fi = FeedInfo.recordToInfo(rec);
 
 		fi.initDraftFile(rec.getFieldAsString("Locale"), rec.getFieldAsString("Title"), null, new FuncCallback<CompositeStruct>() {
-			@Override
-			public void callback() {
-				//request.setResult(this.getResult());
-				request.complete();
-			}
-		});
-	}
-	
-	public void handleAddPageFiles(TaskRun request) {
-		RecordStruct rec = MessageUtil.bodyAsRecord(request);
-		
-		String channel = "Pages";
-		String path = rec.getFieldAsString("Path");
-		String site = rec.getFieldAsString("Site");	
-		String tname = rec.getFieldAsString("Template");	
-		
-		FeedInfo fi = FeedInfo.buildInfo(site, channel, path);
-		
-		String dcui = null;
-		
-		XElement chel = FeedIndexer.findChannel(site, channel);
-		
-		for (XElement tel : chel.selectAll("Template")) {
-			if (tname.equals(tel.getAttribute("Name"))) {
-				XElement ctel = (XElement) tel.deepCopy();				
-				ctel.setName("dcui");
-				dcui = ctel.toString(true);
-				break;
-			}
-		}
-		
-		SiteInfo si = OperationContext.get().getSite();
-		
-		Path tpath = si.resolvePath("config/templates/" + tname + ".dcui.xml");
-		
-		if (Files.exists(tpath)) 
-			dcui = IOUtil.readEntireFile(tpath).getResult().toString();
-		
-		fi.initDraftFile(rec.getFieldAsString("Locale"), rec.getFieldAsString("Title"), dcui, new FuncCallback<CompositeStruct>() {
 			@Override
 			public void callback() {
 				//request.setResult(this.getResult());
@@ -600,6 +610,44 @@ public class CoreService extends ExtensionBase implements IService {
 		RecordStruct rec = MessageUtil.bodyAsRecord(request);
 		
 		FeedInfo fi = FeedInfo.recordToInfo(rec);
+		
+		// Add www file if this is a Pages feed
+		// TODO generalize so all feeds can have a custom "add" programming point
+		if (! fi.exists() && "Pages".equals(fi.getChannel())) {
+			SiteInfo si = OperationContext.get().getSite();
+			
+			String tname = rec.getFieldAsString("Template");
+			
+			Path tpath = si.resolvePath("config/templates/" + tname + ".html");
+			
+			if (! Files.exists(tpath)) {
+				request.error("Missing html template file.");
+				request.complete();
+				return;
+			}
+			
+			String html = IOUtil.readEntireFile(tpath).getResult().toString();
+			
+			if (StringUtil.isEmpty(html)) {
+				request.error("Missing html template content.");
+				request.complete();
+				return;
+			}
+			
+			// don't go to www-preview at first, www-preview would only be used by a developer showing an altered page
+			// for first time save, it makes sense to have the html file in www
+			Path uisrcpath = si.resolvePath("www" + rec.getFieldAsString("Path") + ".html");		
+			
+			try {
+				Files.createDirectories(uisrcpath.getParent());
+				IOUtil.saveEntireFile(uisrcpath, html);
+			}
+			catch (Exception x) {
+				request.error("Unable to add html file: " + x);
+				request.complete();
+				return;
+			}
+		}
 		
 		fi.saveFile(rec.getFieldAsBooleanOrFalse("Publish"), rec.getFieldAsList("SetFields"), rec.getFieldAsList("SetParts"), rec.getFieldAsList("SetTags"), new FuncCallback<CompositeStruct>() {
 			@Override

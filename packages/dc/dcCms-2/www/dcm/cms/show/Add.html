@@ -1,6 +1,6 @@
 <dc.Html Title="Add Show" AuthTags="Admin,Editor">
 	<dc.Body>
-		<dc.Panel Title="Add Show">
+		<dc.PagePanel>
 			<dcf.Form>
 				<dcf.FormButtons>
 					<dc.Button Click="AfterSave" Label="Cancel" />
@@ -13,7 +13,7 @@
 					<option data-placeholder="true" value="NULL">Select Variation</option>
 				</dcf.Select>
 			</dcf.Form>
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="Load"><![CDATA[
 			var entry = this;

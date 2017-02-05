@@ -10,6 +10,7 @@ import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.log.Logger;
 import dcraft.struct.Struct;
+import dcraft.util.StringUtil;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.UIUtil;
 import dcraft.web.ui.UIWork;
@@ -90,11 +91,15 @@ public class FeedDetail extends UIElement {
 		if (pdepth == 0) {
 			String template = mtel.getText();
 			
-			String value = this.expandMacro(work.get().getContext(), template);
-			 
-			value = value.replace("*![CDATA[", "<![CDATA[").replace("]]*", "]]>");
-			
-			out.append(value);
+			if (StringUtil.isNotEmpty(template)) {
+				String value = this.expandMacro(work.get().getContext(), template);
+				 
+				if (StringUtil.isNotEmpty(template)) {
+					value = value.replace("*![CDATA[", "<![CDATA[").replace("]]*", "]]>");
+					
+					out.append(value);
+				}
+			}
 		}
 		
         out.append("</div>");

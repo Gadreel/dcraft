@@ -11,7 +11,6 @@ import dcraft.web.core.Response;
 import dcraft.web.core.WebContext;
 import io.netty.handler.codec.http.HttpChunkedInput;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.stream.ChunkedNioFile;
 
 @SuppressWarnings("deprecation")
@@ -49,6 +48,12 @@ public class StaticOutputAdapter implements IOutputAdapter {
 			resp.setDateHeader("Last-Modified", this.file.getWhen());
 			resp.setHeader("X-UA-Compatible", "IE=Edge,chrome=1");
 			
+			// TODO configure this someday
+			if ("text/css".equals(this.mime) || "application/javascript".equals(this.mime) || "application/json".equals(this.mime))
+				resp.setHeader("Cache-Control", "no-cache");
+			else
+				resp.setHeader("Cache-Control", "max-age=900");
+			
 			if (wctx.getRequest().hasHeader("If-Modified-Since")) {
 				long dd = this.file.getWhen() - wctx.getRequest().getDateHeader("If-Modified-Since");  
 	
@@ -57,8 +62,7 @@ public class StaticOutputAdapter implements IOutputAdapter {
 				// https://sourceforge.net/tracker/index.php?func=detail&aid=3162870&group_id=62369&atid=500353
 				// so ignore differences of less than 1000, they are false positives
 				if (dd < 1000) {
-					resp.setStatus(HttpResponseStatus.NOT_MODIFIED);
-					wctx.send();
+					wctx.sendNotModified();
 					return;
 				}
 			}

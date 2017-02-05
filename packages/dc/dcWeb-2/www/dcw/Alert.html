@@ -1,14 +1,14 @@
 <dc.Html Title="Message">
 	<dc.Body>
-		<dc.Panel id="panDcwAlert" Title="Message">
+		<dc.PagePanel id="panDcwAlert">
 			<div id="panDcwMessage" />
-		</dc.Panel>
+		</dc.PagePanel>
 	</dc.Body>
 	<dc.Function Name="Load">
 				var entry = this;
 			
 				if (entry.Params.Title)
-					$('#panDcwAlert > div:first-child').html(entry.Params.Title);
+					entry.callTagFunc('#panDcwAlert', 'setTitle', entry.Params.Title);
 			
 				if (entry.Params.Message)
 					$('#panDcwMessage').html(entry.Params.Message);

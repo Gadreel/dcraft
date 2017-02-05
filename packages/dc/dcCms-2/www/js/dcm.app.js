@@ -217,6 +217,7 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 	var imgLoadedFunc = function(img) { return img && img.complete && (img.naturalHeight !== 0); }
 	var ssinit = false;
 	var sscurr = -1;
+	var switchblock = false;
 	
 	var imgPlacement = function(selector, idx) {
 		$(node).find(selector).css({
@@ -417,7 +418,10 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 			Title: 'Slide Show Controller',
 			Period: ms,
 			Op: function() {
-				animatefade();
+				if (switchblock)
+					tryAnimate(1000);
+				else
+					animatefade();
 			}
 		});	
 	};
@@ -436,6 +440,14 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 		
 		e.preventDefault();
 		return false;
+	});
+	
+	$(node).on('mouseover', function(e) {
+		switchblock = true;
+	});
+	
+	$(node).on('mouseout', function(e) {
+		switchblock = false;
 	});
 };
 
@@ -458,7 +470,7 @@ dc.pui.Tags['dcmi.PartButton'] = function(entry, node) {
 		};
 		
 		if ($(pel).hasClass('dc-part-basic'))
-			dc.pui.App.loadPage('/dcm/cms/feed/Edit-Part-Content');
+			dc.pui.App.loadTab('Content');
 			//dc.pui.Popup.menu('dcmPartBasicPopup');
 		else
 			dc.pui.Popup.menu('dcmPartPopup');
@@ -477,7 +489,7 @@ dc.pui.Tags['dcmi.SectionButton'] = function(entry, node) {
 			return;
 		
 		dc.pui.App.Context = {
-			Menu: 'dcmPagePartSection',
+			Menu: 'dcmPagePart' + $(sel).attr('data-dccms-plugin') + 'Section',
 			Params: {
 				Part: { 
 					Channel: $(pel).attr('data-dccms-channel'), 
@@ -527,7 +539,7 @@ dc.pui.Tags['dcmi.AddFeedButton'] = function(entry, node) {
 
 		var chan = $(cel).attr('data-dcm-channel');
 		
-		dc.pui.Dialog.loadPage('/dcm/cms/feed/' + chan + '/Add-Prop', { 
+		dc.pui.Dialog.loadPage('/dcm/cms/feed/Add-Feed-Prop/' + chan, { 
 			Callback: function(g) {
 				if (g.Path)
 					dc.pui.Loader.MainLayer.loadPage(g.Path);
@@ -549,7 +561,7 @@ dc.pui.Tags['dcmi.EditFeedButton'] = function(entry, node) {
 		var chan = $(cel).attr('data-dcm-channel');
 		var path = $(cel).attr('data-dcm-path');
 		
-		dc.pui.Dialog.loadPage('/dcm/cms/feed/' + chan + '/Edit-Prop', { 
+		dc.pui.Dialog.loadPage('/dcm/cms/feed/Edit-Feed-Prop/' + chan, { 
 			Channel: chan,
 			Path: path,
 			Callback: function(g) {

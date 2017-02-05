@@ -1,0 +1,290 @@
+/* cyrillic-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('PT Sans'), local('PTSans-Regular'), url(https://fonts.gstatic.com/s/ptsans/v8/fhNmDCnjccoUYyU4ZASaLVKPGs1ZzpMvnHX-7fPOuAc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+20B4, U+2DE0-2DFF, U+A640-A69F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('PT Sans'), local('PTSans-Regular'), url(https://fonts.gstatic.com/s/ptsans/v8/BJVWev7_auVaQ__OU8Qih1KPGs1ZzpMvnHX-7fPOuAc.woff2) format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('PT Sans'), local('PTSans-Regular'), url(https://fonts.gstatic.com/s/ptsans/v8/oysROHFTu1eTZ74Hcf8V-VKPGs1ZzpMvnHX-7fPOuAc.woff2) format('woff2');
+  unicode-range: U+0100-024F, U+1E00-1EFF, U+20A0-20AB, U+20AD-20CF, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('PT Sans'), local('PTSans-Regular'), url(https://fonts.gstatic.com/s/ptsans/v8/CWlc_g68BGYDSGdpJvpktgLUuEpTyoUstqEm5AMlJo4.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('PT Sans Bold'), local('PTSans-Bold'), url(https://fonts.gstatic.com/s/ptsans/v8/kTYfCWJhlldPf5LnG4ZnHAsYbbCjybiHxArTLjt7FRU.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+20B4, U+2DE0-2DFF, U+A640-A69F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('PT Sans Bold'), local('PTSans-Bold'), url(https://fonts.gstatic.com/s/ptsans/v8/g46X4VH_KHOWAAa-HpnGPgsYbbCjybiHxArTLjt7FRU.woff2) format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('PT Sans Bold'), local('PTSans-Bold'), url(https://fonts.gstatic.com/s/ptsans/v8/hpORcvLZtemlH8gI-1S-7gsYbbCjybiHxArTLjt7FRU.woff2) format('woff2');
+  unicode-range: U+0100-024F, U+1E00-1EFF, U+20A0-20AB, U+20AD-20CF, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('PT Sans Bold'), local('PTSans-Bold'), url(https://fonts.gstatic.com/s/ptsans/v8/0XxGQsSc1g4rdRdjJKZrNAzyDMXhdD8sAj6OAJTFsBI.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: local('PT Sans Italic'), local('PTSans-Italic'), url(https://fonts.gstatic.com/s/ptsans/v8/GpWpM_6S4VQLPNAQ3iWvVYX0hVgzZQUfRDuZrPvH3D8.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+20B4, U+2DE0-2DFF, U+A640-A69F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: local('PT Sans Italic'), local('PTSans-Italic'), url(https://fonts.gstatic.com/s/ptsans/v8/7dSh6BcuqDLzS2qAASIeuoX0hVgzZQUfRDuZrPvH3D8.woff2) format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: local('PT Sans Italic'), local('PTSans-Italic'), url(https://fonts.gstatic.com/s/ptsans/v8/DVKQJxMmC9WF_oplMzlQqYX0hVgzZQUfRDuZrPvH3D8.woff2) format('woff2');
+  unicode-range: U+0100-024F, U+1E00-1EFF, U+20A0-20AB, U+20AD-20CF, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: local('PT Sans Italic'), local('PTSans-Italic'), url(https://fonts.gstatic.com/s/ptsans/v8/PIPMHY90P7jtyjpXuZ2cLJBw1xU1rKptJj_0jans920.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: local('PT Sans Bold Italic'), local('PTSans-BoldItalic'), url(https://fonts.gstatic.com/s/ptsans/v8/lILlYDvubYemzYzN7GbLkA7aC6SjiAOpAWOKfJDfVRY.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+20B4, U+2DE0-2DFF, U+A640-A69F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: local('PT Sans Bold Italic'), local('PTSans-BoldItalic'), url(https://fonts.gstatic.com/s/ptsans/v8/lILlYDvubYemzYzN7GbLkBdwxCXfZpKo5kWAx_74bHs.woff2) format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: local('PT Sans Bold Italic'), local('PTSans-BoldItalic'), url(https://fonts.gstatic.com/s/ptsans/v8/lILlYDvubYemzYzN7GbLkIjoYw3YTyktCCer_ilOlhE.woff2) format('woff2');
+  unicode-range: U+0100-024F, U+1E00-1EFF, U+20A0-20AB, U+20AD-20CF, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: local('PT Sans Bold Italic'), local('PTSans-BoldItalic'), url(https://fonts.gstatic.com/s/ptsans/v8/lILlYDvubYemzYzN7GbLkBampu5_7CjHW5spxoeN3Vs.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
+}
+
+ /* -----------------------------------------------
+ 		GENERAL SETTINGS
+----------------------------------------------- */
+
+#dcuiMain  {
+    font-family: 'PT Sans', verdana, sans-serif;
+	text-rendering: optimizeLegibility;
+    color: #fafafa;
+    background-color: #0C2F43;
+}
+
+#dcuiMain .pubWrapper {
+	max-width: 90vw;
+	margin: 0 auto;
+    padding: 16px 0 24px 0;
+}
+
+#dcuiMain h1 {
+	color: #d1e0fa;
+	text-transform: uppercase;
+	font-size: 48px;
+	text-align: center;
+	line-height: 1.5;
+	font-weight: normal;
+	margin-top: 0;
+}
+
+#dcuiMain h2 {
+	font-size: 36px;
+	font-weight: normal;
+	border-bottom: 2px solid #98baf5;
+    padding-bottom: 3px;
+}
+
+#dcuiMain a:not(.pure-button) {
+    padding-bottom: 1px;
+}
+
+#dcuiMain a:not(.pure-button),
+#dcuiMain a:not(.pure-button):visited {
+    color: #fefbfa;
+    border-bottom: 1px solid #e4edfc;
+}
+
+#dcuiMain a:not(.pure-button):hover,
+#dcuiMain a:not(.pure-button):focus {
+    color: #cccccc;
+    border-bottom: 1px solid #0C2F43;
+}
+
+/* -----------------------------------------------
+	inputs - std button color
+	
+	put in #dcuiMain to contain this to just website
+	not the CMS
+----------------------------------------------- */
+
+#dcuiMain .pure-button:not(.pure-button-primary), 
+#dcuiMain .pure-button:not(.pure-button-primary):visited {
+	background-color: #98baf5;
+}
+
+#dcuiMain .pure-button:not(.pure-button-primary):hover, 
+#dcuiMain .pure-button:not(.pure-button-primary):focus {
+	background-color: #d1e0fa;
+}
+
+/* -----------------------------------------------
+	header layout
+----------------------------------------------- */
+
+#dcuiMain #pubHeaderMenu ul {
+	list-style: none;
+	list-style-image: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+    justify-content: center;
+    flex: 1 0 auto;
+}
+
+#dcuiMain #pubHeaderMenu ul li {
+    margin: 10px 3px;
+}
+
+#dcuiMain #pubHeaderMenu ul li a {
+	display: block;
+	font-size: 14px;
+	text-decoration: none;
+	text-transform: uppercase;
+	padding: 9px 16px;
+}
+
+#dcuiMain #pubHeaderMenu ul li a ,
+#dcuiMain #pubHeaderMenu ul li a:visited {
+    color: #ededed;
+    border-bottom: 1px solid #ededed;
+}
+
+#dcuiMain #pubHeaderMenu ul li a:hover,
+#dcuiMain #pubHeaderMenu ul li a:focus,
+#dcuiMain #pubHeaderMenu ul li a.selected {
+    color: #0C2F43;
+    background-color: #cccccc;
+    border-bottom: 1px solid #cccccc;
+}
+
+/* -----------------------------------------------
+	footer layout
+----------------------------------------------- */
+
+#dcuiMain #pubFooterNotice {
+	text-align: center;
+	font-size: 14px;
+	font-weight: 300;
+	
+	border-top: 2px solid #98baf5;
+    border-bottom: 2px solid #98baf5;
+    padding: 24px 0;	
+}
+
+#dcuiMain #pubFooterNotice a,
+#dcuiMain #pubFooterNotice a:visited {
+	color: #ddd67b;
+    border-bottom: 1px solid #ddd67b;
+}
+
+#dcuiMain #pubFooterNotice a:hover,
+#dcuiMain #pubFooterNotice a:focus {
+	color: #e4edfc;
+	border-bottom: 1px solid #1351ad;
+}
+    
+@media print {
+	#dcuiMain #pubHeader, 
+	#dcuiMain #pubFooter {
+		display: none;
+	}
+}
+
+/* -----------------------------------------------
+	general body layout
+----------------------------------------------- */
+
+#dcuiMain.general #pubBody .dc-section {
+    padding: 24px 0;
+}
+
+#dcuiMain input {
+    color: black;
+}
+
+/* -----------------------------------------------
+	CMS specific
+----------------------------------------------- */
+
+#dcuiMain.signin .dc-pui-field.dc-pui-field-stacked {
+    background-color: #0C2F43;
+    border: none;
+}
+

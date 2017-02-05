@@ -78,6 +78,8 @@ public class TenantManager {
 	}
 	
 	public void updateTenantRecord(String did, RecordStruct drec) {
+		// TODO maybe do in a separate task
+		
 		TenantInfo di = TenantManager.this.idmap.get(did);
 		
 		// update old
