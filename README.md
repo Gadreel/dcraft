@@ -2,5 +2,12 @@
 
 GOAL: A multi-tenant website server platform, integrated data types, web services and database
 
-STATUS: 0.9.6 preview released. dcraft.core can be built and run. Needs demo documentation and system documentation.
+Status
+------
 
+The 0.9.6 preview version is released. dcraft.core can be built and run. Project needs demo documentation and system documentation.
+
+Links
+-----
+
+- [Downloads](https://github.com/Gadreel/dcraft/wiki/Downloads)
