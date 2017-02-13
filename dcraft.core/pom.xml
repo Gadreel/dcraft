@@ -3,7 +3,7 @@
 
   <groupId>io.designcraft</groupId>
   <artifactId>dcraft-core</artifactId>
-  <version>0.9.6-SNAPSHOT</version>
+  <version>0.9.6</version>
   <packaging>jar</packaging>
 
   <name>designCraft Core</name>
@@ -30,7 +30,7 @@
     <url>https://github.com/Gadreel/dcraft</url>
     <connection>scm:git:git://github.com/Gadreel/dcraft.git</connection>
     <developerConnection>scm:git:git@github.com:Gadreel/dcraft.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>dcraft-core-0.9.6</tag>
   </scm>
 	
   <properties>
