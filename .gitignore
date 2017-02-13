@@ -3,6 +3,8 @@
 
 dcraft.core/bin
 dcraft.core/target
+dcraft.core/pom.xml.releaseBackup
+dcraft.core/release.properties
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
