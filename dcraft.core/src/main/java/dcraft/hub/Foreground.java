@@ -16,7 +16,6 @@
 ************************************************************************ */
 package dcraft.hub;
 
-import java.awt.GraphicsEnvironment;
 import java.io.Console;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,7 +32,6 @@ import dcraft.log.DebugLevel;
 import dcraft.log.Logger;
 import dcraft.script.Activity;
 import dcraft.script.IDebuggerHandler;
-import dcraft.script.ui.ScriptUtility;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.struct.builder.JsonStreamBuilder;
@@ -76,16 +74,18 @@ public class Foreground {
 		Hub.instance.getActivityManager().registerDebugger(new IDebuggerHandler() {				
 			@Override
 			public void startDebugger(TaskRun run) {
+				/*
 				if (!GraphicsEnvironment.isHeadless() && !"true".equals(resources.getConfig().getAttribute("Headless", "true").toLowerCase())) {
 					ScriptUtility.goSwing(run);
 				}
 				else {
+				*/
 					System.out.println("---------------------------------------------------------------------------");
 					System.out.println("  Script Requesting Debugger: " + run.getTask().getTitle());
 					System.out.println("---------------------------------------------------------------------------");
 					
 					Foreground.lastdebugrequest = run;
-				}
+				//}
 			}
 		});
 		

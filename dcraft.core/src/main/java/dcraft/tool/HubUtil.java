@@ -64,7 +64,6 @@ import dcraft.lang.op.OperationCallback;
 import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationResult;
 import dcraft.script.Activity;
-import dcraft.script.ui.ScriptUtility;
 import dcraft.util.HexUtil;
 import dcraft.util.IOUtil;
 import dcraft.util.ISettingsObfuscator;
@@ -126,10 +125,12 @@ public class HubUtil implements ILocalCommandLine {
 					break;
 				}
 				
+				/*
 				case 100: {
 					ScriptUtility.goSwing(null);					
 					break;
 				}
+				*/
 				
 				case 101: {
 					System.out.println("*** Run A dcScript ***");

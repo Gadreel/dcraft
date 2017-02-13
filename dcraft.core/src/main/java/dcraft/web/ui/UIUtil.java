@@ -29,6 +29,7 @@ import dcraft.web.ui.tags.IncludeFrag;
 import dcraft.web.ui.tags.IncludeParam;
 import dcraft.web.ui.tags.Link;
 import dcraft.web.ui.tags.Markdown;
+import dcraft.web.ui.tags.MediaSection;
 import dcraft.web.ui.tags.MixIn;
 import dcraft.web.ui.tags.PagePanel;
 import dcraft.web.ui.tags.PagePart;
@@ -92,6 +93,7 @@ public class UIUtil {
 		tagmap.put("dc.GallerySection", GallerySection.class);
 		tagmap.put("dc.GalleryThumbs", GalleryThumbs.class);
 		tagmap.put("dc.HtmlSection", HtmlSection.class);
+		tagmap.put("dc.MediaSection", MediaSection.class);
 		tagmap.put("dc.ServerScript", ServerScript.class);
 		tagmap.put("dc.Param", Param.class);
 		tagmap.put("dc.IncludeFrag", IncludeFrag.class);

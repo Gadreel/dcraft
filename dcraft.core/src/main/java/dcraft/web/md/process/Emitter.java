@@ -64,6 +64,8 @@ public class Emitter {
             if (root.id != null)
             	target.setAttribute("id", root.id);
             
+            // TODO can headlines get automatic <span> tags inside so they can be styled (e.g. underline)
+            
         	parent.add(target);
             
             break;

@@ -2285,6 +2285,9 @@ dc.pui.Form.prototype = {
 				if (task.Store.Form.Managed) {
 					task.Store.Form.query('a[data-dc-tag="dcf.SubmitButton"]').addClass('pure-button-disabled');
 					event.Alert = 'Form successfully submitted.';
+				
+					if (ga)
+						ga('send', 'event', 'Form', 'Submit', task.Store.Form.Name);
 				}
 				
 				// do before save record event
@@ -2597,6 +2600,7 @@ dc.pui.Tags = {
 	'dc.Link': function(entry, node) {
 		var click = $(node).attr('data-dc-click');
 		var page = $(node).attr('data-dc-page');
+		var linkto = $(node).attr('data-dc-to');
 		var link = $(node).attr('href');
 		
 		if (link && (dc.util.String.startsWith(link, 'http:') || dc.util.String.startsWith(link, 'https:') || dc.util.String.startsWith(link, 'mailto:') || dc.util.String.endsWith(link, '.pdf')))
@@ -2633,8 +2637,10 @@ dc.pui.Tags = {
 
 				if (! hasext || (ext == '.html')) {
 					$(node).click(link, function(e) {
-						//entry.Layer.loadPage(e.data);
-						window.location = e.data;		// want to reload
+						if (linkto)
+							window.location = e.data;		// want to reload
+						else
+							entry.Layer.loadPage(e.data);
 						
 						e.preventDefault();
 						return false;
@@ -2809,12 +2815,15 @@ dc.pui.Tags = {
 			//console.log('img: ' + $(this).attr('data-image') + " show: "
 			//	+ $(node).attr('data-show') + " path: " + $(node).attr('data-path'));
 			
+			var sposanchor = $(this).closest('.dc-gallery-image-anchor').get(0);
+			var spos = sposanchor ? $(sposanchor).index() : $(this).index();
+			
 			var show = {
 				Path: $(node).attr('data-path'),
 				Show: $(node).attr('data-show'),
 				Variant: $(node).attr('data-variant'),		
 				Extension: $(node).attr('data-ext'),
-				StartPos: $(this).index(),
+				StartPos: spos,
 				Images: []
 			};
 			

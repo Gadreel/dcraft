@@ -9,6 +9,7 @@ import dcraft.web.md.Plugin;
 import dcraft.web.md.Processor;
 import dcraft.web.md.plugin.GallerySection;
 import dcraft.web.md.plugin.HtmlSection;
+import dcraft.web.md.plugin.MediaSection;
 import dcraft.web.md.plugin.PairedMediaSection;
 import dcraft.web.md.plugin.StandardSection;
 import dcraft.web.ui.UIElement;
@@ -29,7 +30,7 @@ public class Markdown {
 	public Markdown() {
 		this.unsafeconfig = new Configuration()
 			.setSafeMode(false)
-			.registerPlugins(new PairedMediaSection(), new StandardSection(), new GallerySection(), new HtmlSection());
+			.registerPlugins(new PairedMediaSection(), new StandardSection(), new GallerySection(), new HtmlSection(), new MediaSection());
 						
 			// TODO
 			//.registerPlugins(new YumlPlugin(), new WebSequencePlugin(), new IncludePlugin());

@@ -1,6 +1,9 @@
 *.class
 **.DS_Store
 
+dcraft.core/bin
+dcraft.core/target
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 

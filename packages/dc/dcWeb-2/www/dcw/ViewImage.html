@@ -216,6 +216,9 @@
 			can.width = $(window).width();
 			can.height = $(window).height();
 			
+			if (dc.handler && dc.handler.tags && dc.handler.tags.ViewImage && dc.handler.tags.ViewImage.resize)
+				dc.handler.tags.ViewImage.resize(entry, $('#panDcwImageViewer'), entry.Store.View);
+			
 			dc.pui.Loader.requestFrame();
 	]]></dc.Function>
 	<dc.Function Name="DoZoomIn"><![CDATA[

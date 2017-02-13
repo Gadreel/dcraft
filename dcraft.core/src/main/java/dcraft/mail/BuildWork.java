@@ -245,14 +245,16 @@ public class BuildWork extends StateWork {
 					
 					ListStruct files = BuildWork.this.ctx.getData().getFieldAsRecord("Data").getFieldAsList("Files");
 					
-					for (IFileStoreFile fsf : this.getResult()) {
-						if ("data.json".equals(fsf.getName()))
-							continue;
-						
-						for (Struct fn : files.getItems()) {
-							if (Struct.objectToString(fn).equals(fsf.getName())) {
-								BuildWork.this.ctx.addAttachment(EmailAttachment.forFile(fsf));
-								break;
+					if (files != null) {
+						for (IFileStoreFile fsf : this.getResult()) {
+							if ("data.json".equals(fsf.getName()))
+								continue;
+							
+							for (Struct fn : files.getItems()) {
+								if (Struct.objectToString(fn).equals(fsf.getName())) {
+									BuildWork.this.ctx.addAttachment(EmailAttachment.forFile(fsf));
+									break;
+								}
 							}
 						}
 					}

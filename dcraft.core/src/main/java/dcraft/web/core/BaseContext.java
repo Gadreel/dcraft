@@ -17,6 +17,7 @@ import dcraft.web.md.Configuration;
 import dcraft.web.md.ProcessContext;
 import dcraft.web.md.plugin.GallerySection;
 import dcraft.web.md.plugin.HtmlSection;
+import dcraft.web.md.plugin.MediaSection;
 import dcraft.web.md.plugin.PairedMediaSection;
 import dcraft.web.md.plugin.StandardSection;
 import dcraft.xml.XElement;
@@ -177,7 +178,7 @@ abstract public class BaseContext implements IOutputContext {
 		Configuration cfg = new Configuration().setSafeMode(false)
 				.registerPlugins(new PairedMediaSection(),
 						new StandardSection(), new GallerySection(),
-						new HtmlSection());
+						new HtmlSection(), new MediaSection());
 
 		return new ProcessContext(cfg, this);
 	}

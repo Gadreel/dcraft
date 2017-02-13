@@ -46,6 +46,9 @@ public class Button extends UIElement {
 		
 		this.withClass("pure-button-" + scope);
 		
+		if (this.hasNotEmptyAttribute("To"))
+			this.withAttribute("data-dc-to", to);
+		
 		if (StringUtil.isNotEmpty(page))
 			this.withAttribute("data-dc-page", page);
 		

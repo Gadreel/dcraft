@@ -48,7 +48,6 @@ import dcraft.lang.op.OperationContext;
 import dcraft.lang.op.OperationObserver;
 import dcraft.lang.op.OperationResult;
 import dcraft.script.Activity;
-import dcraft.script.ui.ScriptUtility;
 import dcraft.struct.FieldStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.util.FileUtil;
@@ -584,10 +583,12 @@ public class FileStoreClient implements ILocalCommandLine {
 					break;
 				}	// end case 12
 				
+				/*
 				case 100: {
 					ScriptUtility.goSwing(null);					
 					break;
 				}
+				*/
 				
 				case 101: {
 					System.out.println("*** Run A dcScript ***");

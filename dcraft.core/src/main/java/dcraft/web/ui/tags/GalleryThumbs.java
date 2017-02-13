@@ -115,11 +115,18 @@ public class GalleryThumbs extends UIElement {
 			if (! (p instanceof PagePart))
 				p = p.getParent();
 			
-			if ((p instanceof PagePart) && ((PagePart)p).isCmsEditable()) {
-				this.with(new Button("dcmi.GalleryButton")
-					.withClass("dcuiGalleryButton", "dcuiCmsi")
-					.withAttribute("Icon", "fa-pencil")
-				);
+			if (p != null) {
+				if (! (p instanceof PagePart))
+					p = p.getParent();
+				
+				if (p != null) {
+					if ((p instanceof PagePart) && ((PagePart)p).isCmsEditable()) {
+						this.with(new Button("dcmi.GalleryButton")
+							.withClass("dcuiGalleryButton", "dcuiCmsi")
+							.withAttribute("Icon", "fa-pencil")
+						);
+					}
+				}
 			}
 		}
 
@@ -164,8 +171,66 @@ public class GalleryThumbs extends UIElement {
 			  val = meta.getFieldAsString(parts[1]);
 		  }
 		  
-		  //if (val == null)
-		  //  return "@" + macro + "@";
+		  return val;
+	  }
+
+	  /*
+		<img name="b1" src="http://img.youtube.com/vi/6_XYrX5FvOY/0.jpg"> 
+		<img name="b2" src="http://img.youtube.com/vi/6_XYrX5FvOY/1.jpg">   (thumb for in listing - 120x90  4:3)
+		<img name="b3" src="http://img.youtube.com/vi/6_XYrX5FvOY/2.jpg">
+		<img name="b4" src="http://img.youtube.com/vi/6_XYrX5FvOY/3.jpg">
+		<img name="b5" src="http://img.youtube.com/vi/6_XYrX5FvOY/hqdefault.jpg">   (bigger, black bars - 480x360  4:3)
+		<img name="b6" src="http://img.youtube.com/vi/6_XYrX5FvOY/mqdefault.jpg">   (smaller, no bars - 320x180  16:9)
+		<img name="b7" src="http://img.youtube.com/vi/6_XYrX5FvOY/maxresdefault.jpg">
+	   * 
+	   */
+	  static public String expandMacro(XElement media, String macro) {
+		  String[] parts = macro.split("\\|");
+		  
+		  String val = null;
+		  
+		  if ("path".equals(parts[0])) {
+			  val = media.getAttribute("Thumb");
+			  
+			  if (StringUtil.isEmpty(val)) {
+				  String ytid = media.getAttribute("YouTubeId");
+				  String thint = media.getAttribute("ThumbHint", "4:3-ratio");
+				  
+				  if (StringUtil.isNotEmpty(ytid)) {
+					  val = "https://img.youtube.com/vi/" + ytid;
+					  
+					  val += ("16:9-ratio".equals(thint)) ? "/mqdefault.jpg" : "/hqdefault.jpg";
+				  }
+			  }
+		  }
+		  else if ("attr".equals(parts[0]) && (parts.length > 1)) {
+			  val = media.getAttribute(parts[1]);
+		  }
+		  else if ("mediadata".equals(parts[0])) {
+			  RecordStruct mdata = new RecordStruct();
+			  
+			 for (String att : media.getAttributes().keySet()) {
+				 mdata.withField(att, media.getAttribute(att));
+			 }
+			  
+			  RecordStruct fields = new RecordStruct();
+			  
+			  mdata.withField("Fields", fields);
+			  
+			  for (XElement fld : media.selectAll("Field")) {
+				  if (fld.hasNotEmptyAttribute("Name")) 
+					  fields.withField(fld.getAttribute("Name"), fld.getAttribute("Value"));
+			  }
+			  
+			  val = mdata.toString();
+		  }
+		  else if ("fld".equals(parts[0]) && (parts.length > 1)) {
+			  for (XElement fld : media.selectAll("Field")) {
+				  if (parts[1].equals(fld.getAttribute("Name"))) {
+					  val = fld.getAttribute("Value");
+				  }
+			  }
+		  }
 		  
 		  return val;
 	  }

@@ -514,16 +514,29 @@ dc.pui.Tags['dcmi.GalleryButton'] = function(entry, node) {
 	$(node).click(function(e) {
 		var cel = $(this).closest('div.dcm-basic-carousel').get(0);
 		
-		if (! cel)
-			return;
-
-		dc.pui.Dialog.loadPage('/dcm/cms/show/Edit', { 
-			Path: $(cel).attr('data-dcm-gallery'), 
-			Alias: $(cel).attr('data-dcm-show'), 
-			Callback: function(g) {
-				// TODO refresh ... entry.callPageFunc('LoadMeta');
-			} 
-		});	
+		if (! cel) {
+			cel = $(this).closest('div.dc-gallery-thumbs').get(0);
+			
+			if (! cel)
+				return;
+	
+			dc.pui.Dialog.loadPage('/dcm/cms/show/Edit', { 
+				Path: $(cel).attr('data-path'), 
+				Alias: $(cel).attr('data-show'), 
+				Callback: function(g) {
+					// TODO refresh ... entry.callPageFunc('LoadMeta');
+				} 
+			});	
+		}
+		else {
+			dc.pui.Dialog.loadPage('/dcm/cms/show/Edit', { 
+				Path: $(cel).attr('data-dcm-gallery'), 
+				Alias: $(cel).attr('data-dcm-show'), 
+				Callback: function(g) {
+					// TODO refresh ... entry.callPageFunc('LoadMeta');
+				} 
+			});	
+		}
 		
 		e.preventDefault();
 		return false;
