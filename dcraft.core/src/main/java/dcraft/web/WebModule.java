@@ -200,6 +200,7 @@ public class WebModule extends ModuleBase {
 	protected ValuesMacro vmacros = new ValuesMacro();
 	
 	protected boolean sharedSession = false;
+	protected boolean srcptstlcache = false;
 	
 	protected IWebExtension webExtension = null;
 	
@@ -209,6 +210,10 @@ public class WebModule extends ModuleBase {
 	
 	public String getDefaultTlsPort() {
 		return this.defaultTlsPort;
+	}
+
+	public boolean isScriptStyleCached() {
+		return this.srcptstlcache;
 	}
     
 	@Override
@@ -224,6 +229,8 @@ public class WebModule extends ModuleBase {
 			this.defaultTlsPort = config.getAttribute("DefaultTlsPort", this.defaultTlsPort);
 			
 	        this.sharedSession = Struct.objectToBooleanOrFalse(config.getAttribute("SharedSession"));		// Want, Need, None
+			
+	        this.srcptstlcache = Struct.objectToBooleanOrFalse(config.getAttribute("ScriptStyleCache"));		
 			
 			XElement settings = config.find("ViewSettings");
 			
@@ -272,6 +279,9 @@ public class WebModule extends ModuleBase {
 				break;
 			}
 		}
+		
+		if (! Hub.instance.getResources().isForTesting())
+			this.srcptstlcache = true;
 		
 		Hub.instance.subscribeToEvent(HubEvents.Connected, e -> this.goOnline());
 		Hub.instance.subscribeToEvent(HubEvents.Booted, e -> this.goOffline());

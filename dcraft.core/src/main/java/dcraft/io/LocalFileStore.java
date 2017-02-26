@@ -47,6 +47,10 @@ public class LocalFileStore {
 		return this.config;
 	}
 
+	public void clearCache() {
+		this.cache = new HashMap<>();
+	}
+	
 	public Path resolvePath(String path) {
 		return this.path.resolve(path.startsWith("/") ? path.substring(1) : path).normalize().toAbsolutePath();
 	}

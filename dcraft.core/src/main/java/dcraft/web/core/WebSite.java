@@ -1,6 +1,8 @@
 package dcraft.web.core;
 
 import java.lang.ref.WeakReference;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,13 +12,16 @@ import dcraft.filestore.CommonPath;
 import dcraft.hub.HubPackage;
 import dcraft.hub.SiteInfo;
 import dcraft.hub.Hub;
+import dcraft.io.ByteBufWriter;
 import dcraft.io.CacheFile;
+import dcraft.io.LocalFileStore;
 import dcraft.lang.op.FuncResult;
 import dcraft.lang.op.OperationContext;
 import dcraft.log.Logger;
 import dcraft.mod.IExtension;
 import dcraft.net.ssl.SslHandler;
 import dcraft.struct.Struct;
+import dcraft.util.IOUtil;
 import dcraft.util.StringUtil;
 import dcraft.web.WebModule;
 import dcraft.web.ui.UIElement;
@@ -25,6 +30,9 @@ import dcraft.web.ui.adapter.MarkdownOutputAdapter;
 import dcraft.web.ui.adapter.SsiOutputAdapter;
 import dcraft.web.ui.adapter.GasOutputAdapter;
 import dcraft.web.ui.adapter.StaticOutputAdapter;
+import dcraft.work.IWork;
+import dcraft.work.Task;
+import dcraft.work.TaskRun;
 import dcraft.web.ui.adapter.DynamicOutputAdapter;
 import dcraft.xml.XElement;
 import dcraft.xml.XNode;
@@ -57,6 +65,7 @@ public class WebSite {
 	protected List<HubPackage> packagelist = null;
 	
 	protected boolean legacyweb = false;
+	protected boolean srcptstlcache = false;
 	
 	public HtmlMode getHtmlMode() {
 		return this.htmlmode;
@@ -79,6 +88,10 @@ public class WebSite {
 	
 	public boolean isLegacySite() {
 		return this.legacyweb;
+	}
+	
+	public boolean isScriptStyleCached() {
+		return this.srcptstlcache;
 	}
 	
 	public List<HubPackage> getPackagelist() {
@@ -172,8 +185,185 @@ public class WebSite {
 		
 		if (Logger.isDebug())
 			Logger.debug("Package list: " + this.site.get().getTenant().getAlias() + " : " + this.site.get().getAlias() + " - " + this.packagelist.size());
+		
+		if (! this.legacyweb && ((this.htmlmode == HtmlMode.Dynamic) || (this.htmlmode == HtmlMode.Strict)) 
+				&& (mod != null) && mod.isScriptStyleCached()) 
+			this.buildScriptStyleCache();
 	}
 
+	// see Html class also - if scripts ever change
+	public void buildScriptStyleCache() {
+		//System.out.println("Script Style Cache for: " + this.getSite().getTenant().getAlias() + 
+		//		"/" + this.getSite().getAlias());
+		
+		Task buildcache = Task.taskWithSubContext()
+				.withTitle("Script Style Cache for: " + this.getSite().getTenant().getAlias() + 
+						"/" + this.getSite().getAlias())
+				.withTopic("Batch")
+				.withWork(new IWork() {
+					@Override
+					public void run(TaskRun trun) {
+						Path sitepath = WebSite.this.site.get().getPath();
+						
+						LocalFileStore fs = Hub.instance.getTenantsFileStore();
+						
+						if (fs == null)
+							return;
+						
+						// styles
+						
+						List<String> styles = WebSite.this.globalStyles(false, false);
+						
+						ByteBufWriter bbw = ByteBufWriter.createLargeHeap();
+						
+						for (String style : styles) {
+							CacheFile wpath = WebSite.this.findFilePath(new CommonPath(style), false);
+							
+							if (wpath != null)
+								bbw.write(wpath.asBuffer());		// TODO min
+							else
+								Logger.error("Style not found: " + style);
+						}
+						
+						Path stylepth = sitepath.resolve("www/css/dc-cache.min.css");
+
+						IOUtil.saveBuffer(stylepth, bbw.getByteBuf());	// releases the buffer
+						
+						// scripts
+						
+						List<String> scripts = WebSite.this.globalScripts(false, false);
+						
+						bbw = ByteBufWriter.createLargeHeap();
+						
+						for (String script : scripts) {
+							CacheFile wpath = WebSite.this.findFilePath(new CommonPath(script), false);
+							
+							if (wpath != null)
+								bbw.write(wpath.asBuffer());		// TODO min
+							else
+								Logger.error("Script not found: " + script);
+						}
+						
+						IOUtil.saveBuffer(sitepath.resolve("www/js/dc-cache.min.js"), bbw.getByteBuf());	// releases the buffer
+						
+						WebSite.this.srcptstlcache = true;
+						
+						trun.complete();
+					}
+				});
+		
+		Hub.instance.getWorkPool().submit(buildcache);
+	}
+	
+	public List<String> globalStyles(boolean includeWebRemote, boolean cachmode) {
+		List<String> ret = new ArrayList<>();
+		
+		if (includeWebRemote && (this.webconfig != null)) {
+			for (XElement gel : this.webconfig.selectAll("Global")) {
+				if (gel.hasNotEmptyAttribute("Style")) {
+					String surl = gel.getAttribute("Style");
+					
+					if (! UIUtil.urlLooksLocal(surl))
+						ret.add(surl);
+				}
+			}
+		}
+		
+		if (cachmode) {
+			ret.add("/css/dc-cache.min.css");
+			return ret;
+		}
+		
+		for (int i = this.packagelist.size() - 1; i >= 0; i--) {
+			HubPackage pack = this.packagelist.get(i);
+			
+			XElement set = pack.getSettings();
+			
+			if (set == null)
+				continue;
+			
+			XElement web = set.find("Web");
+			
+			if (web == null)
+				continue;
+			
+			for (XElement gel : web.selectAll("Global")) {
+				if (gel.hasNotEmptyAttribute("Style")) 
+					ret.add(gel.getAttribute("Style"));
+			}
+		}
+		
+		if (this.webconfig != null) {
+			for (XElement gel : this.webconfig.selectAll("Global")) {
+				if (gel.hasNotEmptyAttribute("Style")) {
+					String surl = gel.getAttribute("Style");
+					
+					if (UIUtil.urlLooksLocal(surl))
+						ret.add(surl);
+				}
+			}
+		}
+
+		ret.add("/css/main.css");		// site specifics and overrides
+		
+		return ret;
+	}
+	
+	public List<String> globalScripts(boolean includeWebRemote, boolean cachmode) {
+		List<String> ret = new ArrayList<>();
+		
+		if (includeWebRemote && (this.webconfig != null)) {
+			for (XElement gel : this.webconfig.selectAll("Global")) {
+				if (gel.hasNotEmptyAttribute("Script")) {
+					String surl = gel.getAttribute("Script");
+					
+					if (! UIUtil.urlLooksLocal(surl))
+						ret.add(surl);
+				}
+			}
+		}
+		
+		if (cachmode) {
+			ret.add("/js/dc-cache.min.js");
+			return ret;
+		}
+		
+		for (int i = this.packagelist.size() - 1; i >= 0; i--) {
+			HubPackage pack = this.packagelist.get(i);
+			
+			XElement set = pack.getSettings();
+			
+			if (set == null)
+				continue;
+			
+			XElement web = set.find("Web");
+			
+			if (web == null)
+				continue;
+			
+			for (XElement gel : web.selectAll("Global")) {
+				if (gel.hasNotEmptyAttribute("Script")) 
+					ret.add(gel.getAttribute("Script"));
+			}
+		}
+		
+		if (this.webconfig != null) {
+			for (XElement gel : this.webconfig.selectAll("Global")) {
+				if (gel.hasNotEmptyAttribute("Script")) {
+					String surl = gel.getAttribute("Script");
+					
+					if (UIUtil.urlLooksLocal(surl))
+						ret.add(surl);
+				}
+			}
+		}
+
+		ret.add("/js/main.js");		// site specifics and overrides
+
+		ret.add("/js/dc.go.js");		// start the UI scripts
+		
+		return ret;
+	}
 	
 	public IOutputMacro getMacro(String name) {
 		// TODO site or domain level support for macros

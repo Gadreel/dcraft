@@ -32,6 +32,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.text.DecimalFormat;
 import java.util.EnumSet;
 import java.util.Random;
 import java.util.UUID;
@@ -417,6 +418,24 @@ public class FileUtil {
         
         return or;
     }
+    
+	static public String formatFileSize(long size) {
+	    if(size <= 0) 
+	    	return "0";
+	    
+	    int exp = (int) (Math.log10(size) / Math.log10(1024));
+	    
+	    String f = new DecimalFormat("#,##0.#").format(size / Math.pow(1024, exp)); 
+		
+	    return f  + " " + (exp == 0 ? "bytes": "KMGTPEZY".charAt(exp - 1) + "B");
+	    
+	    /*
+		long exp = Math.log(bytes) / Math.log(1024) | 0;
+		long result = ((long) (bytes / Math.pow(1024, exp))).toFixed(2);
+
+		return result + ' ' + (exp == 0 ? "bytes": "KMGTPEZY".charAt(exp - 1) + 'B');
+		*/
+	}
     
     static public long parseFileSize(String size) {
 		Long x = StringUtil.parseLeadingInt(size);

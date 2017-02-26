@@ -87,8 +87,6 @@ public class UIWork extends StateWork {
 	
 	@Override
 	public WorkStep initialize(TaskRun trun) {
-		super.initialize(trun);
-
 		// setup the callbacks here so the correct OperationContext applies
 		
 		this.expandcount = new CountDownCallback(1, new OperationCallback() {
@@ -147,6 +145,10 @@ public class UIWork extends StateWork {
 	public WorkStep sequence(TaskRun trun) {
 		this.root.sequence();
 		
+		return WorkStep.NEXT;
+	}
+
+	public WorkStep finialize(TaskRun trun) {
 		return WorkStep.NEXT;
 	}
 }

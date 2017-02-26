@@ -1005,6 +1005,9 @@ dc.pui.Apps = {
 		return false;
 	},
 	activateCms: function(options, cb) {
+		if (! dc.user.isAuthorized(['Editor', 'Admin'])) 
+			return;
+			
 		dc.pui.Apps.loadCms(function() {
 			dc.cms.Loader.init(options);	
 			
@@ -2848,6 +2851,54 @@ dc.pui.Tags = {
 			else
 				dc.pui.FullScreen.loadPage('/dcw/ViewImage', {
 					//Path: '/galleries' + show.Path + '/' + show.Images[show.StartPos] + '.v/' + vname
+					View: show
+				});
+			
+			e.preventDefault();
+			return false;
+		});
+	},
+	'dc.MediaSection': function(entry, node) {
+		$(node).find('.dc-section-gallery-list > *').each(function() { 
+			var kind = $(this).attr('data-dc-kind');
+			
+			if (kind == 'video') {
+				var pbtn = $('<div></div>');
+				
+				pbtn.addClass('dc-media-video');
+				
+				$(this).append(pbtn);
+			}
+		});
+	
+		$(node).find('.dc-section-gallery-list > *').on("click", function(e) { 
+			//console.log('img: ' + $(this).attr('data-image') + " show: "
+			//	+ $(node).attr('data-show') + " path: " + $(node).attr('data-path'));
+			
+			var sposanchor = $(this).closest('.dc-gallery-image-anchor').get(0);
+			var spos = sposanchor ? $(sposanchor).index() : $(this).index();
+			
+			var show = {
+				StartPos: spos,
+				AutoAdvance: false,
+				Images: []
+			};
+			
+			$(node).find('.dc-section-gallery-list img').each(function() { 
+				var idata = $(this).attr('data-dc-media');
+				
+				if (!idata)
+					return;
+			
+				var ii = JSON.parse(idata);
+				
+				show.Images.push(ii);
+			});
+			
+			if (dc.handler && dc.handler.tags && dc.handler.tags.ViewMedia && dc.handler.tags.ViewMedia.open) 
+				dc.handler.tags.ViewMedia.open(entry, node, show);
+			else
+				dc.pui.FullScreen.loadPage('/dcw/ViewMedia', {
 					View: show
 				});
 			

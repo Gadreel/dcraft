@@ -3,6 +3,7 @@ package dcraft.web.ui.adapter;
 import java.io.IOException;
 
 import dcraft.filestore.CommonPath;
+import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.io.CacheFile;
 import dcraft.web.core.IOutputAdapter;
@@ -40,6 +41,8 @@ public class StaticOutputAdapter implements IOutputAdapter {
 	public void execute(IOutputContext ctx) throws Exception {
 		if (ctx instanceof WebContext) {
 			WebContext wctx = (WebContext) ctx;
+			
+			Hub.instance.getCountManager().countObjects("dcWebOutStaticCount-" + ctx.getTenant().getAlias(), this);
 			
 			Response resp = wctx.getResponse(); 
 			

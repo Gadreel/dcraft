@@ -33,7 +33,9 @@ public class HubPackages {
 	
 	public void load(XElement cel) {
 		for (XElement pack : cel.selectAll("Packages/Package")) {
-			HubPackage p = new HubPackage(pack);
+			HubPackage p = new HubPackage();
+			
+			p.load(pack);
 			
 			this.packages.add(p);
 			this.reversepackages.add(0, p);

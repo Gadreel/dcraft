@@ -1,10 +1,7 @@
 package dcraft.service.db;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import org.joda.time.DateTime;
 
 import static dcraft.db.Constants.DB_GLOBAL_TENANT_DB;
 import dcraft.bus.IService;
@@ -40,10 +37,8 @@ import dcraft.struct.CompositeStruct;
 import dcraft.struct.ListStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.struct.Struct;
-import dcraft.util.IOUtil;
 import dcraft.util.StringUtil;
 import dcraft.work.TaskRun;
-import dcraft.xml.XAttribute;
 import dcraft.xml.XElement;
 import dcraft.xml.XmlReader;
 
@@ -308,6 +303,7 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				return ;
 			}
 			
+			/* TODO review
 			if ("AddTenant".equals(op)) {
 				ReplicatedDataRequest req = new InsertRecordRequest()
 					.withTable(DB_GLOBAL_TENANT_DB)
@@ -359,6 +355,7 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				
 				return;
 			}
+			*/
 						
 			if ("ImportTenant".equals(op)) {
 				//SiteInfo site = OperationContext.get().getSite();
@@ -413,8 +410,9 @@ public class CoreDataServices extends ExtensionBase implements IService {
 				
 				ListStruct dnames = new ListStruct();
 				
-				for (XElement del2 : domainsettings.selectAll("Tenant"))
-					dnames.addItem(del2.getAttribute("Name"));
+				// prefer not
+				//for (XElement del2 : domainsettings.selectAll("Tenant"))
+				//	dnames.addItem(del2.getAttribute("Name"));
 				
 				DataRequest req = new DataRequest("dcLoadTenants");		// must be in root .withRootTenant();	// use root for this request
 				

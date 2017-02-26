@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30">
+<style type="text/css">
+	.dot {
+		fill: rgba(0,0,0,0.50);
+	}
+	.arrow {
+		fill: rgba(232,232,232,0.80);	
+	}
+	.go:hover .arrow {
+		fill: rgba(255,255,255,0.80);	
+	}
+</style>
+
+<g class="go">
+	<circle class="dot" cx="15" cy="15" r="14" />
+	<polygon class="arrow" points="10,6 24,15 10,24" />
+</g>
+</svg>

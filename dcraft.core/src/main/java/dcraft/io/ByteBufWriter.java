@@ -4,7 +4,7 @@ import dcraft.hub.Hub;
 import dcraft.lang.chars.Utf8Encoder;
 import io.netty.buffer.ByteBuf;
 
-public class ByteBufWriter {
+public class ByteBufWriter implements AutoCloseable {
 	static public ByteBufWriter createLargeHeap() {
 		ByteBufWriter bw = new ByteBufWriter();
 		bw.buffer = Hub.instance.getBufferAllocator().heapBuffer(32 * 1024, 4 * 1024 * 1024);
@@ -53,6 +53,7 @@ public class ByteBufWriter {
 	
 	public void write(ByteBuf v) {
 		this.buffer.writeBytes(v);
+		v.release();
 	}
 
 	public int readableBytes() {
@@ -61,5 +62,11 @@ public class ByteBufWriter {
 
 	public ByteBuf getByteBuf() {
 		return this.buffer;
+	}
+
+	@Override
+	public void close() throws Exception {
+		this.buffer.release();
+		this.buffer = null;
 	}
 }

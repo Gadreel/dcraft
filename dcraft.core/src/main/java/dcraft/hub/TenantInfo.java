@@ -245,8 +245,12 @@ public class TenantInfo extends CommonInfo implements IFileWatcher {
 
 	@Override
 	public void fireFolderEvent(Path fname, WatchEvent.Kind<Path> kind) {
+		Hub.instance.getWorkPool().submit(this.reloadSettingsTask());
+	}
+	
+	public Task reloadSettingsTask() {
 		// make sure the event fires in the right context and out of the event thread
-		Task task = Task
+		return Task
 			.taskWithContext(new OperationContextBuilder()
 					.withRootTaskTemplate()
 					.withTenantId(this.getId())
@@ -261,8 +265,6 @@ public class TenantInfo extends CommonInfo implements IFileWatcher {
 					trun.complete();
 				}
 			});
-		
-		Hub.instance.getWorkPool().submit(task);
 	}
 	
 	public void reloadSettings() {

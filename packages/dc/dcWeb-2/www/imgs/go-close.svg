@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30">
+<style type="text/css">
+	.dot {
+		fill: rgba(0,0,0,0.50);
+	}
+	.line {
+		stroke: rgba(232,232,232,0.80);	
+		stroke-width: 5px;
+	}
+	.go:hover .line {
+		stroke: rgba(255,255,255,0.80);	
+	}
+</style>
+
+<g class="go">
+	<circle class="dot" cx="15" cy="15" r="14" />
+	<line class="line" x1="8" y1="8" x2="21" y2="22" />
+	<line class="line" x1="21" y1="8" x2="8" y2="22" />
+</g>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 30" width="90" height="30">
+<style type="text/css">
+	.dot {
+		-webkit-animation: dot-blink 2s ease infinite;
+		animation: dot-blink 2s ease infinite;
+	}
+	.dot-2 {
+		-webkit-animation-delay:.4s;
+		animation-delay:.4s;
+	}
+	.dot-3 {
+		-webkit-animation-delay:.6s;
+		animation-delay:.6s;
+	}
+
+	@-webkit-keyframes dot-blink {
+		0%, 100%, 40% {
+			fill: #697fb8;
+		}
+		20% {
+			fill: #23f5ff;
+		}
+	}
+
+	@keyframes dot-blink {
+		0%, 100%, 40% {
+			fill: #697fb8;
+		}
+		20% {
+			fill: #23f5ff;
+		}
+	}
+</style>
+
+<g class="dots">
+	<circle class="dot dot-1" cx="15" cy="15" r="10" fill="#697fb8" />
+	<circle class="dot dot-2" cx="45" cy="15" r="10" fill="#697fb8" />
+	<circle class="dot dot-3" cx="75" cy="15" r="10" fill="#697fb8" />
+</g>
+</svg>
+  

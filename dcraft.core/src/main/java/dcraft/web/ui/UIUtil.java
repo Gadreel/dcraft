@@ -277,4 +277,14 @@ public class UIUtil {
 		
 		return pel;
 	}	
+	
+	static public boolean urlLooksLocal(String url) {
+		if (StringUtil.isEmpty(url))
+			return false;
+		
+		if (url.startsWith("https://") || url.startsWith("http://") || url.startsWith("//"))
+			return false;
+		
+		return true;
+	}
 }

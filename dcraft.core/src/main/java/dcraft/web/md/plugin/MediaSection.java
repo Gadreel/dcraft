@@ -38,6 +38,9 @@ public class MediaSection extends Plugin {
 
 		if (params.containsKey("ListId"))
 			pel.withAttribute("ListId", params.get("ListId"));
+		
+		if (params.containsKey("Title"))
+			pel.withAttribute("Title", params.get("Title"));
 
 		if (params.containsKey("Max"))
 			pel.withAttribute("Max", params.get("Max"));
@@ -51,7 +54,11 @@ public class MediaSection extends Plugin {
         String data = null;
         
         int splitpos = template.indexOf("\n---\n");
-        
+
+        if ((splitpos == -1) && template.startsWith("---\n")) {
+        	data = template.substring(5);
+        	template = "";
+        }
         if (splitpos != -1) {
         	data = template.substring(splitpos + 6);
         	template = template.substring(0, splitpos);

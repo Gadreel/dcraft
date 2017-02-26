@@ -36,7 +36,9 @@ public class Feed extends UIElement {
 
 		this.withAttribute("data-dcm-channel", channel);
 		
-		Period period = ISOPeriodFormat.standard().parsePeriod(start.startsWith("-") ? start.substring(1) : start);
+		Period period = StringUtil.isEmpty(start)
+				? Period.ZERO
+				: ISOPeriodFormat.standard().parsePeriod(start.startsWith("-") ? start.substring(1) : start);
 		
 		DateTime fromdate = new DateTime();		// TODO adjust to site chronology
 		

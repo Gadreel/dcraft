@@ -7,27 +7,27 @@
 	<!-- MessageCodes="90000-99999" for zCustom -->
 	
 	<DependsOn>
-		<Library File="bcpg-jdk15on-153.jar"/>
-		<Library File="bcpkix-jdk15on-153.jar"/>
-		<Library File="bcprov-ext-jdk15on-153.jar"/>
+		<Library File="bcpg-jdk15on-156.jar"/>
+		<Library File="bcpkix-jdk15on-156.jar"/>
+		<Library File="bcprov-ext-jdk15on-155.jar"/>
 		<Library File="commons-daemon-1.0.15.jar"/>
-		<Library File="commons-compress-1.9.jar" />
+		<Library File="commons-compress-1.13.jar" />
 		<Library File="groovy-all-2.4.7-indy.jar" />
-		<Library File="java-ipv6-0.15.jar"/>
-		<Library File="joda-time-2.5.jar" />
+		<Library File="java-ipv6-0.16.jar"/>
+		<Library File="joda-time-2.9.7.jar" />
 		<Library File="javax.mail-1.5.jar"/>
-		<Library File="jnotify-0.94.jar"/>
-		<Library File="jna-4.2.1.jar" />
-		<Library File="jna-platform-4.2.1.jar" />
-		<Library File="jsch-0.1.51.jar" />
-		<Library File="mariadb-java-client-1.1.6.jar" />
-		<Library File="netty-all-4.1.5.Final.jar" />
-		<Library File="rocksdbjni-3.9.1.jar"/>
-		<Library File="rsyntaxtextarea-2.5.3.jar"/>
+		<Library File="jsch-0.1.54.jar" />
+		<Library File="netty-all-4.1.8.Final.jar" />
+		<Library File="rocksdbjni-4.9.0.jar"/>
+		<Library File="slf4j-api-1.7.22.jar"/>
+
+		<!--  move to dcraft.dc		
 		<Library File="scribe-1.3.7.jar"/>
-		<Library File="slf4j-api-1.7.7.jar"/>
+		<Library File="rsyntaxtextarea-2.5.3.jar"/>
+		<Library File="mariadb-java-client-1.1.6.jar" />
 		<Library File="sqljdbc4.jar" />
-		
+		 -->
+		 
 		<Folder Path="bin"/>
 		<Folder Path="util"/>
 		<Folder Path="lib/licenses"/>
@@ -37,10 +37,6 @@
 	</DependsOn>
 	
 	<DependsOn Option="Windows">
-		<Library File="netty-all-4.0.34.Final.jar" />
-		<Library File="groovy-2.4.1-indy.jar"/>
-		<Library File="jnotify_64bit.dll"/>
-		
 		<File Path="Foreground.bat"/>
 		<File Path="InstallService.bat"/>
 		<File Path="ServiceStart.bat"/>
@@ -51,9 +47,6 @@
 	</DependsOn>
 	
 	<DependsOn Option="Linux">
-		<Library File="libjnotify.jnilib"/>
-		<Library File="libjnotify.so"/>
-		
 		<File Path="fixperms.sh"/>
 		<File Path="foreground.sh"/>
 		<File Path="update.sh"/>
@@ -65,76 +58,9 @@
 	</DependsOn>
 
 	<NoLongerDependsOn>
+		<!-- 
 		<Library File="netty-all-4.0.33.Final.jar" />
-		
-		<Library File="jna-4.1.0.jar" />
-		<Library File="jna-platform-4.1.0.jar" />
-		
-		<Library File="divconq.core.jar" />
-		<Library File="divconq.web.jar" />
-		<Library File="divconq.tasks.jar" />
-		<Library File="divconq.tasks.api.jar" />
-		<Library File="divconq.interchange.jar" />
-		
-		<Library File="netty-all-4.0.32.Final.jar" />
-		<Library File="bcpg-jdk15on-151.jar"/>
-		<Library File="bcpkix-jdk15on-151.jar"/>
-		<Library File="bcprov-ext-jdk15on-151.jar"/>
-		
-		<Library File="netty-all-4.0.26.Final.jar" />
-		
-		<Library File="groovy-2.4.0-indy.jar"/>
-		<Library File="groovy-nio-2.4.0-indy.jar"/>
-		<Library File="groovy-json-2.4.0-indy.jar"/>
-		<Library File="groovy-xml-2.4.0-indy.jar"/>
-		<Library File="groovy-sql-2.4.0-indy.jar"/>
-		<Library File="netty-all-4.0.25.Final.jar" />
-		
-		<Library File="rocksdbjni-3.9.0.jar"/>
-		<Library File="netty-all-4.0.24.Final.jar" />
-		<Library File="groovy-all-2.3.7-indy.jar"/>
-		
-		<Library File="slf4j-api-1.6.4.jar"/>
-		<Library File="netty-all-4.0.19.Final.jar" />
-		<Library File="commons-compress-1.3.jar" />
-		<Library File="joda-time-2.0.jar" />
-		<Library File="h2-1.3.171.jar" />
-		<Library File="groovy-all-2.3.4-indy.jar"/>
-		<Library File="jsch-0.1.47.jar" />
-		<Library File="rsyntaxtextarea-2.0.2.jar"/>
-		<Library File="bcpg-jdk15on-150.jar"/>
-		<Library File="bcpkix-jdk15on-150.jar"/>
-		<Library File="bcprov-ext-jdk15on-150.jar"/>
-		<Library File="netty-all-4.0.23.Final.jar" />
-		
-		<Library File="csv4180-0.2.3.jar"/>
-		<Library File="jackson-core-2.3.1.jar"/>
-		<Library File="jackson-annotations-2.3.1.jar"/>
-		<Library File="jackson-databind-2.3.1.jar"/>
-		<Library File="snakeyaml-1.9.jar"/>
-		<Library File="httpcore-4.2.1.jar"/>
-		<Library File="commons-lang3-3.1.jar" />
-		<Library File="commons-io-2.1.jar" />
-		<Library File="commons-codec-1.6.jar"/>
-		<Library File="guava-14.0-rc1.jar"/>
-		<Library File="snappy-0.3.jar"/>
-		<Library File="mina-core-2.0.7.jar"/>
-		<Library File="sshd-core-0.11.0.jar"/>
-		<Library File="sshd-pam-0.11.0.jar"/>
-		<Library File="sshd-sftp-0.11.0.jar"/>
-		<Library File="slf4j-jdk14-1.6.4.jar"/>
-		<Library File="leveldb-api-0.5.jar"/>
-		<Library File="leveldb-0.5.jar" />
-		
-		<Library File="aws-java-sdk-1.3.21.1.jar" />
-		<Library File="bcprov-jdk15on-150.jar" />
-		<Library File="lucene-core-4.1.0.jar" />
-		<Library File="lucene-analyzers-common-4.1.0.jar" />
-		<Library File="httpclient-4.2.1.jar" />
-		<Library File="lucene-queryparser-4.1.0.jar" />
-		<Library File="commons-httpclient-3.1.jar" />
-		<Library File="commons-logging-1.1.1.jar" />
-		<Library File="encoder-1.1.1.jar" />
+		-->
 	</NoLongerDependsOn>
 
 	<IgnorePaths>

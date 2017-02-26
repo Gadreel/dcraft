@@ -38,6 +38,8 @@ import javax.security.cert.X509Certificate;
 import dcraft.bus.Message;
 import dcraft.filestore.CommonPath;
 import dcraft.hub.TenantInfo;
+import dcraft.io.ByteBufWriter;
+import dcraft.lang.op.OperationContextBuilder;
 import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.log.Logger;
@@ -68,6 +70,9 @@ public class WebContext extends BaseContext {
     protected RecordStruct altparams = null;		// TODO remove once legacy email is removed, see DGA or such
     protected String sessionid = null;					
     protected boolean secure = false;
+    protected RpcHandler rpchandler = null;
+    protected OperationContextBuilder contextBuilder = null;
+    protected String oldAuthToken = null;
     
     public Request getRequest() {
 		return this.request;
@@ -99,6 +104,30 @@ public class WebContext extends BaseContext {
 	
 	public void setSecure(boolean v) {
 		this.secure = v;
+	}
+	
+	public RpcHandler getRpcHandler() {
+		return this.rpchandler;
+	}
+	
+	public void setRpcHandler(RpcHandler v) {
+		this.rpchandler = v;
+	}
+	
+	public OperationContextBuilder getContextBuilder() {
+		return this.contextBuilder;
+	}
+	
+	public void setContextBuilder(OperationContextBuilder v) {
+		this.contextBuilder = v;
+	}
+	
+	public String getOldAuthToken() {
+		return this.oldAuthToken;
+	}
+	
+	public void setOldAuthToken(String v) {
+		this.oldAuthToken = v;
 	}
 	
 	@Override
@@ -134,10 +163,6 @@ public class WebContext extends BaseContext {
 		return null;
 	}
 	
-	public void setChannel(Channel chan) {
-		this.chan = new WeakReference<Channel>(chan);
-	}
-    
     public void setDecoder(IContentDecoder v) {
 		this.decoder = v;
 	}
@@ -186,12 +211,6 @@ public class WebContext extends BaseContext {
 		
 		if (v instanceof LastHttpContent) 
 			this.decoder = null;
-		
-		// TODO in netty 5 alpha 1 this is getting called after each normal http get and is forcing us to close everytime
-		// we may want to review later
-		
-		//else
-		//	this.sendBadRequest();
 	}
 	
 	public void close() {
@@ -293,7 +312,12 @@ public class WebContext extends BaseContext {
 		if ((tchan != null) && (this.response != null)) 
 			this.response.writeStart(tchan, contentLength);
 	}
-
+	
+	public void send(ByteBufWriter content) {
+		this.send(content.getByteBuf());	// no need to release, that will be done by the channel's write
+	}
+	
+	// this must release what ever is passed in
 	public void send(ByteBuf content) {
 		Channel tchan = this.getChannel();
 		

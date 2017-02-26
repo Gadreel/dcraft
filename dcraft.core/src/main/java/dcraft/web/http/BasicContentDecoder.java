@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.LastHttpContent;
 
+// doesn't seem to be used, but if it will be make sure it frees the buffer
 public class BasicContentDecoder implements IContentDecoder {
 	protected FuncCallback<ByteBuf> callback = null;
 	protected ByteBufWriter buffer = ByteBufWriter.createLargeHeap();
@@ -32,7 +33,7 @@ public class BasicContentDecoder implements IContentDecoder {
         if (Logger.isDebug())
         	Logger.debug("Offered chunk size: " + size + " final: " + finalchunk);
         
-       	this.buffer.write(buffer);
+       	this.buffer.write(buffer);	// released here
        	
 		if (finalchunk) {
 			this.callback.setResult(this.buffer.getByteBuf());

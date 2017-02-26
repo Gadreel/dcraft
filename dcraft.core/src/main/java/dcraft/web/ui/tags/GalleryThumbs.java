@@ -206,6 +206,9 @@ public class GalleryThumbs extends UIElement {
 		  else if ("attr".equals(parts[0]) && (parts.length > 1)) {
 			  val = media.getAttribute(parts[1]);
 		  }
+		  else if ("mediakind".equals(parts[0])) {
+			  val = media.hasNotEmptyAttribute("Thumb") ? "image" : "video";
+		  }
 		  else if ("mediadata".equals(parts[0])) {
 			  RecordStruct mdata = new RecordStruct();
 			  

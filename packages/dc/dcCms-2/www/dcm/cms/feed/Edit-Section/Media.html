@@ -1,0 +1,217 @@
+<dc.Html Title="Media Content" AuthTags="Admin,Editor">
+	<dc.RequireLib Path="/js/vendor/Sortable.min.js" />
+	
+	<dc.Body>
+		<dc.PagePanel>
+			<div class="formbuttons">
+				<!-- 
+				<dc.Button Click="DoSelectImage" Label="Select Image From Gallery" />
+				<dc.Button Click="DoAddImage" Label="Upload New Image" />
+				<dc.Button Click="DoSaveShow" Label="Save" Scope="Primary" /> 
+				-->
+			</div>
+			
+			<div id="imageDesEList" class="dc-pui-sortable dcm-file-list" />					
+		</dc.PagePanel>
+	</dc.Body>
+	<dc.Function Name="Load"><![CDATA[
+			var entry = this;
+			
+			var list = $('#imageDesEList');		
+
+			var sortable = Sortable.create(list.get(0), {
+			    onEnd: function (evt) {
+			        entry.Store.Changed = true; 
+			               
+			        entry.callPageFunc('ReorderImages'); 
+			    }
+		    });
+	
+			list.empty();
+			list.append('<li><h3><i class="fa fa-spinner fa-spin"></i></h3></li>');
+			
+			// first time load
+			if (!entry.Params.Path) {
+				var cparams = dc.pui.App.Context.Params;
+				
+				if (cparams && cparams.Show) {
+					entry.Params.Path = cparams.Show.Path;
+					entry.Params.Alias = cparams.Show.Alias;
+				}
+			}
+		
+			entry.Store.Changed = false;
+			entry.Store.Show = null;			// obj from within settings
+			entry.Store.CurrImage = null;		// obj from within show
+			
+			entry.Store.Gallery = entry.Params.Gallery;
+			
+			var iloaded = function(gallery, resp) {
+				if (resp && resp.Result > 0) {
+					dc.pui.Popup.alert(resp.Message);
+					return;
+				}
+					
+				entry.Store.Gallery = gallery;
+			
+				if (entry.Params.Alias)
+					entry.Store.Show = entry.Store.Gallery.findShow(entry.Params.Alias);
+						
+				if (entry.Store.Show && ! entry.Store.Show.Images)
+					entry.Store.Show.Images = [];
+
+				entry.callPageFunc('RefreshImages');
+			};
+			
+			if (entry.Store.Gallery) {
+				iloaded(entry.Store.Gallery);
+				return;
+			}
+			
+			// load Gallery when missing parameter
+			// TODO dc.cms.image.Loader.loadGallery(entry.Params.Path, iloaded);
+	]]></dc.Function>
+	<dc.Function Name="Freeze">
+			var entry = this;
+			
+			// TODO store gallery order
+	</dc.Function>
+	<dc.Function Name="RefreshImages"><![CDATA[
+			var entry = this;
+			 
+			var list = $('#imageDesEList');
+			list.empty();
+			
+			if (entry.Store.Show) {
+				for (var i = 0; i < entry.Store.Show.Images.length; i++) {
+					var img = entry.Store.Show.Images[i]; 
+				
+					var litm = $('<a href="#" class="dcm-file"></a>');
+				
+					litm.attr('data-img-alias', img.Alias);
+						
+					var path = '/galleries' + entry.Params.Path + '/' + img.Alias;
+					
+					var imgel = $('<img src="/imgs/dots.png" />');
+					
+					litm.append(imgel);
+					
+					// to keep the scope of imgel, make function
+					var lfunc = function(path, imgel) {
+						dc.util.Image.load(path + '.v/thumb.jpg', 
+							function(img) {
+								if (img)
+									imgel.attr('src', img.src);
+								else
+									imgel.attr('src', '/imgs/question.png');
+							});
+					};
+					
+					lfunc(path, imgel);
+					
+					var itmtitle = $('<div class="dcm-file-title"></div>');
+					itmtitle.text(img.Title ? img.Title : img.Alias);
+					litm.append(itmtitle);
+				
+					litm.click(img, function(e) {
+					    //	console.log('xyz');
+					    
+					    if (entry.Store.SortTime) {
+					    	if (new Date().getTime() - entry.Store.SortTime.getTime() < 500) {
+						    	entry.Store.SortTime = null;
+						    	return;
+						    }
+					    }
+					    
+						var pageurl = entry.Store.Show.PropertyEditor 
+										? entry.Store.Show.PropertyEditor : '/dcm/cms/show/EditImage';
+						
+						dc.pui.Dialog.loadPage(pageurl, { 
+							Image: e.data,
+							Show: entry.Store.Show,
+							Gallery: entry.Store.Gallery,
+							Callback: function() {
+								entry.callPageFunc('RefreshImages');
+							}
+						});
+	
+						e.preventDefault();
+						return false;
+					});
+					
+					list.append(litm);
+				}
+			}
+	]]></dc.Function>
+	<dc.Function Name="ReorderImages"><![CDATA[
+			var entry = this;
+			
+			var oldimages = entry.Store.Show.Images;
+			entry.Store.Show.Images = [];
+			
+			$('#imageDesEList > a').each(function(i) {
+				var calias = $(this).attr('data-img-alias');
+				
+				//console.log('adding: ' + calias);
+				
+				for (var i = 0; i < oldimages.length; i++) {
+					var img = oldimages[i];
+					
+					if (img.Alias == calias) {
+						entry.Store.Show.Images.push(img);
+						break;
+					}
+				}
+			});			
+	]]></dc.Function>
+	<dc.Function Name="DoSaveShow"><![CDATA[
+			var entry = this;
+			
+			entry.Store.Gallery.updateShow(entry.Store.Show);
+
+			entry.Store.Gallery.save(function(resp) {
+				if (resp.Result > 0) 
+					dc.pui.Popup.alert(resp.Message);
+				else
+					dc.pui.Popup.alert('Show saved');
+			});		
+	]]></dc.Function>
+	<dc.Function Name="DoSelectImage"><![CDATA[			
+			var entry = this;
+		
+			dc.pui.Dialog.loadPage('/dcm/cms/galleries/Chooser', { 
+				Path: entry.Params.Path,
+				Chained: true,
+				Variation: entry.Store.Show.Variation,
+				Callback: function(res) {
+					if (res.Images) {
+						for (var i = 0; i < res.Images.length; i++) {
+							entry.Store.Show.Images.splice(i, 0, {
+								Alias: res.Images[i].FileName
+							});
+						}
+					}
+					
+					entry.callPageFunc('RefreshImages');
+				} 
+			});
+	]]></dc.Function>
+	<dc.Function Name="DoAddImage"><![CDATA[			
+			var entry = this;
+		
+			dc.pui.Dialog.loadPage('/dcm/cms/galleries/QuickUpload', { 
+				Gallery: entry.Store.Gallery,
+				Variation: entry.Store.Show.Variation,
+				Callback: function(files) {				// just a list of names
+					if (files) {
+						for (var i = 0; i < files.length; i++) 
+							entry.Store.Show.Images.splice(i, 0, {
+								Alias: files[i].FileName
+							});
+					}
+					
+					entry.callPageFunc('RefreshImages');
+				} 
+			});
+	]]></dc.Function>
+</dc.Html>

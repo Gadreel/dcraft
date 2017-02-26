@@ -210,6 +210,10 @@ dc.pui.Tags['dcm.TwitterTimelineLoader'] = function(entry, node) {
 
 dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 	var period = dc.util.Number.toNumberStrict($(node).attr('data-dcm-period'));
+	
+	if (! period)
+		period = 3500;
+	
 	var gallery = $(node).attr('data-dcm-gallery');
 	var show = $(node).attr('data-dcm-show');
 	
@@ -379,7 +383,7 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 				.css({ opacity: 1 })
 				.attr('src', $(fimg).attr('src'));
 			
-      		tryAnimate(3500);
+      		tryAnimate(period);
 		});
 		
 		$(node).find('.dcm-basic-carousel-img').velocity('stop').velocity({
@@ -426,7 +430,7 @@ dc.pui.Tags['dcm.BasicCarousel'] = function(entry, node) {
 		});	
 	};
 	
-	tryAnimate(3500);
+	tryAnimate(period);
 	
 	$(node).find('.dcm-basic-carousel-img').click(function(e) {
 		if (dc.handler && dc.handler.tags && dc.handler.tags.BasicCarousel && dc.handler.tags.BasicCarousel.click) {

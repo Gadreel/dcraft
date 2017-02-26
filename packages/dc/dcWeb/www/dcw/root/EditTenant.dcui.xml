@@ -27,7 +27,8 @@
 						<!-- not a good idea
 						<Link Click="DoDelete" Label="Delete" Icon="minus" />
 						-->
-						<SubmitButton Label="Save" Icon="check" /> 
+						<Button Click="DoRetire" Label="Retire" />
+						<SubmitButton Label="Save" /> 
 					</div> 
 				</Form>
 			</article>
@@ -81,7 +82,7 @@
 	<Function Name="AfterSave"><![CDATA[
 			window.history.back();
 	]]></Function>
-	<Function Name="DoDelete"><![CDATA[
+	<Function Name="DoRetire"><![CDATA[
 			var entry = this;
 			
 			if (!entry.Params.Id) {
@@ -89,12 +90,12 @@
 				return;
 			}
 			
-			dc.pui.Popup.confirm('Are you sure you want to delete this Tenant?', function() {
+			dc.pui.Popup.confirm('Are you sure you want to retire this Tenant? Change will take place after next server restart.', function() {
 				//console.log('delete');
 				dc.comm.sendMessage({ 
-					Service: 'sdBackend',
-					Feature: 'Tenant',
-					Op: 'Delete',
+					Service: 'dcCoreDataServices',
+					Feature: 'Tenants',
+					Op: 'RetireTenant',
 					Body: { 
 						Id: entry.Params.Id
 					}

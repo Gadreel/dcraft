@@ -19,7 +19,9 @@ package dcraft.web.ui.adapter;
 import java.io.BufferedReader;
 import java.io.StringReader;
 
+import dcraft.hub.Hub;
 import dcraft.util.StringUtil;
+import dcraft.web.core.IOutputContext;
 import dcraft.web.core.WebContext;
 import dcraft.web.ui.UIElement;
 import dcraft.web.ui.tags.Body;
@@ -98,5 +100,12 @@ public class MarkdownOutputAdapter extends DynamicOutputAdapter  {
 		}
 		
 		return this.source;
+	}
+	
+	@Override
+	public void execute(IOutputContext ctx) throws Exception {
+		Hub.instance.getCountManager().countObjects("dcWebOutMarkdownCount-" + ctx.getTenant().getAlias(), this);
+		
+		super.execute(ctx);
 	}
 }

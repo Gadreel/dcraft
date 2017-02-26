@@ -18,6 +18,7 @@ package dcraft.count;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,9 +49,21 @@ public class CountManager implements Observer {
 	public Counter getCounter(String name) {
 		return this.counters.get(name);
 	}
+
+	public boolean hasCounter(String name) {
+		return this.counters.containsKey(name);
+	}
 	
 	public Collection<Counter> getCounters() {
 		return this.counters.values();
+	}
+	
+	public Map<String, Counter> resetReturnCounters() {
+		Map<String, Counter> ret = this.counters;
+		
+		this.counters = new ConcurrentHashMap<>();
+		
+		return ret;
 	}
 
 	public NumberCounter allocateNumberCounter(String name) {

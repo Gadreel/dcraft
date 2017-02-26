@@ -279,6 +279,8 @@ public class DatabaseManager implements IDatabaseManager {
 		
 		String spname = proc.execute;
 		
+		Hub.instance.getCountManager().countObjects("dcProcCallCount", name);
+		
 		try {
 			Class<?> spclass = Class.forName(spname);
 			IStoredProc sp = (IStoredProc) spclass.newInstance();

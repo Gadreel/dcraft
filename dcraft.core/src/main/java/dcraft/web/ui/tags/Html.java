@@ -304,40 +304,18 @@ public class Html extends MixIn {
 		
 		// TODO research canonical url too
 		
-		// TODO someday support compiled scripts and css
-		//if (Hub.instance.getResources().isForTesting()) {
-			head
-				.with(new UIElement("link")
-						.withAttribute("type", "text/css")
-						.withAttribute("rel", "stylesheet")
-						.withAttribute("href", "/css/font-awesome.css"))
-				.with(new UIElement("link")
-						.withAttribute("type", "text/css")
-						.withAttribute("rel", "stylesheet")
-						.withAttribute("href", "/css/dc.app.css"))		// has Normalize and Pure, plus dc
-				.with(new UIElement("link")
-						.withAttribute("type", "text/css")
-						.withAttribute("rel", "stylesheet")
-						.withAttribute("href", "/css/main.css"));		// default website styling, until overridden
-		/*
-		}
-		else {
-			head.with(new UIElement("link")
-				.withAttribute("type", "text/css")
-				.withAttribute("rel", "stylesheet")
-				.withAttribute("href", "/css/cache/dc.min.css"));
-		}
-		*/
+		boolean cachemode = site.getWebsite().isScriptStyleCached() && ! ((WebContext) work.get().getContext()).isPreview();
 		
-		if (domainwebconfig != null) {
-			for (XElement gel : domainwebconfig.selectAll("Global")) {
-				if (gel.hasAttribute("Style"))
-					head.with(new UIElement("link")
-							.withAttribute("type", "text/css")
-							.withAttribute("rel", "stylesheet")
-							.withAttribute("href", gel.getAttribute("Style")));
-			}
-		}
+		// --- styles ---
+		
+		List<String> styles = work.get().getContext().getSite().getWebsite().globalStyles(true, cachemode);
+
+		for (String surl : styles)
+			head.with(new UIElement("link")
+					.withAttribute("type", "text/css")
+					.withAttribute("rel", "stylesheet")
+					.withAttribute("href", surl));
+		
 
 		// add in styles specific for this page so we don't have to wait to see them load 
 		// TODO enhance so style doesn't double load
@@ -349,70 +327,14 @@ public class Html extends MixIn {
 						.withAttribute("href", func.getAttribute("Path")));
 		}
 		
-		// trim down the required code
-		//if (Hub.instance.getResources().isForTesting()) {
-			head
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/vendor/jquery-3.1.1.slim.min.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/vendor/moment.min.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/vendor/numeral/numeral.min.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/vendor/numeral/languages.min.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/vendor/velocity.min.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/dc.lang.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/dc.schema.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/dc.schema.def.js"))   
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/dc.user.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/dc.comm.js"))
-				.with(new UIElement("script")
-						.withAttribute("defer", "defer")
-						.withAttribute("src", "/js/dc.app.js"))
-			;
-			/*
-		}
-		else {
-			head.with(new UIElement("script")
-				.withAttribute("defer", "defer")
-				.withAttribute("src", "/js/cache/dc.min.js"));
-		}
-		*/
+		// --- scripts ---
 		
-		head.with(new UIElement("script")
-				.withAttribute("defer", "defer")
-				.withAttribute("src", "/js/main.js"));		// after ui so we can override 
-			
-		if (domainwebconfig != null) {
-			for (XElement gel : domainwebconfig.selectAll("Global")) {
-				if (gel.hasAttribute("Script"))
-					head.with(new UIElement("script")
-							.withAttribute("defer", "defer")
-							.withAttribute("src", gel.getAttribute("Script")));
-			}
-		}
+		List<String> scripts = work.get().getContext().getSite().getWebsite().globalScripts(true, cachemode);
 
-		head.with(new UIElement("script")
-				.withAttribute("defer", "defer")
-				.withAttribute("src", "/js/dc.go.js"));		// start the UI scripts
-    	
-		//System.out.println("Body: " + body.toString(true));
+		for (String surl : scripts)
+			head.with(new UIElement("script")
+					.withAttribute("defer", "defer")
+					.withAttribute("src", surl));
 		
 		this
 			.withAttribute("lang", OperationContext.get().getWorkingLocaleDefinition().getLanguage())

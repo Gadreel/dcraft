@@ -4,6 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import dcraft.filestore.CommonPath;
+import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.io.ByteBufWriter;
 import dcraft.io.CacheFile;
@@ -75,6 +76,8 @@ public class SsiOutputAdapter implements IOutputAdapter {
 		if (ctx instanceof WebContext) {
 			WebContext wctx = (WebContext) ctx;
 			
+			Hub.instance.getCountManager().countObjects("dcWebOutSsiCount-" + ctx.getTenant().getAlias(), this);
+			
 			Response resp = wctx.getResponse(); 
 			
 			resp.setHeader("Content-Type", this.mime);
@@ -87,17 +90,19 @@ public class SsiOutputAdapter implements IOutputAdapter {
 			String content = this.processIncludes(ctx, this.file.asString());
 			
 			content = ctx.expandMacros(content);
-
+			
 			// TODO add compression
 			//if (asset.getCompressed())
 			//	resp.setHeader("Content-Encoding", "gzip");
-			
-			ByteBufWriter buffer = ByteBufWriter.createLargeHeap();
-			buffer.write(content);
-			
-			wctx.sendStart(buffer.readableBytes());
 
-			wctx.send(buffer.getByteBuf());
+			ByteBufWriter buffer = ByteBufWriter.createLargeHeap();
+			
+			buffer.write(content); 
+			
+			wctx.sendStart(buffer.readableBytes()); 
+			// this does get closed/released by send
+			
+			wctx.send(buffer); 
 
 			wctx.sendEnd();
 		}

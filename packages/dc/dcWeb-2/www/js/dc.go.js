@@ -11,10 +11,8 @@ $(document).ready(function() {
 	
 	dc.pui.Loader.init();
 	
-	if ((typeof ga == 'function') && dc.handler && dc.handler.settings && dc.handler.settings.ga) {
-		ga('create', dc.handler.settings.ga, 'auto');
-		ga('set', 'forceSSL', true);
-	}
+	if (dc.handler && dc.handler.settings && dc.handler.settings.ga) 
+		loadGA();
 	
 	dc.comm.init(function() {
 		if (dc.handler && dc.handler.init)
@@ -35,3 +33,22 @@ $(document).ready(function() {
 		}
 	});
 });
+
+function loadGA() {
+	GoogleAnalyticsObject = 'ga';
+	
+	ga = function() {
+		ga.q.push(arguments)
+	};
+	
+	ga.q = [];
+	ga.l = 1 * new Date();
+	
+	var script = document.createElement('script');
+	script.src = 'https://www.google-analytics.com/analytics.js';
+	script.async = true;  	
+	document.head.appendChild(script);
+	
+	ga('create', dc.handler.settings.ga, 'auto');
+	ga('set', 'forceSSL', true);
+}

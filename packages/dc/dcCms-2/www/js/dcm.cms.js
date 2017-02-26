@@ -267,6 +267,26 @@ dc.pui.Apps.Menus.dcmPagePartGallerySection = {
 	]
 };
 
+dc.pui.Apps.Menus.dcmPagePartMediaSection = {
+	Tabs: [
+		{
+			Alias: 'Content',
+			Title: 'List',
+			Path: '/dcm/cms/feed/Edit-Section/Media'			// TODO add /channel
+		},
+		{
+			Alias: 'Template',
+			Title: 'Template',
+			Path: '/dcm/cms/feed/Edit-Section/Media-Template'		// TODO add /channel
+		},
+		{
+			Alias: 'Properties',
+			Title: 'Properties',
+			Path: '/dcm/cms/feed/Edit-Section/Media-Prop'			// TODO add /channel
+		}
+	]
+};
+
 dc.pui.Apps.Menus.dcmSectionPopup = {
 	Options: [
 		{

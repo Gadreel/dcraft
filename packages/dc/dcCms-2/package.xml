@@ -7,4 +7,12 @@
 	<DependsOn>
 		<Package Name="dc/dcWeb" MinVersion="0.9" />
 	</DependsOn>
+	
+	<Settings>
+		<Web>
+			<Global Style="/css/dcm.app.css" />
+			
+			<Global Script="/js/dcm.app.js" />
+		</Web>
+	</Settings>
 </Package>

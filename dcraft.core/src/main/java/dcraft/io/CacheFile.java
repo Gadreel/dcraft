@@ -52,18 +52,18 @@ public class CacheFile {
 		
 		asset.path = innerpath;
 		asset.fpath = path;
-		
 		asset.ext = FileUtil.getFileExtension(innerpath);
 		
 		return asset;
 	}
 	
-	static public CacheFile fromBuffer(String innerpath, ByteBuf content) {
+	static public CacheFile fromBuffer(String innerpath, Path path, ByteBuf content) {
 		CacheFile asset = new CacheFile();
 		
 		asset.buffer = content;
 		asset.when = System.currentTimeMillis();
 		asset.path = innerpath;
+		asset.fpath = path;
 		asset.ext = FileUtil.getFileExtension(innerpath);
 		
 		return asset;
@@ -187,13 +187,17 @@ public class CacheFile {
 		*/
 		
 		ByteBuf b = this.asBuffer();
-		
-		if (b != null)
-			return Utf8Decoder.decode(b);
+
+		if (b != null) {
+			CharSequence ret = Utf8Decoder.decode(b);
+			b.release();
+			return ret;
+		}
 		
 		return null;
 	}
 	
+	// calls to this should do a release
 	public ByteBuf asBuffer() {
 		if ((this.buffer == null) && (this.fpath != null))
 			try {
@@ -215,7 +219,12 @@ public class CacheFile {
 				System.out.println("Issue with RAW ASSET buffer: " + x);
 			}
 		
-		return this.buffer;
+		if (this.buffer != null) {
+			this.buffer.retain();
+			return this.buffer;
+		}
+		
+		return null;
 	}
 
 	public int getSize() {

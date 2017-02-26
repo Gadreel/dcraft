@@ -35,6 +35,7 @@ import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
@@ -83,6 +84,7 @@ import dcraft.struct.CompositeStruct;
 import dcraft.struct.FieldStruct;
 import dcraft.struct.RecordStruct;
 import dcraft.util.FileUtil;
+import dcraft.util.IOUtil;
 import dcraft.util.MimeUtil;
 import dcraft.util.StringUtil;
 import dcraft.work.WorkPool;
@@ -128,6 +130,7 @@ public class Hub {
 	protected Scheduler scheduler = new Scheduler();
 	protected SqlManager sqldbman = new SqlManager();
 	protected LocalFileStore tenantsfilestore = null;
+	protected WatchKey tenantsfilequeuekey = null;
 	protected Sessions sessions = new Sessions();
 	protected HubResources resources = null;
 	protected SecurityPolicy policy = new SecurityPolicy();
@@ -142,7 +145,7 @@ public class Hub {
 	protected ConcurrentHashMap<Integer, Set<IEventSubscriber>> subscribers = new ConcurrentHashMap<>();
 	
 	protected ActivityManager actman = null;
-	protected ByteBufAllocator bufferAllocator = PooledByteBufAllocator.DEFAULT;
+	protected ByteBufAllocator bufferAllocator = PooledByteBufAllocator.DEFAULT; // UnpooledByteBufAllocator.DEFAULT;  // 
 	protected EventLoopGroup eventLoopGroup = null;
 	
 	protected CountManager countman = new CountManager(); 
@@ -762,6 +765,54 @@ public class Hub {
 			return or;
 		}
 		
+		Path fqueue = this.tenantsfilestore.resolvePath("/_fqueue");
+
+		try {
+			Files.createDirectories(fqueue);
+			
+			this.tenantsfilequeuekey = Hub.instance.registerFileWatcher(new IFileWatcher() {
+				@Override
+				public void fireFolderEvent(Path fname, Kind<Path> kind) {
+					if (fname.toString().equals("CMD") && (kind != ENTRY_DELETE)) {
+						Path fpath = Hub.this.tenantsfilestore.resolvePath("/_fqueue/" + fname);
+						
+						try {
+							String msg = StringUtil.stripWhitespace(IOUtil.readEntireFile2(fpath).toString());
+							
+							Files.delete(fpath);
+							
+							String cmd = msg.substring(0, msg.indexOf('='));
+							String exp = msg.substring(msg.indexOf('=') + 1);
+							
+							if (cmd.equals("REFRESH")) {
+								// clear all cache
+								if (exp.equals("_core")) {
+									Logger.info("Clearing the resource and tenant filestores cache");
+									
+									Hub.this.resources.getPackages().getPackageFileStore().clearCache();
+									Hub.this.tenantsfilestore.clearCache();
+								}
+								// reload just one tenant
+								else {
+									TenantInfo t = Hub.instance.tenantman.resolveTenantInfo(exp);
+									
+									if (t != null)
+										Hub.instance.getWorkPool().submit(t.reloadSettingsTask());
+								}
+							}
+						}
+						catch (Exception x) {
+							System.out.println("failed fqueue file: " + fname);
+						}						
+					}
+				}
+			}, fqueue);
+		}
+		catch (Exception x) {
+			or.exitCodeTr(141);
+			return or;
+		}
+		
 		// sessions 
 		or.debug(0, "Initializing local session manager");		
 		
@@ -921,6 +972,9 @@ public class Hub {
 				
 				h.getSessions().recordCounters();
 				
+				if (! cm.hasCounter("dcRunId"))
+					cm.allocateSetStringCounter("dcRunId", OperationContext.getRunId());
+				
 				//long st = System.currentTimeMillis();
 				
 				ClassLoadingMXBean clbean = ManagementFactory.getClassLoadingMXBean();
@@ -982,11 +1036,77 @@ public class Hub {
 
 			@Override
 			public int period() {
-				return 1;
+				return 300;
 			}
 		};
 		
-		Hub.instance.getClock().addFastSystemWorker(monitorcounters);
+		Hub.instance.getClock().addSlowSystemWorker(monitorcounters);
+		
+		/*
+		Hub.instance.getClock().addSlowSystemWorker(new ISystemWork() {
+			@Override
+			public void run(SysReporter reporter) {
+				PooledByteBufAllocator ba = (PooledByteBufAllocator) Hub.this.bufferAllocator;
+				
+				System.out.println("----");
+				
+				for (PoolArenaMetric ha : ba.heapArenas()) {
+					System.out.println("ha " + ha.numAllocations() + " : " + ha.numDeallocations() + " - " + ha.numActiveAllocations() + " - " + ha.numActiveBytes());
+					
+					for (PoolChunkListMetric cl : ha.chunkLists()) {
+						System.out.println("  - cl " + cl.minUsage() + " : " + cl.maxUsage());
+						
+						Iterator<PoolChunkMetric> pci = cl.iterator();
+						
+						while (pci.hasNext()) {
+							PoolChunkMetric pcm = pci.next();
+							
+							System.out.println("    - pcm " + pcm.chunkSize() + " : " + pcm.freeBytes());
+						}
+					}
+					
+					for (PoolSubpageMetric psm : ha.smallSubpages()) {
+						System.out.println("  - psms " + psm.pageSize() + " : " + psm.elementSize() + " : " +psm.numAvailable());
+					}
+					
+					for (PoolSubpageMetric psm : ha.tinySubpages()) {
+						System.out.println("  - psmt " + psm.pageSize() + " : " + psm.elementSize() + " : " +psm.numAvailable());
+					}
+				}
+				
+				for (PoolArenaMetric ha : ba.directArenas()) {
+					System.out.println("da " + ha.numAllocations() + " : " + ha.numDeallocations() + " - " + ha.numActiveAllocations());
+					
+					for (PoolChunkListMetric cl : ha.chunkLists()) {
+						System.out.println("  - cl " + cl.minUsage() + " : " + cl.maxUsage());
+						
+						Iterator<PoolChunkMetric> pci = cl.iterator();
+						
+						while (pci.hasNext()) {
+							PoolChunkMetric pcm = pci.next();
+							
+							System.out.println("    - pcm " + pcm.chunkSize() + " : " + pcm.freeBytes());
+						}
+					}
+					
+					for (PoolSubpageMetric psm : ha.smallSubpages()) {
+						System.out.println("  - psms " + psm.pageSize() + " : " + psm.elementSize() + " : " +psm.numAvailable());
+					}
+					
+					for (PoolSubpageMetric psm : ha.tinySubpages()) {
+						System.out.println("  - psmt " + psm.pageSize() + " : " + psm.elementSize() + " : " +psm.numAvailable());
+					}
+				}
+			}
+			
+			@Override
+			public int period() {
+				return 1;
+			}
+		});
+		*/
+		
+		//System.out.println("allocator: " + Hub.this.bufferAllocator.getClass().getCanonicalName());
 		
 		this.removeDependency(bootdep.source);
 		
@@ -1015,6 +1135,11 @@ public class Hub {
 		or.boundary("Origin", "hub:", "Op", "Stop");
 		
 		or.info(0, "Stopping hub");
+		
+		if (this.tenantsfilequeuekey != null) {
+			this.tenantsfilequeuekey.cancel();
+			this.tenantsfilequeuekey = null;
+		}
 		
 		or.info(0, "Waiting on Primary Tasks");
 		

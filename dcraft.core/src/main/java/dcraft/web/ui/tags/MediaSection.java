@@ -39,7 +39,7 @@ public class MediaSection extends Section {
 			template = this.getText();
 		
 	    if (StringUtil.isEmpty(template))
-	    	template = "<a href=\"#\"><img src=\"@path@\" data-dc-media=\"@mediadata@\" /></a>";
+	    	template = "<a href=\"#\" data-dc-kind=\"@mediakind@\"><img src=\"@path@\" data-dc-media=\"@mediadata@\" /></a>";
 	    
 	    List<XElement> medias = this.selectAll("Media");
 	    

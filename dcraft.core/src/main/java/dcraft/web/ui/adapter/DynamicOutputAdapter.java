@@ -71,6 +71,8 @@ public class DynamicOutputAdapter extends SsiOutputAdapter  {
 	public void execute(IOutputContext ctx) throws Exception {
 		if (ctx instanceof WebContext) {
 			WebContext wctx = (WebContext) ctx;
+			
+			Hub.instance.getCountManager().countObjects("dcWebOutDynamicCount-" + wctx.getTenant().getAlias(), this);
 		
 			String mode = wctx.getExternalParam("_dcui");
 			

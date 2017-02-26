@@ -1913,6 +1913,26 @@ code {
 	padding-bottom: 24px;
 }
 
+.dc-section-gallery-list > * {
+	position: relative;
+	display: inline-block;
+}
+
+.dc-section-gallery-list > * .dc-media-video {
+	position: absolute;
+	top: 0;
+	left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url(/imgs/video-play.png);
+    background-position: center;
+    background-repeat: no-repeat;	
+}
+
+.dc-section-gallery-list > *:hover .dc-media-video {
+	filter: grayscale(30%)
+}
+				
 @media all and (min-width: 0px) and (max-width: 959px) {
 	.dc-section-paired-media {
 		-webkit-flex-direction: column-reverse;
@@ -1995,6 +2015,7 @@ code {
 
 #dcuiMain {
 	position: fixed;
+	-webkit-overflow-scrolling: touch;
 	left: 0;
 	top: 0;
 	bottom: 0;
@@ -2242,32 +2263,52 @@ code {
 	display: none;
 }
 
+#panDcwFullClose {
+	position: absolute; 
+	top: 24px; 
+	right: 24px;
+}
 
-/*
-#panDcwImageViewer {
-	height: 100%;
-	overflow: hidden;
-	
-    display: -ms-flexbox;
-    display: -webkit-flex;
+#panDcwFullLeft {
+	position: absolute; 
+	top: 45%; 
+	left: 16px; 
+	display: none;
+}
+
+#panDcwFullRight {
+	position: absolute; 
+	top: 45%; 
+	right: 16px; 
+	display: none;
+}
+
+#panDcwFullClose svg,
+#panDcwFullLeft svg,
+#panDcwFullRight svg {
+	width: 40px;
+	height: 40px;
+}
+
+#panDcwMediaPane {
+    height: 100%;
+    background-color: rgba(0,0,0,0.66);
+	background-image: url(/imgs/load-dots.svg);
+	background-repeat: no-repeat;
+    background-position: center;
+    text-align: center;
     display: flex;
-    -webkit-flex-direction: column;
-    -ms-flex-direction: column;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-#panDcwImagePane {
-    -webkit-flex: 1 1 auto;
-    -ms-flex: 1 1 auto;
-	flex: 1 1 auto;
-	object-fit: contain;
-	overflow: hidden;
-	text-align: center;
+#panDcwMediaViewer > * {
+    max-width: 100vw;
+    max-height: 100vh;
+	display: block;
 }
 
-#panDcwImagePane img {
-	width: 100%;
-	max-height: 100%;
+#panDcwMediaViewer > iframe {
+    width: calc(100vh / 9 * 16);
+    height: 100vh;
 }
-
-*/

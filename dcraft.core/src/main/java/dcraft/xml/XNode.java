@@ -86,7 +86,7 @@ public abstract class XNode {
 	          sb.append("&quot;");
 	          break;
 	        case '\'':
-	          sb.append("&apos;");
+	          sb.append("&#39;");
 	          break;
 	        default:
 	          sb.append(ch);
@@ -107,7 +107,7 @@ public abstract class XNode {
 		case '"':
 			return "&quot;";
 		case '\'':
-			return "&apos;";
+			return "&#39;";
 		default:
 			return ch + "";
       }

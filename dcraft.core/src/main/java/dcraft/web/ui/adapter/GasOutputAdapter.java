@@ -5,6 +5,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import java.lang.reflect.Method;
 
 import dcraft.filestore.CommonPath;
+import dcraft.hub.Hub;
 import dcraft.hub.SiteInfo;
 import dcraft.io.ByteBufWriter;
 import dcraft.io.CacheFile;
@@ -69,6 +70,8 @@ public class GasOutputAdapter implements IOutputAdapter {
 	public void execute(IOutputContext ctx) throws Exception {
 		if (ctx instanceof WebContext) {
 			WebContext wctx = (WebContext) ctx;
+			
+			Hub.instance.getCountManager().countObjects("dcWebOutGasCount-" + wctx.getTenant().getAlias(), this);
 			
 			Response resp = wctx.getResponse(); 
 			
@@ -146,9 +149,10 @@ public class GasOutputAdapter implements IOutputAdapter {
 		//ByteBufWriter buffer = ByteBufWriter.createLargeHeap();
 		//buffer.write(content);
 		
-		ctx.sendStart(this.buffer.readableBytes());
+		ctx.sendStart(this.buffer.readableBytes()); 
 
-		ctx.send(this.buffer.getByteBuf());
+		// this will release the buffer
+		ctx.send(this.buffer); 
 
 		ctx.sendEnd();			
 	}

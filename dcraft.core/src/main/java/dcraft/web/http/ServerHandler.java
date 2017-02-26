@@ -19,6 +19,7 @@ package dcraft.web.http;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import dcraft.bus.Message;
 import dcraft.bus.MessageUtil;
@@ -76,7 +77,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	static protected OperationContext defaultOpContext = OperationContext.useNewGuest();  
 	
     protected WebContext context = null; 
-    protected RpcHandler rpchandler = null;
     
 	// TODO improve to ignore large POSTs on most Paths
 	// TODO ip lockout
@@ -88,19 +88,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
     	//System.out.println("server got object: " + msg.getClass().getName());
     	OperationContext.set(ServerHandler.defaultOpContext);
-    	
-    	WebContext wctx = this.context;
-    	
-    	if (wctx == null) 
-    		this.context = wctx = WebContext.forChannel(ctx.channel());
-
-    	if (this.context.getChannel() == null)
-    		this.context.setChannel(ctx.channel());
     	    	
     	if (msg instanceof HttpContent) {
-    		this.context.offerContent((HttpContent)msg);
+    		if (this.context == null) 
+    			return;
+    			
+			this.context.offerContent((HttpContent)msg);
+
+			if (msg instanceof LastHttpContent)  
+				this.context = null;
+
     		return;
     	}    	
+    	
+    	WebContext wctx = this.context = WebContext.forChannel(ctx.channel());
     	
     	// TODO
 		//System.out.println("Web server request " + msg.getClass().getName() + "  " + ctx.channel().localAddress() 
@@ -111,7 +112,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     				+ " from " + ctx.channel().remoteAddress()); 
     	
     	if (!(msg instanceof HttpRequest)) {
-        	this.context.sendRequestBad();
+        	wctx.sendRequestBad();
             return;
         }
 		
@@ -120,20 +121,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     	// at the least don't allow web requests until running
     	// TODO later we may need to have a "Going Down" flag and filter new requests but allow existing 
     	if (!Hub.instance.isRunning()) {
-    		this.context.sendInternalError();
+    		wctx.sendInternalError();
     		return;
     	}
     	
         // Handle a bad request.
         if (!httpreq.getDecoderResult().isSuccess()) {
-        	this.context.sendRequestBad();
+        	wctx.sendRequestBad();
             return;
         }
     	
-    	this.context.init(ctx, httpreq);
+    	wctx.init(ctx, httpreq);
         
-        Request req = this.context.getRequest();
-        Response resp = this.context.getResponse();
+        Request req = wctx.getRequest();
+        Response resp = wctx.getResponse();
         
         boolean pass = false;
 
@@ -151,7 +152,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     	}
 
 		if (!pass) {
-	        this.context.sendRequestBad();
+	        wctx.sendRequestBad();
 	        return;
 		}
 		
@@ -168,11 +169,16 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	    	if (Logger.isDebug())
 	    		Logger.debug("Tenant not found for: " + req.getHeader("Host"));
 	    	
-        	this.context.sendForbidden();
+        	wctx.sendForbidden();
             return;
 		}
 		
-		this.context.setSite(site);
+		wctx.setSite(site);
+		
+		Hub.instance.getCountManager().countObjects("dcWebRequestCount-" + wctx.getTenant().getAlias(), req);
+		
+    	Logger.info("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + 
+    			origin + " in: " + wctx.getTenant().getAlias() + "/" + wctx.getSite().getAlias());
 		
 		// check into url re-routing
 		String reroute = site.getWebsite().route(req, (SslHandler)ctx.channel().pipeline().get("ssl"));
@@ -181,9 +187,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	    	if (Logger.isDebug())
 	    		Logger.debug("Routing the request to: " + reroute);
 	    	
-			this.context.getResponse().setStatus(HttpResponseStatus.FOUND);
-			this.context.getResponse().setHeader("Location", reroute);
-			this.context.send();
+			wctx.getResponse().setStatus(HttpResponseStatus.FOUND);
+			wctx.getResponse().setHeader("Location", reroute);
+			wctx.send();
             return;
 		}
 		
@@ -217,10 +223,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 					authk.setHttpOnly(true);
 					
 					// help pass security tests if Secure by default when using https 
-					authk.setSecure(this.context.isSecure());
+					authk.setSecure(wctx.isSecure());
 					
-					this.context.getResponse().setCookie(authk);
-					this.context.sendForbidden();
+					wctx.getResponse().setCookie(authk);
+					wctx.sendForbidden();
 					return;
 				}
 				
@@ -240,10 +246,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 						authk.setHttpOnly(true);
 						
 						// help pass security tests if Secure by default when using https 
-						authk.setSecure(this.context.isSecure());
+						authk.setSecure(wctx.isSecure());
 						
-						this.context.getResponse().setCookie(authk);
-						this.context.sendForbidden();
+						wctx.getResponse().setCookie(authk);
+						wctx.sendForbidden();
 						return;
 					}
 
@@ -251,6 +257,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 				}
 			}
 		}
+		
+		wctx.setOldAuthToken(fauthtoken);
 		
 		if (sess == null) {
 			sess = Hub.instance.getSessions().create(site, origin, authtoken);
@@ -261,7 +269,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			//req.getSecuritySession().getPeerCertificates();
 			
 			/* TODO adapter review
-			sess.setAdatper(new HttpAdapter(this.context));
+			sess.setAdatper(new HttpAdapter(wctx));
 			*/
 			
 			Cookie sk = new DefaultCookie("dcSessionId", sess.getId() + "_" + sess.getKey());
@@ -269,18 +277,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			sk.setHttpOnly(true);
 			
 			// help pass security tests if Secure by default when using https 
-			sk.setSecure(this.context.isSecure());
+			sk.setSecure(wctx.isSecure());
 			
 			resp.setCookie(sk);		 
 		}
 		
-		this.context.setSessionId(sess.getId());
+		wctx.setSessionId(sess.getId());
 		
 		OperationContextBuilder ctxb = sess.getUser().toBuilder()
 				.withSessionId(sess.getId())
 				.withOrigin(origin);
 		
-		Cookie localek = this.resolveLocale(sess, ctxb);
+		wctx.setContextBuilder(ctxb);
+		
+		Cookie localek = this.resolveLocale(wctx, sess);
 		
 		if (localek != null) {
 			localek.setPath("/");
@@ -297,20 +307,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			// TODO add code and message
 			//resp.setHeader("X-dcResultCode", res.getCode() + "");
 			//resp.setHeader("X-dcResultMesage", res.getMessage());
-			this.context.sendNotFound();
+			wctx.sendNotFound();
 			return;
 		}
 		
 		// be sure to set Decoder before leaving the current thread
         if (req.pathEquals(ServerHandler.RPC_PATH)) {
-    		this.rpchandler = new RpcHandler(ServerHandler.this.context);
+    		wctx.setRpcHandler(new RpcHandler(wctx));
     		
     		// decoder will decode but not run the RPC until verify (below) is completed
-            ServerHandler.this.context.setDecoder(new HttpBodyRequestDecoder(4096 * 1024, this.rpchandler));
+            wctx.setDecoder(new HttpBodyRequestDecoder(4096 * 1024, wctx.getRpcHandler()));
         }        
         else if (needVerify && (req.getMethod() != HttpMethod.GET)) {
         	// cannot verify during upload
-        	this.context.sendRequestBad();
+        	wctx.sendRequestBad();
         	return;
         }
         
@@ -318,6 +328,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 
         // complete the verify before loading the page
 		if (needVerify) {
+			Hub.instance.getCountManager().countObjects("dcWebVerifyCount-" + tc.getTenant().getAlias(), req);
+			
+			// don't make WC a direct member of callback class below
+			AtomicReference<WebContext> actx = new AtomicReference<WebContext>(wctx);
+			
 			sess.verifySession(new FuncCallback<Message>() {					
 				@Override
 				public void callback() {
@@ -328,48 +343,51 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 					
 					tc.clearExitCode();
 					
-					ServerHandler.this.continueHttpRequest(ctxb, fauthtoken);
+					WebContext wc = actx.getAndSet(null);
+					
+					ServerHandler.this.continueHttpRequest(wc);
 				}
 			});
 		}
 		else {
-			ServerHandler.this.continueHttpRequest(ctxb, fauthtoken);
+			ServerHandler.this.continueHttpRequest(wctx);
 		}
     }
 	
     // after we get here we know we have a valid session and a valid user, even if that means that
     // the user session and user session requested has been replaced with Guest
-	public void continueHttpRequest(OperationContextBuilder ctxb, String oldauthtoken) {
-		String sessid = this.context.getSessionId();
+	public void continueHttpRequest(WebContext wctx) {
+		String sessid = wctx.getSessionId();
 		
     	Session sess = Hub.instance.getSessions().lookup(sessid);
 		
 		if (sess == null) {
-            this.context.sendRequestBad();
+            wctx.sendRequestBad();
             return;
 		}
     	
 		sess.touch();
 		
 		// context may have changed (in a verify), continue from session's context 
-		OperationContext tc = sess.useContext(ctxb);		// TODO review is this quite right - we do want to keep OpLocale (OpChron) but is this the best way? Or will we overwrite some props from User Auth?
+
+		OperationContext tc = sess.useContext(wctx.getContextBuilder());		// TODO review is this quite right - we do want to keep OpLocale (OpChron) but is this the best way? Or will we overwrite some props from User Auth?
 		
-		Request req = this.context.getRequest();
+		Request req = wctx.getRequest();
 		String origin = tc.getOrigin();
 		
 		String vauthtoken = tc.getUserContext().getAuthToken();
 		
 		//System.out.println("NOVHOATS final token: " + vauthtoken);
 		
-		if (! Objects.equals(oldauthtoken, vauthtoken)) {
+		if (! Objects.equals(wctx.getOldAuthToken(), vauthtoken)) {
 			Cookie authk = new DefaultCookie("dcAuthToken", (vauthtoken != null) ? vauthtoken : "");
 			authk.setPath("/");
 			authk.setHttpOnly(true);
 			
 			// help pass security tests if Secure by default when using https 
-			authk.setSecure(this.context.isSecure());
+			authk.setSecure(wctx.isSecure());
 			
-			this.context.getResponse().setCookie(authk);
+			wctx.getResponse().setCookie(authk);
 			
 			sess.addKnownToken(vauthtoken);
 		}
@@ -383,8 +401,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
         if (req.pathEquals(ServerHandler.RPC_PATH)) {
 	    	if (Logger.isDebug())
 	    		tc.debug("Web request for host: " + req.getHeader("Host") +  " url: " + req.getPath() + " by: " + origin + " session: " + sessid);
+			
+			Hub.instance.getCountManager().countObjects("dcWebRpcCount-" + tc.getTenant().getAlias(), req);
 
-	    	ServerHandler.this.rpchandler.tryProcess();
+			wctx.getRpcHandler().tryProcess();
 	    	
         	return;
         }        
@@ -414,7 +434,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 				// currently only supporting POST/PUT of pure binary - though support for form uploads can be restored, see below
 				// we cannot rely on content type being meaningful
 				//if (!"application/octet-stream".equals(req.getContentType().getPrimary())) {
-	            //    this.context.sendRequestBad();
+	            //    wctx.sendRequestBad();
 	            //    return;
 				//}
 
@@ -425,11 +445,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		        
 		    	if (Logger.isDebug())
 		    		Logger.debug("Initiating an upload block on " + cid + " for " + sessid);
+				
+				Hub.instance.getCountManager().countObjects("dcWebUploadCount-" + tc.getTenant().getAlias(), req);
 		    	
 				DataStreamChannel dsc = sess.getChannel(cid);
 				
 	    		if (dsc == null) {
-	                this.context.sendRequestBad();
+	                wctx.sendRequestBad();
 	                return;
 	    		}
 	    		
@@ -438,13 +460,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	    			public void cancel() {
 	    				Logger.error("Transfer canceled on channel: " + cid);
 						dsc.complete();
-						ServerHandler.this.context.sendRequestBad();	// TODO headers?
+						wctx.sendRequestBad();	// TODO headers?
 	    			}
 	    			
 	    			@Override
 	    			public void nextChunk() {
 	    				Logger.debug("Continue on channel: " + cid);
-						ServerHandler.this.context.sendRequestOk();
+						wctx.sendRequestOk();
 	    			}
 	    			
 	    			@Override
@@ -452,12 +474,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	    				if (msg.isFinal()) {
 	    					Logger.debug("Final on channel: " + cid);
 	    					dsc.complete();
-							ServerHandler.this.context.sendRequestOk();
+							wctx.sendRequestOk();
 	    				}
 	    			}
 	    		});	
 	    		
-	            this.context.setDecoder(new IContentDecoder() {
+	            wctx.setDecoder(new IContentDecoder() {
 	            	protected boolean completed = false;
 	            	protected int seq = 0;
 	            	
@@ -549,10 +571,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	            if (Logger.isDebug())
 		    		Logger.debug("Initiating an download on " + cid + " for " + sessid);
 				
+				Hub.instance.getCountManager().countObjects("dcWebDownloadCount-" + tc.getTenant().getAlias(), req);
+				
 				DataStreamChannel dsc = sess.getChannel(cid);
 				
 	    		if (dsc == null) {
-	                this.context.sendRequestBad();
+	                wctx.sendRequestBad();
 	                return;
 	    		}
 	    		
@@ -564,7 +588,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	    			public void cancel() {
 	    				Logger.debug("Transfer canceled on channel: " + cid);
 						dsc.complete();
-	    				ServerHandler.this.context.close();
+	    				wctx.close();
 	    			}
 	    			
 	    			@Override
@@ -587,7 +611,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     	    				
 	    					//this.amt += msg.getData().readableBytes();
 	    					HttpContent b = new DefaultHttpContent(Unpooled.copiedBuffer(msg.getData()));		// TODO not copied
-	    					ServerHandler.this.context.sendDownload(b);
+	    					wctx.sendDownload(b);
     					}
     					
     					this.seq++;
@@ -598,8 +622,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
     						if (Logger.isDebug())
     							Logger.debug("Transfer completed: " + msg.getData().readableBytes());
     	    				
-	    					ServerHandler.this.context.sendDownload(new DefaultLastHttpContent());
-		    				ServerHandler.this.context.close();
+	    					wctx.sendDownload(new DefaultLastHttpContent());
+		    				wctx.close();
 	    					dsc.complete();
     					}
 	    			}
@@ -608,12 +632,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 						Logger.error("Transfer error - " + code + ": " + msg);
 	    				
 	    				dsc.send(MessageUtil.streamError(code, msg));
-	    				ServerHandler.this.context.close();
+	    				wctx.close();
 	    			}
 	    		});		
 
 	    		// for some reason HyperSession is sending content. 
-	    		this.context.setDecoder(new IContentDecoder() {					
+	    		wctx.setDecoder(new IContentDecoder() {					
 					@Override
 					public void release() {
 					}
@@ -626,10 +650,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 				});
 
 	    		// tell the client that chunked content is coming
-	    		this.context.sendDownloadHeaders(dsc.getPath() != null ? dsc.getPath().getFileName() : null, dsc.getMime());
+	    		wctx.sendDownloadHeaders(dsc.getPath() != null ? dsc.getPath().getFileName() : null, dsc.getMime());
 	    		
 	    		// TODO for now disable compression on downloads - later determine if we should enable for some cases
-				this.context.getResponse().setHeader(HttpHeaders.Names.CONTENT_ENCODING, HttpHeaders.Values.IDENTITY);
+				wctx.getResponse().setHeader(HttpHeaders.Names.CONTENT_ENCODING, HttpHeaders.Values.IDENTITY);
 	    		
 				if (Logger.isDebug())
 					Logger.debug("Singal Transfer Start - " + cid);
@@ -645,11 +669,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 	        // --------------------------------------------
 	        
 			if ((req.getPath().getNameCount() == 1) && req.getPath().getName(0).equals(ServerHandler.STATUS_PATH)) {
+				Hub.instance.getCountManager().countObjects("dcWebStatusCount-" + tc.getTenant().getAlias(), req);
+				
 				if (Hub.instance.getState() == HubState.Running)
-	                this.context.sendRequestOk();
+	                wctx.sendRequestOk();
 				else
-					this.context.sendRequestBad();
-                
+					wctx.sendRequestBad();
+				
                 return;
 	        }
 			
@@ -662,29 +688,29 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			
 			OperationResult res = new OperationResult();
 			
-			this.context.getSite().getWebsite().execute(this.context);
+			wctx.getSite().getWebsite().execute(wctx);
 			
 			// no errors starting page processing, return 
 			if (res.hasErrors()) {
-				this.context.getResponse().setHeader("X-dcResultCode", res.getCode() + "");
-				this.context.getResponse().setHeader("X-dcResultMesage", res.getMessage());
-				this.context.sendNotFound();
+				wctx.getResponse().setHeader("X-dcResultCode", res.getCode() + "");
+				wctx.getResponse().setHeader("X-dcResultMesage", res.getMessage());
+				wctx.sendNotFound();
 			}
 		}
 		catch (Exception x) {
 			Logger.error("Request triggered exception: " + sessid + " - " + x);
 			
-			this.context.sendInternalError();
+			wctx.sendInternalError();
 		}
     }
 
-	public Cookie resolveLocale(Session sess, OperationContextBuilder ctxb) {
-		Map<String, LocaleDefinition> locales = this.context.getSite().getLocales();
+	public Cookie resolveLocale(WebContext wctx, Session sess) {
+		Map<String, LocaleDefinition> locales = wctx.getSite().getLocales();
 
 		LocaleDefinition locale = null;
 
 		// see if the path indicates a language
-		CommonPath path = context.getRequest().getPath();
+		CommonPath path = wctx.getRequest().getPath();
 		
 		if (path.getNameCount() > 0)  {
 			String lvalue = path.getName(0);
@@ -693,11 +719,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 			
 			// extract the language from the path
 			if (locale != null)
-				context.getRequest().setPath(path.subpath(1));
+				wctx.getRequest().setPath(path.subpath(1));
 		}
 
 		// but respect the cookie if it matches something though
-		Cookie langcookie = context.getRequest().getCookie("dcLang");
+		Cookie langcookie = wctx.getRequest().getCookie("dcLang");
 		
 		if (locale == null) {
 			if (langcookie != null) {
@@ -705,16 +731,16 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 				
 				// if everything checks out set the op locale and done
 				if (locales.containsKey(lvalue)) {
-					ctxb.withOperatingLocale(lvalue);
+					wctx.getContextBuilder().withOperatingLocale(lvalue);
 					return null;
 				}
 				
-				locale = this.context.getSite().getLocaleDefinition(lvalue);
+				locale = wctx.getSite().getLocaleDefinition(lvalue);
 				
 				// use language if variant - still ok and done
 				if (locale.hasVariant()) {
 					if (locales.containsKey(locale.getLanguage())) {
-						ctxb.withOperatingLocale(lvalue);		// keep the variant part, it may be used in places on site - supporting a lang implicitly allows all variants
+						wctx.getContextBuilder().withOperatingLocale(lvalue);		// keep the variant part, it may be used in places on site - supporting a lang implicitly allows all variants
 						return null;
 					}
 				}
@@ -725,12 +751,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		
 		// see if the domain is set for a specific language
 		if (locale == null) {
-			String domain = context.getRequest().getHeader("Host");
+			String domain = wctx.getRequest().getHeader("Host");
 			
 			if (domain.indexOf(':') > -1)
 				domain = domain.substring(0, domain.indexOf(':'));
 			
-			locale = this.context.getSite().getSiteLocales().get(domain);
+			locale = wctx.getSite().getSiteLocales().get(domain);
 		}
 		
 		// see if the user has a preference
@@ -743,8 +769,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Object> {
 		
 		// if we find any locale at all then to see if it is the default
 		// if not use it, else use the default
-		if ((locale != null) && !locale.equals(this.context.getSite().getDefaultLocale())) {
-			ctxb.withOperatingLocale(locale.getName());
+		if ((locale != null) && !locale.equals(wctx.getSite().getDefaultLocale())) {
+			wctx.getContextBuilder().withOperatingLocale(locale.getName());
 			return new DefaultCookie("dcLang", locale.getName());
 		}
 		
@@ -857,6 +883,8 @@ Cookie: SessionId=00700_fa2h199tkc2e8i2cs4e8s9ujhh_EetvVV9EocXc; $Path="/"
     	
     	WebContext wctx = this.context;
     	
+    	this.context = null;
+    	
     	if (wctx != null) 
     		wctx.closed();
     }
@@ -868,6 +896,8 @@ Cookie: SessionId=00700_fa2h199tkc2e8i2cs4e8s9ujhh_EetvVV9EocXc; $Path="/"
     				+ " from " + ctx.channel().remoteAddress());
     	
     	WebContext wctx = this.context;
+    	
+    	this.context = null;
     	
     	if (wctx != null) {
     		Logger.info("Web Server connection inactive: " + wctx.getSessionId());

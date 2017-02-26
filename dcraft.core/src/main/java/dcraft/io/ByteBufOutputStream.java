@@ -31,6 +31,14 @@ public class ByteBufOutputStream extends OutputStream {
 	public ByteBufOutputStream(ByteBufWriter buf) {
 		this.buf = buf.buffer;
 	}
+	
+	@Override
+	public void close() throws IOException {
+		this.buf.release();
+		this.buf = null;
+		
+		super.close();
+	}
 
 	public synchronized void write(int b) throws IOException {
 		this.buf.writeByte(b);

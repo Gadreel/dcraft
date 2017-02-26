@@ -10,8 +10,22 @@
 		<Library File="commons-lang3-3.1.jar" />
 	</DependsOn>
 	
-	<!-- may also list CompatibleWith for tested co-existance -->
-	<NoLongerDependsOn>
-		<Library File="markdown4j-2.2.jar" />
-	</NoLongerDependsOn>
+	<Settings>
+		<Web>
+			<Global Style="/css/font-awesome.css" />
+			<Global Style="/css/dc.app.css" />
+			
+			<Global Script="/js/vendor/jquery-3.1.1.slim.min.js" />
+			<Global Script="/js/vendor/moment.min.js" />
+			<Global Script="/js/vendor/numeral/numeral.min.js" />
+			<Global Script="/js/vendor/numeral/languages.min.js" />
+			<Global Script="/js/vendor/velocity.min.js" />
+			<Global Script="/js/dc.lang.js" />
+			<Global Script="/js/dc.schema.js" />
+			<Global Script="/js/dc.schema.def.js" />
+			<Global Script="/js/dc.user.js" />
+			<Global Script="/js/dc.comm.js" />
+			<Global Script="/js/dc.app.js" />
+		</Web>
+	</Settings>
 </Package>

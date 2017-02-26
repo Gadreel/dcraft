@@ -23,4 +23,10 @@
 		SiteAuthor="designCraft.io"
 		IndexUrl="https://root.dcraft/"
 	/>
+
+	<Schedules>
+		<CommonSchedule Title="Root Counters BATCH" MethodName="CollectCounters" View="Period">
+			<Period Value="PT5M" />
+		</CommonSchedule>
+	</Schedules>
 </Settings>
